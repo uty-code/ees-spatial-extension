@@ -395,12 +395,21 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
 
         List<MappingAnomalyDTO> anomalies = new ArrayList<>();
 
+        // 퇴사자 평가자 중복 보고 방지용 키 세트
+        Set<String> retiredAnomalyKeys = new HashSet<>();
+
         for (EvaluatorMapping m : allMappings) {
             Employee evaluator = empMap.get(m.getEvaluatorId());
             if (evaluator != null && "RETIRED".equals(evaluator.getStatusCode())) {
                 Employee evaluatee = empMap.get(m.getEvaluateeId());
-                if (evaluatee == null || "RETIRED".equals(evaluatee.getStatusCode())) continue;
-                
+                // 재직 중(EMPLOYED)인 피평가자만 검사 대상 (퇴사자, 승인대기자 등 제외)
+                if (evaluatee == null || !"EMPLOYED".equals(evaluatee.getStatusCode())) continue;
+
+                // 동일 피평가자-평가자-관계유형 조합의 중복 anomaly 방지
+                String dedupKey = m.getEvaluateeId() + "_" + m.getEvaluatorId() + "_" + m.getRelationTypeCode();
+                if (retiredAnomalyKeys.contains(dedupKey)) continue;
+                retiredAnomalyKeys.add(dedupKey);
+
                 String deptName = evaluatee.getDeptId() != null && deptMap.containsKey(evaluatee.getDeptId()) 
                                 ? deptMap.get(evaluatee.getDeptId()).getDeptName() : "알 수 없음";
                 
@@ -445,23 +454,48 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
             }
 
             if (!isExecutiveOrAdmin) {
-                boolean isLeader = evaluatee.getDeptId() != null && 
-                                  deptMap.containsKey(evaluatee.getDeptId()) && 
-                                  empId.equals(deptMap.get(evaluatee.getDeptId()).getLeaderId());
-                
-                if (!isLeader) {
+                // 부서 미배정 사원 별도 처리
+                if (evaluatee.getDeptId() == null) {
                     boolean hasManager = myMappings.stream().anyMatch(m -> "MANAGER".equals(m.getRelationTypeCode()));
                     if (!hasManager) {
                         anomalies.add(MappingAnomalyDTO.builder()
                                 .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
-                                .anomalyType("MISSING_MANAGER").description("1차 평가자(부서장) 매핑이 누락되었습니다.").severity("ERROR").build());
+                                .anomalyType("MISSING_MANAGER").description("부서가 미배정 상태이며, 1차 평가자(부서장) 매핑이 누락되었습니다.").severity("ERROR").build());
                     }
                 } else {
-                    long subordinateCount = myMappings.stream().filter(m -> "SUBORDINATE".equals(m.getRelationTypeCode())).count();
-                    if (subordinateCount == 0) {
-                        anomalies.add(MappingAnomalyDTO.builder()
-                                .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
-                                .anomalyType("MISSING_SUBORDINATE").description("다면 평가자(부서원) 매핑이 0명입니다.").severity("WARNING").build());
+                    // 부서장 판별: leader_id가 재직 중인 사원인지도 함께 검증
+                    Long leaderId = deptMap.containsKey(evaluatee.getDeptId())
+                                    ? deptMap.get(evaluatee.getDeptId()).getLeaderId() : null;
+                    boolean isLeader = leaderId != null && empId.equals(leaderId);
+
+                    // 부서장이 퇴사 상태이면 부서장으로 인정하지 않음
+                    if (isLeader) {
+                        Employee leaderEmp = empMap.get(leaderId);
+                        if (leaderEmp == null || !"EMPLOYED".equals(leaderEmp.getStatusCode())) {
+                            isLeader = false;
+                        }
+                    }
+
+                    if (!isLeader) {
+                        boolean hasManager = myMappings.stream().anyMatch(m -> "MANAGER".equals(m.getRelationTypeCode()));
+                        if (!hasManager) {
+                            // 부서장이 퇴사/부재 상태인 경우 메시지 차별화
+                            boolean leaderRetiredOrMissing = leaderId != null
+                                    && (empMap.get(leaderId) == null || !"EMPLOYED".equals(empMap.get(leaderId).getStatusCode()));
+                            String desc = leaderRetiredOrMissing
+                                    ? "소속 부서의 부서장이 퇴사/부재 상태이며, 1차 평가자(부서장) 매핑이 누락되었습니다."
+                                    : "1차 평가자(부서장) 매핑이 누락되었습니다.";
+                            anomalies.add(MappingAnomalyDTO.builder()
+                                    .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
+                                    .anomalyType("MISSING_MANAGER").description(desc).severity("ERROR").build());
+                        }
+                    } else {
+                        long subordinateCount = myMappings.stream().filter(m -> "SUBORDINATE".equals(m.getRelationTypeCode())).count();
+                        if (subordinateCount == 0) {
+                            anomalies.add(MappingAnomalyDTO.builder()
+                                    .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
+                                    .anomalyType("MISSING_SUBORDINATE").description("다면 평가자(부서원) 매핑이 0명입니다.").severity("WARNING").build());
+                        }
                     }
                 }
             }
