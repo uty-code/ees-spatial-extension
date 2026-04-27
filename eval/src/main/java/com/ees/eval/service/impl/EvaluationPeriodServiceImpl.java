@@ -170,8 +170,10 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
         // 모든 부서별 가중치 검증 (부서 자체 설정이 100%이거나, 전사 공통을 폴백받아 100%여야 함)
         List<DepartmentDTO> allDepts = departmentService.getSimpleAllDepartments();
         for (DepartmentDTO dept : allDepts) {
-            boolean isDeptValid = typeWeightService.isWeightSumValid(periodId, dept.deptId(), "STAFF");
-            if (!isDeptValid) {
+            boolean isStaffValid = typeWeightService.isWeightSumValid(periodId, dept.deptId(), "STAFF");
+            boolean isLeaderValid = typeWeightService.isWeightSumValid(periodId, dept.deptId(), "LEADER");
+            
+            if (!isStaffValid || !isLeaderValid) {
                 // 부서의 가중치가 100%가 아니면 (미설정 포함) 에러 목록에 추가
                 invalidScopes.add(dept.deptName());
             }

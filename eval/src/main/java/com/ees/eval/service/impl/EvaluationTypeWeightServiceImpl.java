@@ -50,7 +50,7 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
                 );
             } else if ("LEADER".equals(targetRoleCode)) {
                 dtoList = List.of(
-                    EvaluationTypeWeightDTO.builder().elementTypeCode("MULTI_DIMENSIONAL").weight(new BigDecimal("100.00")).build()
+                    EvaluationTypeWeightDTO.builder().elementTypeCode("PEER").weight(new BigDecimal("100.00")).build()
                 );
             }
         }
@@ -96,41 +96,33 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
         }
 
         // 1) 유형별 가중치(PERFORMANCE/COMPETENCY 비율) 합계 = 100% 검증
-        //    DB에 실제 저장된 값만 조회 (getTypeWeights의 기본값 폴백 사용하지 않음)
-        List<EvaluationTypeWeight> rawWeights = weightMapper.findByPeriodId(periodId, deptId, targetRoleCode);
+        // UI에서 보여지는 기본값(50/50)을 그대로 검증에 사용하기 위해 getTypeWeights 호출
+        // 저장버튼을 누르지 않아도 default로 50, 50 설정
+        List<EvaluationTypeWeightDTO> rawWeights = getTypeWeights(periodId, deptId, targetRoleCode);
 
-        // 부서 설정이 없으면 전사 공통(deptId=null) 폴백은 허용
-        if (rawWeights.isEmpty() && deptId != null) {
-            rawWeights = weightMapper.findByPeriodId(periodId, null, targetRoleCode);
-        }
-
-        // 전사 공통에도 없으면 → 미설정 상태
         if (rawWeights.isEmpty()) {
             return false;
         }
 
         BigDecimal total = rawWeights.stream()
-                .map(EvaluationTypeWeight::getWeight)
+                .map(EvaluationTypeWeightDTO::weight)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         if (total.compareTo(new BigDecimal("100.00")) != 0) {
             return false;
         }
 
         // 2) 각 유형별 평가 항목(element) 가중치 합계 = 100% 검증
-        //    부서 전용 항목 우선, 없으면 전사 공통으로 폴백
+        //    명시적으로 해당 부서(deptId)에 등록된 항목만 인정 (전사 공통 자동 폴백 제거)
         List<EvaluationElementDTO> elements;
         if (deptId != null) {
             elements = elementService.getElementsByPeriodId(periodId, deptId);
-            if (elements.isEmpty()) {
-                elements = elementService.getElementsByPeriodId(periodId, null);
-            }
         } else {
             elements = elementService.getElementsByPeriodId(periodId, null);
         }
 
         // 유형별 가중치가 설정된 항목에 대해서만 항목 가중치 합계 검증
-        for (EvaluationTypeWeight tw : rawWeights) {
-            String typeCode = tw.getElementTypeCode();
+        for (EvaluationTypeWeightDTO tw : rawWeights) {
+            String typeCode = tw.elementTypeCode();
             BigDecimal elementSum = elements.stream()
                     .filter(e -> typeCode.equals(e.elementTypeCode()))
                     .map(EvaluationElementDTO::weight)

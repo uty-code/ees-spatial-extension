@@ -88,8 +88,8 @@
                             </td>
                             <td class="py-3 text-center">
                                 <div class="d-flex gap-1 justify-content-center align-items-center">
-                                    <!-- 수정 버튼 (PLANNED 상태만) -->
-                                    <form th:if="${period.statusCode() == 'PLANNED'}"
+                                    <!-- 수정 버튼 (CLOSED 상태 제외 모두 가능) -->
+                                    <form th:if="${period.statusCode() != 'CLOSED'}"
                                         th:action="@{'/eval/periods/' + ${period.periodId()} + '/edit'}" method="get"
                                         class="d-inline">
                                         <button type="submit"
@@ -136,14 +136,14 @@
                                         </button>
                                     </form>
 
-                                    <!-- 삭제 버튼 (PLANNED 상태만) -->
-                                    <form th:if="${period.statusCode() == 'PLANNED'}"
+                                    <!-- 삭제 버튼 (CLOSED 상태 제외 모두 가능) -->
+                                    <form th:if="${period.statusCode() != 'CLOSED'}"
                                         th:action="@{'/eval/periods/' + ${period.periodId()} + '/delete'}" method="post"
                                         class="d-inline">
                                         <button type="submit"
                                             class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center"
                                             style="width: 32px; height: 32px;" title="삭제"
-                                            onclick="return confirm('이 차수를 삭제하시겠습니까?');">
+                                            onclick="return confirm('이 차수를 삭제하시겠습니까? 관련된 모든 데이터가 함께 삭제될 수 있습니다.');">
                                             <i class="bi bi-trash3"></i>
                                         </button>
                                     </form>
