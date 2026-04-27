@@ -1,15 +1,19 @@
 package com.ees.eval.service.impl;
 
 import com.ees.eval.domain.EvaluationPeriod;
+import com.ees.eval.dto.DepartmentDTO;
 import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.exception.EesOptimisticLockException;
 import com.ees.eval.mapper.EvaluationPeriodMapper;
+import com.ees.eval.service.DepartmentService;
 import com.ees.eval.service.EvaluationPeriodService;
+import com.ees.eval.service.EvaluationTypeWeightService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +27,8 @@ import java.util.stream.Collectors;
 public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
 
     private final EvaluationPeriodMapper periodMapper;
+    private final EvaluationTypeWeightService typeWeightService;
+    private final DepartmentService departmentService;
 
     /** 상태 코드 상수 정의 */
     private static final String STATUS_PLANNED = "PLANNED";
@@ -108,6 +114,10 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
                                     inProgressList.getFirst().getPeriodName() + "] " +
                                     "기존 차수를 완료 처리한 후 다시 시도해 주세요.");
                 }
+
+                // 가중치 설정 완료 여부 검증 (전사 공통 + 모든 부서)
+                validateAllWeightsConfigured(periodId);
+
                 yield STATUS_IN_PROGRESS;
             }
             case String s when s.equals(STATUS_IN_PROGRESS) && newStatusCode.equals(STATUS_COMPLETED) ->
@@ -141,6 +151,38 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
         int updatedRows = periodMapper.softDelete(periodId, currentUserId, LocalDateTime.now());
         if (updatedRows == 0) {
             throw new IllegalArgumentException("삭제 대상 차수를 찾을 수 없습니다. periodId: " + periodId);
+        }
+    }
+
+    /**
+     * 평가 시작 전 모든 가중치 설정이 올바른지 검증합니다.
+     * 전사 공통(deptId=null)과 모든 부서에 대해 STAFF 역할의 가중치를 검증합니다.
+     *
+     * @param periodId 검증 대상 차수 식별자
+     * @throws IllegalStateException 가중치 설정이 미완료된 부서가 존재할 경우
+     */
+    private void validateAllWeightsConfigured(Long periodId) {
+        List<String> invalidScopes = new ArrayList<>();
+
+        // 전사 공통은 가중치가 100%가 아니어도 평가 시작을 막지 않음 (사용자 요청)
+        // 따라서 "전사 공통"을 invalidScopes에 추가하는 로직 제거
+
+        // 모든 부서별 가중치 검증 (부서 자체 설정이 100%이거나, 전사 공통을 폴백받아 100%여야 함)
+        List<DepartmentDTO> allDepts = departmentService.getSimpleAllDepartments();
+        for (DepartmentDTO dept : allDepts) {
+            boolean isDeptValid = typeWeightService.isWeightSumValid(periodId, dept.deptId(), "STAFF");
+            if (!isDeptValid) {
+                // 부서의 가중치가 100%가 아니면 (미설정 포함) 에러 목록에 추가
+                invalidScopes.add(dept.deptName());
+            }
+        }
+
+        if (!invalidScopes.isEmpty()) {
+            throw new IllegalStateException(
+                    "가중치 설정이 완료되지 않은 부서가 있습니다: [" +
+                            String.join(", ", invalidScopes) + "]. " +
+                            "평가요소 관리에서 각 부서의 유형별 가중치(합계 100%)와 " +
+                            "항목별 가중치(유형별 합계 100%)를 모두 설정한 후 다시 시도해 주세요.");
         }
     }
 

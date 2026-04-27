@@ -69,6 +69,10 @@ public class EvaluationElementController {
             model.addAttribute("memberWeights", memberWeights);
             model.addAttribute("leaderWeights", leaderWeights);
             
+            // 편집 가능 여부: PLANNED 상태일 때만 수정 허용
+            boolean editable = "PLANNED".equals(selectedPeriod.statusCode());
+            model.addAttribute("editable", editable);
+            
             BigDecimal memberTotal = elements.stream()
                     .filter(e -> List.of("PERFORMANCE", "COMPETENCY").contains(e.elementTypeCode()))
                     .map(EvaluationElementDTO::weight)
@@ -89,6 +93,18 @@ public class EvaluationElementController {
         model.addAttribute("activeMenu", "elements");
     }
 
+    /**
+     * 해당 차수가 수정 가능한 상태(PLANNED)인지 검증합니다.
+     * PLANNED 이외의 상태에서는 평가요소 변경이 불가합니다.
+     */
+    private void validateEditable(Long periodId) {
+        EvaluationPeriodDTO period = periodService.getPeriodById(periodId);
+        if (!"PLANNED".equals(period.statusCode())) {
+            throw new IllegalStateException(
+                    "평가가 이미 시작된 차수('" + period.periodName() + "')의 평가요소는 변경할 수 없습니다.");
+        }
+    }
+
     @PostMapping("/type-weights")
     public String saveTypeWeights(@RequestParam Long periodId,
                                   @RequestParam(required = false) Long deptId,
@@ -99,6 +115,7 @@ public class EvaluationElementController {
                                   RedirectAttributes redirectAttributes,
                                   Model model) {
         try {
+            validateEditable(periodId);
             java.util.List<com.ees.eval.dto.EvaluationTypeWeightDTO> dtoList = new java.util.ArrayList<>();
             for (int i = 0; i < types.size(); i++) {
                 dtoList.add(com.ees.eval.dto.EvaluationTypeWeightDTO.builder()
@@ -130,6 +147,7 @@ public class EvaluationElementController {
                                RedirectAttributes redirectAttributes, 
                                Model model) {
         try {
+            validateEditable(dto.periodId());
             elementService.createElement(dto);
             model.addAttribute("successMessage", "평가 항목이 추가되었습니다.");
         } catch (Exception e) {
@@ -156,6 +174,7 @@ public class EvaluationElementController {
                                RedirectAttributes redirectAttributes,
                                Model model) {
         try {
+            validateEditable(dto.periodId());
             elementService.updateElement(dto);
             model.addAttribute("successMessage", "평가 항목이 수정되었습니다.");
         } catch (Exception e) {
@@ -183,6 +202,7 @@ public class EvaluationElementController {
                                      RedirectAttributes redirectAttributes,
                                      Model model) {
         try {
+            validateEditable(periodId);
             elementService.copyCommonElementsToDept(periodId, deptId);
             model.addAttribute("successMessage", "전사 공통 항목을 성공적으로 불러왔습니다.");
         } catch (Exception e) {
@@ -206,6 +226,7 @@ public class EvaluationElementController {
                                 RedirectAttributes redirectAttributes,
                                 Model model) {
         try {
+            validateEditable(periodId);
             elementService.resetElements(periodId, deptId);
             model.addAttribute("successMessage", "평가 항목이 모두 초기화되었습니다.");
         } catch (Exception e) {
@@ -234,6 +255,7 @@ public class EvaluationElementController {
                                 RedirectAttributes redirectAttributes,
                                 Model model) {
         try {
+            validateEditable(periodId);
             elementService.deleteElement(elementId);
             model.addAttribute("successMessage", "평가 항목이 삭제되었습니다.");
         } catch (Exception e) {

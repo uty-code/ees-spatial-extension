@@ -250,6 +250,13 @@
                 </form>
             </div>
         </div>
+        <!-- 수정 불가 알림 배너 -->
+        <div th:if="${editable != null && !editable}" class="alert alert-warning bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-lock-fill fs-5 me-2"></i>
+            <div>
+                <strong>읽기 전용</strong> &mdash; 평가가 시작된 차수의 평가요소는 변경할 수 없습니다.
+            </div>
+        </div>
         <!-- 유형별 가중치 설정 바 (가로 나란히 배치) -->
         <div class="row g-4 mb-5">
             <!-- 부서원 설정 (비중 확대) -->
@@ -273,12 +280,13 @@
                                     th:value="${#numbers.formatDecimal(weight.weight(), 1, 0)}"
                                     th:id="'weight-' + ${weight.elementTypeCode()}"
                                     class="form-control bg-white text-dark text-center fw-bold border-secondary border-end-0 weight-input-sync"
-                                    style="font-size: 1.1rem; max-width: 100px;" min="0" max="100">
+                                    style="font-size: 1.1rem; max-width: 100px;" min="0" max="100"
+                                    th:readonly="${!editable}" th:disabled="${!editable}">
                                 <span
                                     class="input-group-text bg-white border-secondary border-start-0 text-secondary px-2">%</span>
                                 <input type="hidden" name="types" th:value="${weight.elementTypeCode()}">
                             </th:block>
-                            <button type="submit" class="btn btn-primary fw-bold px-4 border-secondary transition-all">
+                            <button th:if="${editable}" type="submit" class="btn btn-primary fw-bold px-4 border-secondary transition-all">
                                 <i class="bi bi-check-lg me-1"></i>저장
                             </button>
                         </div>
@@ -309,15 +317,15 @@
         </div>
 
         <div class="row g-4">
-            <!-- 2. 중앙 리스트 (75%) -->
-            <div class="col-lg-9">
+            <!-- 2. 중앙 리스트 (편집 가능 시 75%, 읽기 전용 시 100%) -->
+            <div th:classappend="${editable ? 'col-lg-9' : 'col-lg-12'}" class="">
                 <div class="premium-card p-4">
                     <div class="d-flex align-items-center justify-content-between mb-4">
                         <div class="d-flex align-items-center">
                             <i class="bi bi-list-task me-2 text-primary"></i>
                             <h5 class="fw-bold mb-0">등록된 평가 기준(문항)</h5>
                         </div>
-                        <form th:if="${selectedDeptId != null}" hx-post="/eval/elements/copy-common"
+                        <form th:if="${selectedDeptId != null && editable}" hx-post="/eval/elements/copy-common"
                             hx-target="#page-content" hx-swap="outerHTML"
                             hx-confirm="전사 공통 항목을 현재 부서로 가져오시겠습니까? (현재 부서에 이미 있는 항목은 중복해서 가져오지 않습니다.)">
                             <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
@@ -334,7 +342,7 @@
                                     <th>유형</th>
                                     <th>요소명 (지표)</th>
                                     <th class="text-center">가중치 (%)</th>
-                                    <th class="text-center">관리</th>
+                                    <th th:if="${editable}" class="text-center">관리</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -347,15 +355,14 @@
                                             class="badge-custom bg-competency">역량</span>
                                         <span th:if="${el.elementTypeCode() == 'PEER'}"
                                             class="badge-custom bg-peer">다면</span>
-                                        <span th:if="${el.elementTypeCode() == 'INTERVIEW'}"
-                                            class="badge-custom bg-interview">면담</span>
+
                                         <span th:if="${el.elementTypeCode() == 'MULTI_DIMENSIONAL'}"
                                             class="badge-custom bg-purple">다면</span>
                                     </td>
                                     <td class="fw-medium" th:text="${el.elementName()}">요소명</td>
                                     <td class="text-center text-primary fw-bold"
                                         th:text="${#numbers.formatDecimal(el.weight(), 1, 0) + '%'}">0%</td>
-                                    <td class="text-center">
+                                    <td th:if="${editable}" class="text-center">
                                         <form th:attr="hx-post=@{/eval/elements/{id}/delete(id=${el.elementId()})}"
                                             hx-target="#page-content" hx-swap="outerHTML" hx-confirm="항목을 삭제하시겠습니까?">
                                             <input type="hidden" name="periodId"
@@ -376,8 +383,8 @@
                 </div>
             </div>
 
-            <!-- 3. 우측 추가 폼 (25%) -->
-            <div class="col-lg-3">
+            <!-- 3. 우측 추가 폼 (25%) - 편집 가능할 때만 표시 -->
+            <div th:if="${editable}" class="col-lg-3">
                 <div class="premium-card p-4">
                     <div class="d-flex align-items-center mb-4">
                         <i class="bi bi-plus-circle-fill me-2 text-primary"></i>
@@ -395,7 +402,7 @@
                                 <option value="PERFORMANCE">성과 평가</option>
                                 <option value="COMPETENCY">역량 평가</option>
                                 <option value="PEER">다면 평가</option>
-                                <option value="INTERVIEW">면담 평가</option>
+
                             </select>
                         </div>
                         <div class="mb-4">
