@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * @param periodId         소속 차수 ID
  * @param evaluateeId      피평가자 사원 ID
  * @param evaluatorId      평가자 사원 ID
- * @param relationTypeCode 관계 유형 (SELF, SUPERIOR, PEER, SUBORDINATE)
+ * @param relationTypeCode 관계 유형 (SELF, MANAGER, EXECUTIVE, SUBORDINATE)
  * @param evaluateeName    JOIN으로 조회한 피평가자 성명
  * @param evaluatorName    JOIN으로 조회한 평가자 성명
  * @param isDeleted        삭제 여부

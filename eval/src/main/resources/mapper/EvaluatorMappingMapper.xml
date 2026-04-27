@@ -52,7 +52,10 @@
           and e1.is_deleted = 'n'
           </if>
           <if test="empName != null and empName != ''">
-          and (e1.name like '%' + #{empName} + '%' or e2.name like '%' + #{empName} + '%')
+          and (
+              e1.name like '%' + #{empName} + '%' or 
+              cast(e1.emp_id as varchar) like '%' + #{empName} + '%'
+          )
           </if>
         order by m.evaluatee_id asc, m.relation_type_code asc
     </select>
@@ -156,8 +159,8 @@
     <delete id="deleteSelfMappingsByPeriod">
         update evaluator_mappings_51
         set is_deleted = 'y',
-            updated_at = getDate(),
-            updated_by = 1000
+            updated_at = GETDATE(),
+            updated_by = #{updatedBy}
         where period_id = #{periodId}
           and relation_type_code = 'SELF'
           and is_deleted = 'n'
@@ -175,5 +178,33 @@
           and evaluatee_id in (select emp_id from employees_51 where dept_id = #{deptId})
           </if>
     </update>
+
+    <!-- 특정 차수의 모든 매핑 조회 (중복 체크용) -->
+    <select id="findAllByPeriodId" resultType="com.ees.eval.domain.EvaluatorMapping">
+        select
+            mapping_id          as MAPPING_ID,
+            period_id           as PERIOD_ID,
+            evaluatee_id        as EVALUATEE_ID,
+            evaluator_id        as EVALUATOR_ID,
+            relation_type_code  as RELATION_TYPE_CODE
+        from evaluator_mappings_51
+        where period_id = #{periodId}
+          and is_deleted = 'n'
+    </select>
+
+    <!-- 평가자 매핑 일괄 삽입 -->
+    <insert id="insertBatch">
+        insert into evaluator_mappings_51 (
+            period_id, evaluatee_id, evaluator_id, relation_type_code,
+            is_deleted, version, created_at, created_by
+        )
+        values
+        <foreach collection="list" item="m" separator=",">
+        (
+            #{m.periodId}, #{m.evaluateeId}, #{m.evaluatorId}, #{m.relationTypeCode},
+            #{m.isDeleted}, #{m.version}, #{m.createdAt}, #{m.createdBy}
+        )
+        </foreach>
+    </insert>
 
 </mapper>

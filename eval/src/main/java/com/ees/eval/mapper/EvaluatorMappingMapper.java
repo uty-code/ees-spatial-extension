@@ -98,7 +98,7 @@ public interface EvaluatorMappingMapper {
     /**
      * 특정 차수의 모든 SELF 매핑을 논리 삭제 처리합니다.
      */
-    int deleteSelfMappingsByPeriod(@Param("periodId") Long periodId);
+    int deleteSelfMappingsByPeriod(@Param("periodId") Long periodId, @Param("updatedBy") Long updatedBy);
 
     /**
      * 특정 차수 및 부서의 매핑을 일괄 논리 삭제합니다.
@@ -106,4 +106,20 @@ public interface EvaluatorMappingMapper {
      */
     int deleteByPeriodAndDept(@Param("periodId") Long periodId, @Param("deptId") Long deptId,
                               @Param("updatedBy") Long updatedBy, @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
+     * 특정 차수의 모든 매핑 목록을 조회합니다. (중복 체크 메모리 적재용)
+     *
+     * @param periodId 차수 식별자
+     * @return 해당 차수의 전체 매핑 리스트
+     */
+    List<EvaluatorMapping> findAllByPeriodId(@Param("periodId") Long periodId);
+
+    /**
+     * 다건의 매핑 정보를 일괄 삽입합니다. (성능 최적화)
+     *
+     * @param list 삽입할 매핑 엔티티 리스트
+     * @return 삽입된 총 행 수
+     */
+    int insertBatch(@Param("list") List<EvaluatorMapping> list);
 }

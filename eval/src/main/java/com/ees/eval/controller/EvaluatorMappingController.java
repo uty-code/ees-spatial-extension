@@ -77,13 +77,16 @@ public class EvaluatorMappingController {
                     java.util.Map<String, Object> map = new java.util.HashMap<>();
                     map.put("evaluateeId", m.evaluateeId());
                     map.put("evaluateeName", m.evaluateeName());
+                    map.put("self", null);
                     map.put("manager", null);
                     map.put("executive", null);
                     map.put("subordinates", new java.util.ArrayList<EvaluatorMappingDTO>());
                     return map;
                 });
                 
-                if ("MANAGER".equals(m.relationTypeCode())) {
+                if ("SELF".equals(m.relationTypeCode())) {
+                    group.put("self", m);
+                } else if ("MANAGER".equals(m.relationTypeCode())) {
                     group.put("manager", m);
                 } else if ("EXECUTIVE".equals(m.relationTypeCode())) {
                     group.put("executive", m);
@@ -116,6 +119,7 @@ public class EvaluatorMappingController {
      */
     @PostMapping("/auto-generate")
     public String autoGenerate(@RequestParam Long periodId, @RequestParam(required = false) Long targetDeptId,
+            @RequestParam(required = false) String searchName,
             Authentication authentication, Principal principal, RedirectAttributes redirectAttributes) {
         try {
             boolean isAdmin = isAdmin(authentication);
@@ -127,14 +131,21 @@ public class EvaluatorMappingController {
             log.error("평가자 자동 생성 실패", e);
             redirectAttributes.addFlashAttribute("errorMessage", "자동 생성 중 오류가 발생했습니다: " + e.getMessage());
         }
-        return "redirect:/eval/evaluators?periodId=" + periodId;
+        
+        StringBuilder redirectUrl = new StringBuilder("redirect:/eval/evaluators?periodId=").append(periodId);
+        if (targetDeptId != null) redirectUrl.append("&deptId=").append(targetDeptId);
+        if (searchName != null && !searchName.isEmpty()) redirectUrl.append("&searchName=").append(searchName);
+        return redirectUrl.toString();
     }
 
     /**
      * 매핑을 삭제합니다.
      */
     @PostMapping("/{mappingId}/delete")
-    public String deleteMapping(@PathVariable Long mappingId, @RequestParam Long periodId,
+    public String deleteMapping(@PathVariable Long mappingId, 
+            @RequestParam Long periodId,
+            @RequestParam(required = false) Long deptId,
+            @RequestParam(required = false) String searchName,
             RedirectAttributes redirectAttributes) {
         try {
             mappingService.deleteMapping(mappingId);
@@ -143,14 +154,21 @@ public class EvaluatorMappingController {
             log.error("평가 관계 삭제 실패", e);
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
-        return "redirect:/eval/evaluators?periodId=" + periodId;
+        
+        StringBuilder redirectUrl = new StringBuilder("redirect:/eval/evaluators?periodId=").append(periodId);
+        if (deptId != null) redirectUrl.append("&deptId=").append(deptId);
+        if (searchName != null && !searchName.isEmpty()) redirectUrl.append("&searchName=").append(searchName);
+        return redirectUrl.toString();
     }
 
     /**
      * 평가자를 단건 수동으로 추가합니다.
      */
     @PostMapping("/create")
-    public String createMapping(@ModelAttribute EvaluatorMappingDTO mappingDto, RedirectAttributes redirectAttributes) {
+    public String createMapping(@ModelAttribute EvaluatorMappingDTO mappingDto, 
+            @RequestParam(required = false) Long currentDeptId,
+            @RequestParam(required = false) String currentSearchName,
+            RedirectAttributes redirectAttributes) {
         try {
             mappingService.createMapping(mappingDto);
             redirectAttributes.addFlashAttribute("successMessage", "평가 관계가 수동으로 추가되었습니다.");
@@ -158,14 +176,23 @@ public class EvaluatorMappingController {
             log.error("평가 관계 추가 실패", e);
             redirectAttributes.addFlashAttribute("errorMessage", "추가 중 오류 발생: " + e.getMessage());
         }
-        return "redirect:/eval/evaluators?periodId=" + mappingDto.periodId();
+        
+        StringBuilder redirectUrl = new StringBuilder("redirect:/eval/evaluators?periodId=").append(mappingDto.periodId());
+        if (currentDeptId != null) redirectUrl.append("&deptId=").append(currentDeptId);
+        if (currentSearchName != null && !currentSearchName.isEmpty()) redirectUrl.append("&searchName=").append(currentSearchName);
+        return redirectUrl.toString();
     }
 
     /**
      * 기존 매핑의 평가자를 다른 사원으로 수동 변경합니다.
      */
     @PostMapping("/{mappingId}/update")
-    public String updateMapping(@PathVariable Long mappingId, @RequestParam Long periodId, @RequestParam Long newEvaluatorId, RedirectAttributes redirectAttributes) {
+    public String updateMapping(@PathVariable Long mappingId, 
+            @RequestParam Long periodId, 
+            @RequestParam Long newEvaluatorId, 
+            @RequestParam(required = false) Long deptId,
+            @RequestParam(required = false) String searchName,
+            RedirectAttributes redirectAttributes) {
         try {
             mappingService.updateMapping(mappingId, newEvaluatorId);
             redirectAttributes.addFlashAttribute("successMessage", "평가자가 성공적으로 변경되었습니다.");
@@ -173,7 +200,11 @@ public class EvaluatorMappingController {
             log.error("평가자 변경 실패", e);
             redirectAttributes.addFlashAttribute("errorMessage", "변경 중 오류 발생: " + e.getMessage());
         }
-        return "redirect:/eval/evaluators?periodId=" + periodId;
+        
+        StringBuilder redirectUrl = new StringBuilder("redirect:/eval/evaluators?periodId=").append(periodId);
+        if (deptId != null) redirectUrl.append("&deptId=").append(deptId);
+        if (searchName != null && !searchName.isEmpty()) redirectUrl.append("&searchName=").append(searchName);
+        return redirectUrl.toString();
     }
 
     /**
@@ -181,6 +212,7 @@ public class EvaluatorMappingController {
      */
     @PostMapping("/initialize")
     public String initializeMappings(@RequestParam Long periodId, @RequestParam(required = false) Long targetDeptId, 
+            @RequestParam(required = false) String searchName,
             Authentication authentication, Principal principal, RedirectAttributes redirectAttributes) {
         try {
             boolean isAdmin = isAdmin(authentication);
@@ -191,6 +223,10 @@ public class EvaluatorMappingController {
             log.error("매핑 일괄 초기화 실패", e);
             redirectAttributes.addFlashAttribute("errorMessage", "초기화 중 오류 발생: " + e.getMessage());
         }
-        return "redirect:/eval/evaluators?periodId=" + periodId;
+        
+        StringBuilder redirectUrl = new StringBuilder("redirect:/eval/evaluators?periodId=").append(periodId);
+        if (targetDeptId != null) redirectUrl.append("&deptId=").append(targetDeptId);
+        if (searchName != null && !searchName.isEmpty()) redirectUrl.append("&searchName=").append(searchName);
+        return redirectUrl.toString();
     }
 }

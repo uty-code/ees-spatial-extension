@@ -49,11 +49,11 @@ public interface EvaluatorMappingService {
 
     /**
      * 단건 평가자 매핑을 생성합니다.
-     * 자기 자신을 SUPERIOR/PEER로 매핑하는 것과 중복 매핑을 차단합니다.
-     *
+     * 자기 자신을 MANAGER/SUBORDINATE 등으로 매핑하는 것과 중복 매핑을 차단합니다.
+     * 
      * @param mappingDto 생성할 매핑 정보
      * @return 생성된 매핑 DTO
-     * @throws IllegalArgumentException 자기 자신을 SUPERIOR/PEER로 매핑할 경우
+     * @throws IllegalArgumentException 자기 자신을 MANAGER/SUBORDINATE 등으로 매핑할 경우
      * @throws IllegalStateException 동일 관계가 이미 존재할 경우
      */
     EvaluatorMappingDTO createMapping(EvaluatorMappingDTO mappingDto);
