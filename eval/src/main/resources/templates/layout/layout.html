@@ -1,4 +1,5 @@
-<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content, activeMenu, extraStyles, extraScripts)" data-bs-theme="dark">
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content, activeMenu, extraStyles, extraScripts)"
+    data-bs-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -14,8 +15,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <meta th:if="${_csrf}" name="_csrf" th:content="${_csrf.token}"/>
-    <meta th:if="${_csrf}" name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <meta th:if="${_csrf}" name="_csrf" th:content="${_csrf.token}" />
+    <meta th:if="${_csrf}" name="_csrf_header" th:content="${_csrf.headerName}" />
     <!-- Custom CSS -->
     <link rel="stylesheet" th:href="@{/css/index.css}">
     <!-- Page Specific CSS -->
@@ -147,18 +148,18 @@
     <!-- HTMX Sidebar Active State Manager & Sidebar Toggle Logic -->
     <script>
         // 사이드바 상태 초기화 (페이지 로드 시 즉시 실행)
-        (function() {
+        (function () {
             const sidebarStatus = localStorage.getItem('sidebarStatus');
             if (sidebarStatus === 'collapsed') {
                 document.body.classList.add('sidebar-collapsed');
             }
         })();
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // CSRF 토큰 설정 (HTMX용)
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
             const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
-            
+
             if (csrfHeader && csrfToken) {
                 document.body.addEventListener('htmx:configRequest', (evt) => {
                     evt.detail.headers[csrfHeader] = csrfToken;
@@ -171,9 +172,9 @@
             // 사이드바 토글 기능
             const sidebarToggle = document.getElementById('sidebar-toggle');
             if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function() {
+                sidebarToggle.addEventListener('click', function () {
                     document.body.classList.toggle('sidebar-collapsed');
-                    
+
                     // 상태 저장
                     const isCollapsed = document.body.classList.contains('sidebar-collapsed');
                     localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
@@ -186,12 +187,31 @@
                 updateActiveLink(newPath);
             });
 
-            // HTMX 요청 직시 스크롤 최상단 이동 (바닥 찍는 현상 방지)
-            document.addEventListener('htmx:beforeRequest', function(evt) {
+            // 검색/페이지네이션: 응답 오기 전 즉시 최상단으로 (바닥 찍기 방지)
+            document.addEventListener('htmx:beforeRequest', function (evt) {
+                const isSidebar = evt.detail.elt && evt.detail.elt.closest('.sidebar');
+                if (!isSidebar && evt.detail.target && evt.detail.target.id === 'page-content') {
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                }
+            });
+
+            // 사이드바 내비게이션: 콘텐츠 교체 완료 후 즉시 최상단으로 이동
+            // outerHTML swap 후 원본 요소가 사라지므로 afterSettle에서 URL 변경 감지로 처리
+            document.addEventListener('htmx:afterSettle', function (evt) {
                 if (evt.detail.target && evt.detail.target.id === 'page-content') {
                     window.scrollTo({ top: 0, behavior: 'instant' });
                 }
             });
+
+            // 세션 만료 처리: HTMX 응답이 로그인 페이지인 경우 전체 페이지 리다이렉트
+            document.addEventListener('htmx:beforeOnLoad', function (evt) {
+                if (evt.detail.xhr.status === 200 && evt.detail.xhr.responseURL && evt.detail.xhr.responseURL.includes('/login')) {
+                    // 응답 URL이 로그인 페이지를 가리키면 세션이 만료된 것으로 판단
+                    window.location.href = '/login?timeout=true';
+                    evt.preventDefault(); // HTMX의 기본 스왑 동작 중단
+                }
+            });
+
 
             function updateActiveLink(path) {
                 document.querySelectorAll('.sidebar .nav-link').forEach(link => {

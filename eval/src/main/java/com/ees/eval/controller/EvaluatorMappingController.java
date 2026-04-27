@@ -229,4 +229,19 @@ public class EvaluatorMappingController {
         if (searchName != null && !searchName.isEmpty()) redirectUrl.append("&searchName=").append(searchName);
         return redirectUrl.toString();
     }
+
+    /**
+     * 특정 차수의 평가자 매핑 정합성을 검증합니다. (AJAX 호출용)
+     */
+    @GetMapping("/validate")
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<List<com.ees.eval.dto.MappingAnomalyDTO>> validateMappings(@RequestParam Long periodId) {
+        try {
+            List<com.ees.eval.dto.MappingAnomalyDTO> anomalies = mappingService.checkMappingIntegrity(periodId);
+            return org.springframework.http.ResponseEntity.ok(anomalies);
+        } catch (Exception e) {
+            log.error("매핑 정합성 검사 중 오류 발생", e);
+            return org.springframework.http.ResponseEntity.internalServerError().build();
+        }
+    }
 }

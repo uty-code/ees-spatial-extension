@@ -88,8 +88,7 @@
                     </div>
                 </div>
                 <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3"
-                        style="border-color:rgba(239,68,68,0.3);">
+                    <div class="glass-card p-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:46px;height:46px;background:rgba(239,68,68,0.15);">
                             <i class="bi bi-lock-fill fs-5" style="color:#f87171;"></i>
@@ -222,7 +221,7 @@
                             <tr th:each="emp : ${employees}" th:id="'emp-' + ${emp.empId()}">
                                 <!-- 사번 -->
                                 <td class="py-3">
-                                    <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2 py-1"
+                                    <span class="badge bg-secondary bg-opacity-25 text-light fw-semibold px-2 py-1"
                                         th:text="${emp.empId()}">1000</span>
                                 </td>
                                 <!-- 성명 + 아바타 -->
