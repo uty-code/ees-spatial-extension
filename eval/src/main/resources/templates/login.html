@@ -38,6 +38,11 @@
             <i class="bi bi-check-circle-fill me-2"></i> 성공적으로 로그아웃되었습니다.
         </div>
 
+        <!-- 세션 만료 메시지 처리 -->
+        <div th:if="${param.timeout}" class="alert alert-warning bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning small mb-4">
+            <i class="bi bi-clock-history me-2"></i> 세션이 만료되어 자동으로 로그아웃되었습니다. 다시 로그인해주세요.
+        </div>
+
         <form th:action="@{/login}" method="post" class="text-start">
             <div class="mb-3">
                 <label for="username" class="form-label text-muted small px-1">사원 번호</label>

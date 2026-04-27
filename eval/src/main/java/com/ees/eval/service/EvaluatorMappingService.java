@@ -1,6 +1,7 @@
 package com.ees.eval.service;
 
 import com.ees.eval.dto.EvaluatorMappingDTO;
+import com.ees.eval.dto.MappingAnomalyDTO;
 
 import java.util.List;
 
@@ -104,4 +105,12 @@ public interface EvaluatorMappingService {
      * @param deptId   부서 ID (null일 경우 전체 삭제)
      */
     void initializeMappingsByDept(Long periodId, Long deptId);
+
+    /**
+     * 특정 차수의 평가 매핑 정합성을 검증하여 누락 및 오류를 반환합니다.
+     *
+     * @param periodId 검증할 평가 차수 ID
+     * @return 예외 상황 목록
+     */
+    List<MappingAnomalyDTO> checkMappingIntegrity(Long periodId);
 }
