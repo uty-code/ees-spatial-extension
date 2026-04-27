@@ -231,14 +231,27 @@ public class EvaluatorMappingController {
     }
 
     /**
-     * 특정 차수의 평가자 매핑 정합성을 검증합니다. (AJAX 호출용)
+     * 특정 차수의 평가자 매핑 정합성을 검증합니다. (AJAX 호출용, 관리자 전용)
+     *
+     * @param periodId 검증 대상 평가 차수 ID
+     * @return 발견된 매핑 이상 목록 (MappingAnomalyDTO)
      */
     @GetMapping("/validate")
     @ResponseBody
+    @PreAuthorize("hasRole('ADMIN')")
     public org.springframework.http.ResponseEntity<List<com.ees.eval.dto.MappingAnomalyDTO>> validateMappings(@RequestParam Long periodId) {
         try {
+            // periodId 유효성 검증
+            EvaluationPeriodDTO period = periodService.getPeriodById(periodId);
+            if (period == null) {
+                return org.springframework.http.ResponseEntity.badRequest().build();
+            }
+
             List<com.ees.eval.dto.MappingAnomalyDTO> anomalies = mappingService.checkMappingIntegrity(periodId);
             return org.springframework.http.ResponseEntity.ok(anomalies);
+        } catch (IllegalArgumentException e) {
+            log.warn("매핑 정합성 검사 요청 오류 - periodId: {}", periodId, e);
+            return org.springframework.http.ResponseEntity.badRequest().build();
         } catch (Exception e) {
             log.error("매핑 정합성 검사 중 오류 발생", e);
             return org.springframework.http.ResponseEntity.internalServerError().build();
