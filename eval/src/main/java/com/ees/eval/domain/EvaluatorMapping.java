@@ -8,7 +8,7 @@ import lombok.Setter;
 /**
  * 평가자 매핑(evaluator_mappings) 테이블에 대응하는 도메인 엔티티 클래스입니다.
  * 특정 평가 차수에서 피평가자(evaluatee)와 평가자(evaluator) 간의 관계를 정의합니다.
- * 관계 유형: SELF(자기), SUPERIOR(상급자), PEER(동료), SUBORDINATE(하급자)
+ * 관계 유형: SELF(자기), MANAGER(부서장), EXECUTIVE(임원), SUBORDINATE(부서원)
  */
 @Getter
 @Setter
@@ -27,7 +27,7 @@ public class EvaluatorMapping extends BaseEntity {
     /** 평가자(평가를 수행하는 사원) 식별자 (FK -> employees) */
     private Long evaluatorId;
 
-    /** 평가 관계 유형 코드 (SELF, SUPERIOR, PEER, SUBORDINATE) */
+    /** 평가 관계 유형 코드 (SELF, MANAGER, EXECUTIVE, SUBORDINATE) */
     private String relationTypeCode;
 
     /** 피평가자 성명 (MyBatis JOIN용) */
