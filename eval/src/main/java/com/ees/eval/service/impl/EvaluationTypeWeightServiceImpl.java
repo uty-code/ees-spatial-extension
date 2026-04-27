@@ -90,13 +90,27 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
     @Override
     @Transactional(readOnly = true)
     public boolean isWeightSumValid(Long periodId, Long deptId, String targetRoleCode) {
+        if (deptId == null) {
+            // 전사공통은 100% 검증을 통과한 것으로 취급 (사용자 요청)
+            return true;
+        }
+
         // 1) 유형별 가중치(PERFORMANCE/COMPETENCY 비율) 합계 = 100% 검증
-        List<EvaluationTypeWeightDTO> weights = getTypeWeights(periodId, deptId, targetRoleCode);
-        if (weights.isEmpty()) {
+        //    DB에 실제 저장된 값만 조회 (getTypeWeights의 기본값 폴백 사용하지 않음)
+        List<EvaluationTypeWeight> rawWeights = weightMapper.findByPeriodId(periodId, deptId, targetRoleCode);
+
+        // 부서 설정이 없으면 전사 공통(deptId=null) 폴백은 허용
+        if (rawWeights.isEmpty() && deptId != null) {
+            rawWeights = weightMapper.findByPeriodId(periodId, null, targetRoleCode);
+        }
+
+        // 전사 공통에도 없으면 → 미설정 상태
+        if (rawWeights.isEmpty()) {
             return false;
         }
-        BigDecimal total = weights.stream()
-                .map(EvaluationTypeWeightDTO::weight)
+
+        BigDecimal total = rawWeights.stream()
+                .map(EvaluationTypeWeight::getWeight)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         if (total.compareTo(new BigDecimal("100.00")) != 0) {
             return false;
@@ -115,8 +129,8 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
         }
 
         // 유형별 가중치가 설정된 항목에 대해서만 항목 가중치 합계 검증
-        for (EvaluationTypeWeightDTO tw : weights) {
-            String typeCode = tw.elementTypeCode();
+        for (EvaluationTypeWeight tw : rawWeights) {
+            String typeCode = tw.getElementTypeCode();
             BigDecimal elementSum = elements.stream()
                     .filter(e -> typeCode.equals(e.elementTypeCode()))
                     .map(EvaluationElementDTO::weight)
@@ -130,6 +144,18 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
         }
 
         return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasCustomConfig(Long periodId, Long deptId) {
+        if (deptId == null) {
+            return true;
+        }
+        boolean hasWeights = !weightMapper.findByPeriodId(periodId, deptId, "STAFF").isEmpty();
+        boolean hasElements = !elementService.getElementsByPeriodId(periodId, deptId).isEmpty();
+        
+        return hasWeights || hasElements;
     }
 
     private EvaluationTypeWeightDTO convertToDto(EvaluationTypeWeight entity) {

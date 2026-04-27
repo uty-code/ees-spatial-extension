@@ -17,4 +17,9 @@ public interface EvaluationTypeWeightService {
      * @return 가중치 합이 정확히 100이면 true
      */
     boolean isWeightSumValid(Long periodId, Long deptId, String targetRoleCode);
+
+    /**
+     * 부서에 전용 평가 가중치 또는 항목 설정이 존재하는지 확인합니다.
+     */
+    boolean hasCustomConfig(Long periodId, Long deptId);
 }
