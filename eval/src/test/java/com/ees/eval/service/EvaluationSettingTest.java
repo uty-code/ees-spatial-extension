@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.lenient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,12 +33,18 @@ class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
     @Autowired
     private EvaluationElementService elementService;
 
+    @MockitoBean
+    private EvaluationTypeWeightService typeWeightService;
+
     /**
      * 테스트 시작 전 기존 데이터로 인한 충돌을 방지하기 위해
      * '진행 중' 상태인 모든 차수를 '완료' 상태로 전환합니다.
      */
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
+        // 모든 가중치 검증은 기본적으로 통과하도록 설정 (테스트 데이터 부족 방지)
+        lenient().when(typeWeightService.isWeightSumValid(anyLong(), any(), any())).thenReturn(true);
+
         periodService.getAllPeriods().stream()
                 .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
                 .forEach(p -> periodService.transitionStatus(p.periodId(), "COMPLETED"));

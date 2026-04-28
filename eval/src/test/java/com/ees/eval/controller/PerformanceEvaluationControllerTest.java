@@ -371,7 +371,7 @@ class PerformanceEvaluationControllerTest {
         when(evaluationMapper.findByMappingId(100L)).thenReturn(Collections.emptyList());
 
         // 팀원 업무 처리
-        when(elementService.getElementsByPeriodId(periodId, null)).thenReturn(Collections.emptyList());
+        when(elementService.getElementsByPeriodId(anyLong(), any())).thenReturn(Collections.emptyList());
         when(evaluationMapper.findByMappingId(1001L)).thenReturn(Collections.emptyList());
 
         // Gate C & D: 팀원의 SELF 매핑 조회
@@ -723,7 +723,7 @@ class PerformanceEvaluationControllerTest {
     void list_WithCompetencyAndNoElements() throws Exception {
         EvaluationPeriodDTO p1 = EvaluationPeriodDTO.builder().periodId(1L).statusCode("ACTIVE").build();
         given(periodService.getAllPeriods()).willReturn(List.of(p1));
-        given(elementService.getElementsByPeriodId(anyLong(), any())).willReturn(Collections.emptyList());
+        lenient().when(elementService.getElementsByPeriodId(anyLong(), any())).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/eval/performance")
                 .param("evalType", "COMPETENCY")
