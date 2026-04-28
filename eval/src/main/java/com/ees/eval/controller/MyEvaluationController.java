@@ -59,7 +59,7 @@ public class MyEvaluationController {
     /**
      * 나의 자가평가 메인 페이지
      */
-    @GetMapping
+    @GetMapping({"", "/list"})
     public String list(Model model,
             @RequestParam(required = false) Long periodId,
             @AuthenticationPrincipal UserDetails userDetails) {

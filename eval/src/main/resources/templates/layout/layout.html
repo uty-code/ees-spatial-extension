@@ -123,11 +123,11 @@
     <div class="htmx-indicator" id="global-loader"></div>
 
     <!-- Header Fragment -->
-    <div th:replace="fragments/header :: header"></div>
+    <div th:replace="~{fragments/header :: header}"></div>
 
     <div class="d-flex">
         <!-- Sidebar Fragment -->
-        <div th:replace="fragments/sidebar :: sidebar(activeMenu=${activeMenu})"></div>
+        <div th:replace="~{fragments/sidebar :: sidebar(activeMenu=${activeMenu})}"></div>
 
         <!-- Main Content -->
         <main class="main-wrapper flex-grow-1">
@@ -135,7 +135,7 @@
                 <!-- Page specific content will be injected here -->
             </div>
             <!-- Footer Fragment -->
-            <div th:replace="fragments/footer :: footer"></div>
+            <div th:replace="~{fragments/footer :: footer}"></div>
         </main>
     </div>
 
