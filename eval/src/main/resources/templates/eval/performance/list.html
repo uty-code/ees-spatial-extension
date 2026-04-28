@@ -8,7 +8,7 @@
 </head>
 
 <body>
-    <div id="page-content" class="container-fluid py-4">
+    <div id="page-content" class="container-fluid py-4" th:fragment="content">
         <style>
             .eval-list-container {
                 background: var(--glass);
@@ -68,27 +68,6 @@
                 gap: 6px;
             }
 
-            .btn-evaluate {
-                background-color: var(--primary);
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 24px;
-                font-size: 0.95rem;
-                font-weight: 600;
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                text-decoration: none;
-                transition: all 0.2s;
-            }
-
-            .btn-evaluate:hover {
-                background-color: var(--primary-hover);
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
-                color: white;
-            }
         </style>
 
         <!-- 에러/성공 메시지 영역 -->
@@ -146,11 +125,11 @@
             <div th:if="${evalType == 'PERFORMANCE'}">
                 <h5 class="text-white fw-bold mb-3 mt-2"><i class="bi bi-bar-chart-fill text-primary me-2"></i>팀원 성과 평가</h5>
                 <div th:if="${tasks == null || tasks.isEmpty()}"
-                    class="glass-card text-center py-4 border-0 shadow-sm rounded-3 mb-4">
+                    class="ees-card text-center py-4 border-0 shadow-sm rounded-3 mb-4">
                     <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
                     <h5 class="fw-bold text-white">평가 대상 팀원이 없습니다.</h5>
                 </div>
-                <div th:if="${tasks != null && !tasks.isEmpty()}" class="eval-list-container mb-5 mt-0">
+                <div th:if="${tasks != null && !tasks.isEmpty()}" class="ees-card mb-5 mt-0">
                     <div th:each="task : ${tasks}" class="eval-list-item">
                         <div class="eval-name" th:text="${task.evaluateeName()}">팀원 이름</div>
                         <div class="badge-dept">소속팀</div>
@@ -168,8 +147,7 @@
                         <div>
                             <!-- 가중치가 유효하고 자가평가가 완료된 경우에만 평가 작성 가능 -->
                             <a th:if="${evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false) && teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
-                                href="#" class="btn-evaluate"
-                                th:style="${teamPerfSubmittedMap != null && teamPerfSubmittedMap.getOrDefault(task.mappingId(), false)} ? 'background:rgba(255,255,255,0.1);color:#d1d5db;border:1px solid rgba(255,255,255,0.2);' : ''"
+                                href="#" class="btn ees-btn-glass-primary btn-sm"
                                 th:attr="hx-get=@{/eval/performance/form(mappingId=${task.mappingId()},evalType='PERFORMANCE')}"
                                 hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
                                 <i class="bi bi-pencil-square"></i> <span th:text="${teamPerfSubmittedMap != null && teamPerfSubmittedMap.getOrDefault(task.mappingId(), false)} ? '평가 수정' : '성과 평가'"></span>
@@ -197,11 +175,11 @@
             <div th:if="${evalType == 'COMPETENCY'}">
                 <h5 class="text-white fw-bold mb-3 mt-2"><i class="bi bi-stars me-2" style="color:#34d399;"></i>팀원 역량 평가</h5>
                 <div th:if="${tasks == null || tasks.isEmpty()}"
-                    class="glass-card text-center py-4 border-0 shadow-sm rounded-3">
+                    class="ees-card text-center py-4 border-0 shadow-sm rounded-3">
                     <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
                     <h5 class="fw-bold text-white">평가 대상 팀원이 없습니다.</h5>
                 </div>
-                <div th:if="${tasks != null && !tasks.isEmpty()}" class="eval-list-container mt-0">
+                <div th:if="${tasks != null && !tasks.isEmpty()}" class="ees-card mt-0">
                     <div th:each="task : ${tasks}" class="eval-list-item">
                         <div class="eval-name" th:text="${task.evaluateeName()}">팀원 이름</div>
                         <div class="badge-dept">소속팀</div>
@@ -219,8 +197,7 @@
                         <div>
                             <!-- 가중치가 유효하고 자가평가가 완료된 경우에만 평가 작성 가능 -->
                             <a th:if="${evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false) && teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
-                                href="#" class="btn-evaluate"
-                                th:style="${teamCompSubmittedMap != null && teamCompSubmittedMap.getOrDefault(task.mappingId(), false)} ? 'background:rgba(255,255,255,0.1);color:#d1d5db;border:1px solid rgba(255,255,255,0.2);' : 'background:rgba(16,185,129,0.8);'"
+                                href="#" class="btn ees-btn-glass-primary btn-sm"
                                 th:attr="hx-get=@{/eval/performance/form(mappingId=${task.mappingId()},evalType='COMPETENCY')}"
                                 hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
                                 <i class="bi bi-stars"></i> <span th:text="${teamCompSubmittedMap != null && teamCompSubmittedMap.getOrDefault(task.mappingId(), false)} ? '평가 수정' : '역량 평가'"></span>

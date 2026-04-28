@@ -84,6 +84,7 @@ h4,
     z-index: 1040;
     overflow-y: auto;
     overflow-x: hidden;
+    overscroll-behavior-y: contain;
 }
 
 /* Sidebar Toggle Button Container */

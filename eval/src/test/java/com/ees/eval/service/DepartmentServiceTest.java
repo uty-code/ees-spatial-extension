@@ -34,6 +34,9 @@ class DepartmentServiceTest extends AbstractMssqlTest {
     @Autowired
     private EmployeeService employeeService;
 
+    @Autowired
+    private com.ees.eval.mapper.RoleMapper roleMapper;
+
     /**
      * 부서 생성 후 상위 부서명과 인원수가 정상적으로 함께 조회되는지 검증합니다.
      */
@@ -211,5 +214,150 @@ class DepartmentServiceTest extends AbstractMssqlTest {
                         .createdAt(tx2.createdAt()).createdBy(tx2.createdBy())
                         .build()))
                 .isInstanceOf(EesOptimisticLockException.class);
+    }
+
+    /**
+     * 임원(ROLE_EXECUTIVE) 권한을 가진 사원이 부서장으로 지정되어도
+     * 권한이 ROLE_MANAGER로 바뀌지 않고 ROLE_EXECUTIVE로 유지되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("권한 보호 - 임원이 부서장 지정 시 EXECUTIVE 권한 유지")
+    void assignLeaderExecutiveRoleRetentionTest() {
+        // given: 최상위 부서 생성 (임원은 최상위 부서 소속이어야 함)
+        DepartmentDTO dept = departmentService.createDepartment(DepartmentDTO.builder().deptName("전략본부").build());
+        
+        // given: 임원 권한(ROLE_EXECUTIVE) 사원 등록
+        Long executiveRoleId = roleMapper.findByRoleName("ROLE_EXECUTIVE").get().getRoleId();
+        EmployeeDTO empDto = EmployeeDTO.builder()
+                .deptId(dept.deptId()).positionId(1L)
+                .password("execPass1!")
+                .name("최임원").email("exec@ees.com")
+                .hireDate(LocalDate.now())
+                .build();
+        EmployeeDTO savedEmp = employeeService.registerEmployee(empDto, List.of(executiveRoleId));
+        assertThat(savedEmp.roleNames()).containsExactly("ROLE_EXECUTIVE");
+
+        // when: 부서장으로 지정
+        departmentService.assignLeader(dept.deptId(), savedEmp.empId());
+
+        // then: 권한이 ROLE_MANAGER가 아닌 ROLE_EXECUTIVE로 유지되어야 함
+        EmployeeDTO updatedEmp = employeeService.getEmployeeById(savedEmp.empId());
+        assertThat(updatedEmp.roleNames()).containsExactly("ROLE_EXECUTIVE");
+
+        // then: [보완] DB에 부서장 ID가 정상적으로 등록되었는지 확인
+        DepartmentDTO updatedDept = departmentService.getDepartmentById(dept.deptId());
+        assertThat(updatedDept.leaderId()).isEqualTo(savedEmp.empId());
+    }
+
+    /**
+     * 관리자(ROLE_ADMIN) 권한을 가진 사원이 부서장으로 지정되어도
+     * 권한이 ROLE_ADMIN으로 유지되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("권한 보호 - 관리자가 부서장 지정 시 ADMIN 권한 유지")
+    void assignLeaderAdminRoleRetentionTest() {
+        // given: 부서 및 관리자 사원 등록
+        DepartmentDTO dept = departmentService.createDepartment(DepartmentDTO.builder().deptName("시스템팀").build());
+        Long adminRoleId = roleMapper.findByRoleName("ROLE_ADMIN").get().getRoleId();
+        EmployeeDTO empDto = EmployeeDTO.builder()
+                .deptId(dept.deptId()).positionId(1L)
+                .password("adminPass1!")
+                .name("강관리").email("admin@ees.com")
+                .hireDate(LocalDate.now())
+                .build();
+        EmployeeDTO savedEmp = employeeService.registerEmployee(empDto, List.of(adminRoleId));
+
+        // when: 부서장 지정
+        departmentService.assignLeader(dept.deptId(), savedEmp.empId());
+
+        // then: 권한이 ROLE_ADMIN으로 유지되어야 함
+        EmployeeDTO updatedEmp = employeeService.getEmployeeById(savedEmp.empId());
+        assertThat(updatedEmp.roleNames()).containsExactly("ROLE_ADMIN");
+
+        // then: [보완] DB 반영 확인
+        DepartmentDTO updatedDept = departmentService.getDepartmentById(dept.deptId());
+        assertThat(updatedDept.leaderId()).isEqualTo(savedEmp.empId());
+    }
+
+    /**
+     * 임원 부서장이 해제되었을 때, 권한이 ROLE_USER로 강등되지 않고
+     * 원래의 ROLE_EXECUTIVE를 유지하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("권한 보호 - 임원 부서장 해제 시 EXECUTIVE 권한 유지")
+    void removeLeaderExecutiveRoleRetentionTest() {
+        // given: 부서 생성 및 임원 부서장 지정
+        DepartmentDTO dept = departmentService.createDepartment(DepartmentDTO.builder().deptName("인사본부").build());
+        Long executiveRoleId = roleMapper.findByRoleName("ROLE_EXECUTIVE").get().getRoleId();
+        EmployeeDTO savedEmp = employeeService.registerEmployee(
+                EmployeeDTO.builder().deptId(dept.deptId()).positionId(1L).password("pass!").name("오임원").email("oh@ees.com").hireDate(LocalDate.now()).build(),
+                List.of(executiveRoleId)
+        );
+        departmentService.assignLeader(dept.deptId(), savedEmp.empId());
+
+        // when: 부서장 해제
+        departmentService.removeLeader(dept.deptId());
+
+        // then: ROLE_USER가 아닌 ROLE_EXECUTIVE 유지
+        EmployeeDTO updatedEmp = employeeService.getEmployeeById(savedEmp.empId());
+        assertThat(updatedEmp.roleNames()).containsExactly("ROLE_EXECUTIVE");
+
+        // then: [보완] DB에서 리더가 해제되었는지 확인
+        DepartmentDTO updatedDept = departmentService.getDepartmentById(dept.deptId());
+        assertThat(updatedDept.leaderId()).isNull();
+    }
+
+    /**
+     * 일반 사원(ROLE_USER)이 부서장으로 지정될 때는
+     * 정상적으로 ROLE_MANAGER로 권한이 상향되는지 검증합니다. (대조군 테스트)
+     */
+    @Test
+    @DisplayName("권한 동기화 - 일반 사원 부서장 지정 시 MANAGER로 변경")
+    void assignLeaderUserToManagerSyncTest() {
+        // given: 부서 및 일반 사원 등록
+        DepartmentDTO dept = departmentService.createDepartment(DepartmentDTO.builder().deptName("개발1팀").build());
+        Long userRoleId = roleMapper.findByRoleName("ROLE_USER").get().getRoleId();
+        EmployeeDTO savedEmp = employeeService.registerEmployee(
+            EmployeeDTO.builder().deptId(dept.deptId()).positionId(1L).password("pass!").name("이사원").email("lee@ees.com").hireDate(LocalDate.now()).build(),
+            List.of(userRoleId)
+        );
+
+        // when: 부서장 지정
+        departmentService.assignLeader(dept.deptId(), savedEmp.empId());
+
+        // then: ROLE_MANAGER로 변경됨
+        EmployeeDTO updatedEmp = employeeService.getEmployeeById(savedEmp.empId());
+        assertThat(updatedEmp.roleNames()).containsExactly("ROLE_MANAGER");
+        
+        // then: DB 반영 확인
+        assertThat(departmentService.getDepartmentById(dept.deptId()).leaderId()).isEqualTo(savedEmp.empId());
+    }
+
+    /**
+     * 일반 매니저(ROLE_MANAGER)가 부서장에서 해제되었을 때
+     * 다시 ROLE_USER로 정상적으로 복구되는지 검증합니다. (대조군 테스트)
+     */
+    @Test
+    @DisplayName("권한 동기화 - 일반 매니저 부서장 해제 시 USER로 복구")
+    void removeLeaderManagerToUserSyncTest() {
+        // given: 부서장(Manager) 상태의 사원 구성
+        DepartmentDTO dept = departmentService.createDepartment(DepartmentDTO.builder().deptName("개발2팀").build());
+        Long userRoleId = roleMapper.findByRoleName("ROLE_USER").get().getRoleId();
+        EmployeeDTO savedEmp = employeeService.registerEmployee(
+            EmployeeDTO.builder().deptId(dept.deptId()).positionId(1L).password("pass!").name("김매니저").email("kim@ees.com").hireDate(LocalDate.now()).build(),
+            List.of(userRoleId)
+        );
+        departmentService.assignLeader(dept.deptId(), savedEmp.empId());
+        assertThat(employeeService.getEmployeeById(savedEmp.empId()).roleNames()).containsExactly("ROLE_MANAGER");
+
+        // when: 부서장 해제
+        departmentService.removeLeader(dept.deptId());
+
+        // then: ROLE_USER로 복구됨
+        EmployeeDTO updatedEmp = employeeService.getEmployeeById(savedEmp.empId());
+        assertThat(updatedEmp.roleNames()).containsExactly("ROLE_USER");
+        
+        // then: DB 해제 확인
+        assertThat(departmentService.getDepartmentById(dept.deptId()).leaderId()).isNull();
     }
 }

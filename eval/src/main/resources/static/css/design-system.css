@@ -19,6 +19,7 @@
     --ees-status-multi: #f59e0b;
     --ees-status-self: #10b981;
     --ees-status-executive: #0dcaf0;
+    --ees-status-danger: #ef4444;
     
     /* Transitions */
     --ees-transition-fast: all 0.2s ease;
@@ -44,16 +45,29 @@
     color: #cbd5e1;
     font-size: 0.875rem;
     font-weight: 600;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
     transition: var(--ees-transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .ees-btn-glass:hover {
     background: rgba(255, 255, 255, 0.12);
     color: #fff;
     border-color: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.ees-btn-glass .bi-gear {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ees-btn-glass:hover .bi-gear {
+    transform: rotate(90deg);
 }
 
 .ees-btn-glass:active {
@@ -61,23 +75,122 @@
     background: rgba(255, 255, 255, 0.18);
 }
 
+/* Large Glass Button (Mapping Special) */
+.ees-btn-glass-lg {
+    font-size: 1.05rem !important;
+    padding: 0.65rem 1.3rem !important;
+    border-radius: 10px !important;
+}
+
+/* Primary Glass Button */
+.ees-btn-glass-primary {
+    background: rgba(99, 102, 241, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: #a5b4fc;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: var(--ees-transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.ees-btn-glass-primary:hover {
+    background: rgba(99, 102, 241, 0.25);
+    color: #fff;
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.ees-btn-glass-primary:active {
+    transform: translateY(0);
+    background: rgba(99, 102, 241, 0.35);
+}
+
+/* Danger Glass Button */
+.ees-btn-glass-danger {
+    background: rgba(239, 68, 68, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: var(--ees-transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.ees-btn-glass-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fff;
+    border-color: rgba(239, 68, 68, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.ees-btn-glass-danger:active {
+    transform: translateY(0);
+}
+
 /* Glass Tool Group */
 .ees-glass-group {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
+    border-radius: 6px;
     overflow: hidden;
     display: inline-flex;
+    padding: 0;
+}
+
+.ees-glass-group form {
+    display: flex;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .ees-glass-group .btn {
-    border-radius: 0;
-    border: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0 !important;
+    border: none !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+    margin: 0 !important;
+    padding: 0.4rem 0.6rem !important;
+    height: 100% !important;
+    background: transparent !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+    color: rgba(255, 255, 255, 0.7) !important;
+    transition: var(--ees-transition-fast);
 }
 
-.ees-glass-group .btn:last-child {
-    border-right: none;
+.ees-glass-group .btn:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+.ees-glass-group .ees-btn-glass-danger:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    color: #fca5a5 !important;
+}
+
+.ees-glass-group .btn:last-child,
+.ees-glass-group form:last-child .btn {
+    border-right: none !important;
 }
 
 /* EES Table System */
@@ -139,20 +252,28 @@
 
 /* Standard Badges */
 .ees-badge {
-    padding: 0.35em 0.8em;
+    padding: 0.4rem 0.8rem;
     font-weight: 600;
     font-size: 0.75rem;
     border-radius: 6px;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.4rem;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1;
 }
 
-.ees-badge-performance { background: rgba(13, 110, 253, 0.1); color: var(--ees-status-performance); }
-.ees-badge-competency { background: rgba(25, 135, 84, 0.1); color: var(--ees-status-competency); }
-.ees-badge-multi { background: rgba(245, 158, 11, 0.1); color: var(--ees-status-multi); }
-.ees-badge-self { background: rgba(16, 185, 129, 0.1); color: var(--ees-status-self); }
-.ees-badge-executive { background: rgba(13, 202, 240, 0.1); color: var(--ees-status-executive); }
+.ees-badge-performance { background: rgba(13, 110, 253, 0.15); color: var(--ees-status-performance); border: 1px solid rgba(13, 110, 253, 0.3); }
+.ees-badge-competency { background: rgba(25, 135, 84, 0.15); color: var(--ees-status-competency); border: 1px solid rgba(25, 135, 84, 0.3); }
+.ees-badge-multi { background: rgba(245, 158, 11, 0.15); color: var(--ees-status-multi); border: 1px solid rgba(245, 158, 11, 0.3); }
+.ees-badge-self { background: rgba(16, 185, 129, 0.15); color: var(--ees-status-self); border: 1px solid rgba(16, 185, 129, 0.3); }
+.ees-badge-executive { background: rgba(13, 202, 240, 0.15); color: var(--ees-status-executive); border: 1px solid rgba(13, 202, 240, 0.3); }
+.ees-badge-danger { background: rgba(239, 68, 68, 0.15); color: var(--ees-status-danger); border: 1px solid rgba(239, 68, 68, 0.3); }
 
 /* Text Gradient */
 .ees-text-gradient {
@@ -171,4 +292,186 @@
 }
 .htmx-request.htmx-indicator {
     opacity: 1;
+}
+
+/* Weight Control Bar (Premium Capsule Design) */
+.ees-weight-control-bar {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    border-radius: 14px;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: stretch;
+    transition: var(--ees-transition-base);
+}
+
+.ees-weight-control-bar:hover {
+    border-color: rgba(99, 102, 241, 0.6);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.weight-section {
+    display: flex;
+    align-items: center;
+    padding: 0 1.25rem;
+    position: relative;
+}
+
+.weight-section:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 25%;
+    height: 50%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.weight-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.weight-input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    width: 50px;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 800;
+    padding: 0.5rem 0;
+    outline: none !important;
+}
+
+/* Chrome, Safari, Edge, Opera - hide arrows */
+.weight-input::-webkit-outer-spin-button,
+.weight-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox - hide arrows */
+.weight-input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.weight-unit {
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.weight-save-btn {
+    background: #6366f1 !important;
+    border: none;
+    color: white;
+    font-weight: 700;
+    font-size: 0.875rem;
+    padding: 0 1.75rem;
+    transition: var(--ees-transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.weight-save-btn:hover {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+}
+
+.weight-save-btn:active {
+    transform: scale(0.98);
+}
+
+.weight-save-btn:disabled {
+    background: #475569 !important;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.text-performance { color: #60a5fa !important; }
+.text-competency { color: #10b981 !important; }
+
+/* Unified Glass Hover Colors (High Priority) */
+.ees-glass-group .btn.ees-btn-glass-edit-hover:hover,
+.ees-btn-glass-edit-hover:hover {
+    background: rgba(99, 102, 241, 0.25) !important;
+    color: #818cf8 !important;
+    border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+.ees-glass-group .btn.ees-btn-glass-success-hover:hover,
+.ees-btn-glass-success-hover:hover {
+    background: rgba(16, 185, 129, 0.25) !important;
+    color: #34d399 !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+.ees-glass-group .btn.ees-btn-glass-warning-hover:hover,
+.ees-btn-glass-warning-hover:hover {
+    background: rgba(245, 158, 11, 0.25) !important;
+    color: #f59e0b !important;
+    border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+/* Unified Rules Card Component */
+.ees-rules-card {
+    background: rgba(30, 41, 59, 0.3) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-left: 4px solid #6366f1 !important;
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: var(--ees-transition-base);
+}
+
+.ees-rules-card:hover {
+    background: rgba(30, 41, 59, 0.4) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    transform: translateY(-2px);
+}
+
+.ees-rules-card h6 {
+    font-weight: 700 !important;
+    margin-bottom: 1rem !important;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.ees-rules-list {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+}
+
+.ees-rules-list li {
+    position: relative;
+    padding-left: 1.5rem;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin-bottom: 0.6rem;
+    line-height: 1.6;
+}
+
+.ees-rules-list li:last-child {
+    margin-bottom: 0;
+}
+
+.ees-rules-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0.25rem;
+    color: #6366f1;
+    font-weight: bold;
+    font-size: 1.2rem;
+    line-height: 1;
+    top: -2px;
 }

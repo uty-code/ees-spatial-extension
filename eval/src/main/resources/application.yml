@@ -1,10 +1,21 @@
 server:
   forward-headers-strategy: framework
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
 
 spring:
   threads:
     virtual:
       enabled: true
+  web:
+    resources:
+      cache:
+        period: 3600
+        cachecontrol:
+          max-age: 3600
+          cache-public: true
   docker:
     compose:
       enabled: false  # 외부 SKU DB 사용 중 - Docker 로컬 DB 불필요

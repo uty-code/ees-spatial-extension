@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
+    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark" th:fragment="content">
 
         <!-- Page Header -->
         <div class="row align-items-center mb-4">
@@ -46,17 +46,17 @@
 
             <!-- 왼쪽: 아바타 + 요약 카드 -->
             <div class="col-lg-4">
-                <div class="glass-card p-4 text-center">
+                <div class="ees-card p-4 text-center">
                     <div class="d-flex justify-content-center mb-4">
                         <div class="position-relative">
                             <div class="rounded-circle d-flex align-items-center justify-content-center"
                                 style="width:100px;height:100px;background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);font-size:2.5rem;font-weight:700;color:#fff;">
                                 <span th:text="${#strings.substring(employee.name(),0,1)}">A</span>
                             </div>
-                            <span class="position-absolute bottom-0 end-0 badge rounded-pill px-2 py-1"
-                                th:classappend="${employee.statusCode()=='EMPLOYED'?'bg-success':
-                                                 (employee.statusCode()=='ON_LEAVE'?'bg-warning text-dark':
-                                                 (employee.statusCode()=='PENDING'?'bg-info text-dark':'bg-secondary'))}"
+                            <span class="ees-badge position-absolute bottom-0 end-0"
+                                th:classappend="${employee.statusCode()=='EMPLOYED'?'ees-badge-self':
+                                                 (employee.statusCode()=='ON_LEAVE'?'ees-badge-multi':
+                                                 (employee.statusCode()=='PENDING'?'ees-badge-multi':'ees-badge-danger'))}"
                                 style="font-size:0.65rem;"
                                 th:text="${employee.statusCode()=='EMPLOYED'?'재직':
                                           (employee.statusCode()=='ON_LEAVE'?'휴직':
@@ -69,10 +69,10 @@
 
                     <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
                         <span th:each="role : ${employee.roleNames()}"
-                            class="badge rounded-pill px-3 py-1"
-                            th:classappend="${role=='ROLE_ADMIN'?'bg-danger bg-opacity-25 text-danger':
-                                            (role=='ROLE_MANAGER'?'bg-warning bg-opacity-25 text-warning':
-                                            (role=='ROLE_EXECUTIVE'?'bg-info bg-opacity-25 text-info':'bg-primary bg-opacity-25 text-primary'))}"
+                            class="ees-badge"
+                            th:classappend="${role=='ROLE_ADMIN'?'ees-badge-performance':
+                                            (role=='ROLE_MANAGER'?'ees-badge-multi':
+                                            (role=='ROLE_EXECUTIVE'?'ees-badge-executive':'ees-badge-self'))}"
                             th:text="${role=='ROLE_ADMIN'?'관리자':
                                       (role=='ROLE_MANAGER'?'부서장':
                                       (role=='ROLE_EXECUTIVE'?'임원':'일반 사원'))}">일반 사원</span>
@@ -119,7 +119,7 @@
             <div class="col-lg-8 d-flex flex-column gap-4">
 
                 <!-- 기본 정보 (읽기 전용) -->
-                <div class="glass-card p-4 p-md-5">
+                <div class="ees-card p-4 p-md-5">
                     <h5 class="fw-bold mb-4">
                         <i class="bi bi-person-lines-fill me-2 text-primary"></i>기본 정보
                     </h5>
@@ -163,10 +163,10 @@
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-semibold">재직 상태</label>
                             <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
-                                <span class="badge rounded-pill"
-                                    th:classappend="${employee.statusCode()=='EMPLOYED'?'bg-success':
-                                                     (employee.statusCode()=='ON_LEAVE'?'bg-warning text-dark':
-                                                     (employee.statusCode()=='PENDING'?'bg-info text-dark':'bg-secondary'))}"
+                                <span class="ees-badge"
+                                    th:classappend="${employee.statusCode()=='EMPLOYED'?'ees-badge-self':
+                                                     (employee.statusCode()=='ON_LEAVE'?'ees-badge-multi':
+                                                     (employee.statusCode()=='PENDING'?'ees-badge-multi':'ees-badge-danger'))}"
                                     th:text="${employee.statusCode()=='EMPLOYED'?'재직 중':
                                               (employee.statusCode()=='ON_LEAVE'?'휴직 중':
                                               (employee.statusCode()=='PENDING'?'승인 대기':'퇴직'))}">재직 중</span>
@@ -176,10 +176,10 @@
                             <label class="form-label text-muted small fw-semibold">보유 권한</label>
                             <div class="p-3 rounded-3 d-flex flex-wrap gap-2" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
                                 <span th:each="role : ${employee.roleNames()}"
-                                    class="badge rounded-pill px-3 py-2"
-                                    th:classappend="${role=='ROLE_ADMIN'?'bg-danger bg-opacity-25 text-danger':
-                                                    (role=='ROLE_MANAGER'?'bg-warning bg-opacity-25 text-warning':
-                                                    (role=='ROLE_EXECUTIVE'?'bg-info bg-opacity-25 text-info':'bg-primary bg-opacity-25 text-primary'))}"
+                                    class="ees-badge"
+                                    th:classappend="${role=='ROLE_ADMIN'?'ees-badge-performance':
+                                                    (role=='ROLE_MANAGER'?'ees-badge-multi':
+                                                    (role=='ROLE_EXECUTIVE'?'ees-badge-executive':'ees-badge-self'))}"
                                     th:text="${role=='ROLE_ADMIN'?'🛡 관리자 (ADMIN)':
                                               (role=='ROLE_MANAGER'?'👥 부서장 (MANAGER)':
                                               (role=='ROLE_EXECUTIVE'?'⭐ 임원 (EXECUTIVE)':'👤 일반 사원 (USER)'))}">-</span>
@@ -190,7 +190,7 @@
                 </div>
 
                 <!-- 연락처 수정 폼 -->
-                <div class="glass-card p-4 p-md-5">
+                <div class="ees-card p-4 p-md-5">
                     <h5 class="fw-bold mb-4">
                         <i class="bi bi-pencil-square me-2 text-primary"></i>연락처 수정
                     </h5>
@@ -226,7 +226,7 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-end mt-4">
-                            <button type="submit" class="btn btn-primary px-4">
+                            <button type="submit" class="btn ees-btn-glass-primary px-4">
                                 <i class="bi bi-save me-2"></i>연락처 저장
                             </button>
                         </div>
@@ -234,7 +234,7 @@
                 </div>
 
                 <!-- 비밀번호 변경 (아코디언) -->
-                <div class="glass-card p-4 p-md-5">
+                <div class="ees-card p-4 p-md-5">
                     <!-- 비밀번호 변경 알림 메시지 -->
                     <div th:if="${pwSuccessMessage}"
                         class="alert border-0 mb-4 d-flex align-items-center gap-2"
@@ -310,7 +310,7 @@
                                 </div>
                             </div>
                             <div class="d-flex justify-content-end mt-4">
-                                <button type="submit" class="btn btn-warning px-4 text-dark fw-semibold">
+                                <button type="submit" class="btn ees-btn-glass-warning px-4 text-dark fw-semibold">
                                     <i class="bi bi-shield-check me-2"></i>비밀번호 변경
                                 </button>
                             </div>

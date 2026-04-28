@@ -7,7 +7,7 @@
 
 <body>
 
-    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
+    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark" th:fragment="content">
         <!-- Dashboard Header -->
         <div class="row align-items-center mb-4">
             <div class="col-md-8">
@@ -24,7 +24,7 @@
         <!-- Stats Cards Row -->
         <div class="row g-4 mb-4">
             <div class="col-md-4">
-                <div class="glass-card stat-card">
+                <div class="ees-card stat-card">
                     <div class="stat-icon icon-blue">
                         <i class="bi bi-people-fill"></i>
                     </div>
@@ -33,7 +33,7 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="glass-card stat-card">
+                <div class="ees-card stat-card">
                     <div class="stat-icon icon-purple">
                         <i class="bi bi-diagram-3-fill"></i>
                     </div>
@@ -42,7 +42,7 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="glass-card stat-card">
+                <div class="ees-card stat-card">
                     <div class="stat-icon icon-indigo">
                         <i class="bi bi-calendar-check"></i>
                     </div>
@@ -55,7 +55,7 @@
         <!-- Charts Row -->
         <div class="row g-4 mb-4">
             <div class="col-lg-6">
-                <div class="glass-card p-4 h-100">
+                <div class="ees-card p-4 h-100">
                     <h5 class="fw-bold mb-4">전사 등급 분포</h5>
                     <div style="height: 300px; position: relative;">
                         <canvas id="gradeChart"></canvas>
@@ -63,7 +63,7 @@
                 </div>
             </div>
             <div class="col-lg-6">
-                <div class="glass-card p-4 h-100">
+                <div class="ees-card p-4 h-100">
                     <h5 class="fw-bold mb-4">부서별 평균 점수</h5>
                     <div style="height: 300px; position: relative;">
                         <canvas id="deptChart"></canvas>
@@ -76,7 +76,7 @@
         <div class="row g-4">
             <!-- Recent Activity -->
             <div class="col-lg-8">
-                <div class="glass-card p-4 h-100">
+                <div class="ees-card p-4 h-100">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h5 class="fw-bold mb-0">인사 현황 (최근 등록)</h5>
                         <a href="/employees" hx-get="/employees" hx-target="#page-content" hx-select="#page-content"
@@ -84,7 +84,7 @@
                             class="btn btn-link text-primary text-decoration-none p-0 small">전체 보기</a>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-hover table-dark-custom align-middle">
+                        <table class="ees-table align-middle">
                             <thead>
                                 <tr class="text-muted small border-bottom border-secondary opacity-50">
                                     <th class="py-3">이름</th>
@@ -110,17 +110,16 @@
                                     <td>
                                         <!-- 재직 상태 코드에 따라 배지 색상 분기 -->
                                         <span th:if="${emp.statusCode == 'EMPLOYED'}"
-                                            class="badge bg-success bg-opacity-10 text-success fw-normal px-2">재직</span>
+                                            class="ees-badge ees-badge-self">재직</span>
                                         <span th:if="${emp.statusCode == 'ON_LEAVE' or emp.statusCode == 'LEAVE'}"
-                                            class="badge bg-warning bg-opacity-10 text-warning fw-normal px-2">휴직</span>
+                                            class="ees-badge ees-badge-multi">휴직</span>
                                         <span th:if="${emp.statusCode == 'RETIRED'}"
-                                            class="badge bg-danger bg-opacity-10 text-danger fw-normal px-2">퇴사</span>
+                                            class="ees-badge ees-badge-danger">퇴사</span>
                                         <span th:if="${emp.statusCode == 'PENDING'}"
-                                            class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2">승인
-                                            대기</span>
+                                            class="ees-badge ees-badge-performance">승인 대기</span>
                                         <span
                                             th:if="${emp.statusCode != 'EMPLOYED' and emp.statusCode != 'ON_LEAVE' and emp.statusCode != 'LEAVE' and emp.statusCode != 'RETIRED' and emp.statusCode != 'PENDING'}"
-                                            class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2"
+                                            class="ees-badge"
                                             th:text="${emp.statusCode}">-</span>
                                     </td>
                                 </tr>
@@ -138,7 +137,7 @@
 
             <!-- Quick Access -->
             <div class="col-lg-4">
-                <div class="glass-card p-4 mb-4">
+                <div class="ees-card p-4 mb-4">
                     <h5 class="fw-bold mb-3">주요 기능</h5>
                     <div class="d-grid gap-2">
                         <a th:href="@{/eval/periods}" hx-get="/eval/periods" hx-target="#page-content"
@@ -156,7 +155,7 @@
                     </div>
                 </div>
 
-                <div class="glass-card p-4 bg-primary bg-opacity-10 border-primary border-opacity-25">
+                <div class="ees-card p-4 bg-primary bg-opacity-10 border-primary border-opacity-25">
                     <h6 class="fw-bold mb-2 text-primary">알림</h6>
                     <p class="text-muted small mb-0">현재 2026년 상반기 정기 평가가 진행 중입니다. 평가 항목 점수 비중을 다시 한번 확인해 주세요.</p>
                 </div>

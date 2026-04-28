@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <div id="page-content" class="container-fluid py-4">
+    <div id="page-content" class="container-fluid py-4" th:fragment="content">
 
         <!-- Page Header -->
         <div class="row align-items-center mb-4">
@@ -16,7 +16,7 @@
                 <p class="text-muted">조직의 부서를 등록하고 계층 구조를 관리합니다.</p>
             </div>
             <div class="col-md-4 text-md-end">
-                <a th:href="@{/departments/new}" class="btn btn-primary px-4" id="btn-new-dept">
+                <a th:href="@{/departments/new}" class="btn ees-btn-glass-primary px-4" id="btn-new-dept">
                     <i class="bi bi-plus-circle me-2"></i>신규 부서 등록
                 </a>
             </div>
@@ -41,7 +41,7 @@
         <!-- Stats Row -->
         <div class="row g-3 mb-4">
             <div class="col-md-4">
-                <div class="glass-card p-3 d-flex align-items-center gap-3">
+                <div class="ees-card p-3 d-flex align-items-center gap-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
                         style="width:46px;height:46px;background:rgba(99,102,241,0.15);">
                         <i class="bi bi-diagram-3-fill text-primary fs-5"></i>
@@ -53,7 +53,7 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="glass-card p-3 d-flex align-items-center gap-3">
+                <div class="ees-card p-3 d-flex align-items-center gap-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
                         style="width:46px;height:46px;background:rgba(16,185,129,0.15);">
                         <i class="bi bi-people-fill text-success fs-5"></i>
@@ -65,7 +65,7 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="glass-card p-3 d-flex align-items-center gap-3">
+                <div class="ees-card p-3 d-flex align-items-center gap-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
                         style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
                         <i class="bi bi-diagram-2-fill text-warning fs-5"></i>
@@ -79,7 +79,7 @@
         </div>
 
         <!-- Search Filter Card -->
-        <div class="glass-card p-4 mb-4">
+        <div class="ees-card p-4 mb-4">
             <form th:action="@{/departments}" method="get" id="search-form">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-5">
@@ -103,7 +103,7 @@
                         </select>
                     </div>
                     <div class="col-md-3 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary flex-grow-1" id="btn-search">
+                        <button type="submit" class="btn ees-btn-glass-primary flex-grow-1" id="btn-search">
                             <i class="bi bi-search me-1"></i>검색
                         </button>
                         <a th:href="@{/departments}" class="btn btn-outline-secondary" id="btn-reset-search"
@@ -116,9 +116,9 @@
         </div>
 
         <!-- Department Table -->
-        <div class="glass-card p-4">
+        <div class="ees-card p-4">
             <div class="table-responsive">
-                <table class="table table-hover table-dark-custom align-middle mb-0" id="dept-table">
+                <table class="ees-table" id="dept-table">
                     <thead>
                         <tr class="text-muted small border-bottom border-secondary opacity-50">
                             <th class="py-3">부서명</th>
@@ -152,31 +152,30 @@
                             </td>
                             <td class="py-3">
                                 <span th:if="${dept.parentDeptName() != null}"
-                                    class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-3 py-2"
+                                    class="ees-badge"
                                     th:text="${dept.parentDeptName()}">경영지원팀</span>
                                 <span th:unless="${dept.parentDeptName() != null}" class="text-muted small">-</span>
                             </td>
                             <td class="py-3">
                                 <span th:if="${dept.leaderName() != null}"
-                                    class="badge bg-info bg-opacity-10 text-info fw-normal px-3 py-2">
+                                    class="ees-badge"
+                                    th:classappend="${dept.isLeaderExecutive() ? 'ees-badge-executive' : 'ees-badge-multi'}">
                                     <i class="bi bi-person-check-fill me-1"></i>
                                     <span th:text="${dept.leaderName()}">홍길동</span>
                                 </span>
                                 <span th:unless="${dept.leaderName() != null}" class="text-muted small">미지정</span>
                             </td>
                             <td class="py-3 text-center">
-                                <span class="badge fw-normal px-3 py-2"
-                                    th:classappend="${dept.employeeCount() > 0} ? 'bg-primary bg-opacity-10 text-primary' : 'bg-secondary bg-opacity-10 text-muted'"
-                                    th:text="${dept.employeeCount()} + '명'">0명</span>
+                                <span th:text="${dept.employeeCount()} + '명'" class="text-muted small">0명</span>
                             </td>
                             <!-- 사용 여부 배지 -->
                             <td class="py-3 text-center">
                                 <span th:if="${dept.isActive() == 'y'}"
-                                    class="badge fw-normal px-3 py-2 bg-success bg-opacity-10 text-success">
+                                    class="ees-badge ees-badge-self">
                                     <i class="bi bi-check-circle-fill me-1"></i>사용중
                                 </span>
                                 <span th:unless="${dept.isActive() == 'y'}"
-                                    class="badge fw-normal px-3 py-2 bg-secondary bg-opacity-10 text-muted">
+                                    class="ees-badge">
                                     <i class="bi bi-dash-circle me-1"></i>미사용
                                 </span>
                             </td>
@@ -185,18 +184,18 @@
                                 2026-01-01
                             </td>
                             <td class="py-3 text-center">
-                                <div class="d-flex gap-1 justify-content-center">
+                                <div class="ees-glass-group shadow-sm">
                                     <!-- 수정 버튼 -->
                                     <a th:href="@{'/departments/' + ${dept.deptId()} + '/edit'}"
-                                        class="btn-action btn-action-edit" title="수정"
+                                        class="btn ees-btn-glass btn-sm ees-btn-glass-edit-hover" title="수정"
                                         th:id="'btn-edit-' + ${dept.deptId()}">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
                                     <!-- 사용 여부 토글 버튼 -->
                                     <form th:action="@{'/departments/' + ${dept.deptId()} + '/toggle-status'}"
                                         method="post" class="d-inline">
-                                        <button type="submit" class="btn-action"
-                                            th:classappend="${dept.isActive() == 'y'} ? 'btn-action-warning' : 'btn-action-success'"
+                                        <button type="submit" class="btn ees-btn-glass btn-sm"
+                                            th:classappend="${dept.isActive() == 'y'} ? 'ees-btn-glass-warning-hover' : 'ees-btn-glass-success-hover'"
                                             th:id="'btn-toggle-' + ${dept.deptId()}"
                                             th:title="${dept.isActive() == 'y'} ? '미사용으로 변경' : '사용중으로 변경'"
                                             th:onclick="return confirm(this.getAttribute('data-confirm-msg'))"
@@ -208,8 +207,8 @@
                                     <!-- 삭제 버튼 (소속 인원 0명인 경우만 활성화) -->
                                     <form th:action="@{'/departments/' + ${dept.deptId()} + '/delete'}" method="post"
                                         class="d-inline">
-                                        <button type="submit" class="btn-action"
-                                            th:classappend="${dept.employeeCount() == 0} ? 'btn-action-danger' : 'disabled'"
+                                        <button type="submit" class="btn btn-sm"
+                                            th:classappend="${dept.employeeCount() == 0} ? 'ees-btn-glass-danger' : 'ees-btn-glass disabled'"
                                             th:id="'btn-delete-' + ${dept.deptId()}"
                                             th:data-confirm-msg="'이 부서를 삭제하시겠습니까?'"
                                             th:onclick="${dept.employeeCount() == 0} ? 'return confirm(this.getAttribute(\'data-confirm-msg\'))' : 'return false'"
@@ -226,9 +225,9 @@
         </div>
 
         <!-- 안내 카드 -->
-        <div class="glass-card p-4 mt-4 bg-primary bg-opacity-10 border-primary border-opacity-25">
-            <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-info-circle me-2"></i>부서 관리 규칙</h6>
-            <ul class="text-muted small mb-0 ps-3">
+        <div class="ees-rules-card mt-4">
+            <h6 class="text-primary"><i class="bi bi-info-circle"></i>부서 관리 규칙</h6>
+            <ul class="ees-rules-list">
                 <li>소속 인원이 있는 부서는 삭제할 수 없습니다. 사원을 다른 부서로 이동한 후 삭제하세요.</li>
                 <li>하위 부서가 있는 부서는 삭제할 수 없습니다. 하위 부서를 다른 곳으로 이동시키거나 하위 부서를 먼저 삭제하세요.</li>
                 <li>부서 삭제는 실제 데이터를 제거하지 않습니다.</li>

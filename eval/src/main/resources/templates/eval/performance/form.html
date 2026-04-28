@@ -6,7 +6,7 @@
     <style></style>
 </head>
 <body>
-<div id="page-content" class="container-fluid py-4">
+<div id="page-content" class="container-fluid py-4" th:fragment="content">
     <style>
         .eval-form-container { max-width: 1200px; margin: 0 auto; }
         .eval-card {
@@ -136,52 +136,6 @@
             align-items: center;
             gap: 8px;
         }
-        .btn-submit {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 28px;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-        .btn-submit:hover {
-            background-color: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(79,70,229,0.4);
-        }
-        .btn-resubmit {
-            background-color: rgba(79,70,229,0.2);
-            color: #a5b4fc;
-            border: 1px solid rgba(79,70,229,0.4);
-            padding: 10px 24px;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-        .btn-resubmit:hover {
-            background-color: rgba(79,70,229,0.35);
-            color: white;
-        }
-        .btn-back {
-            background-color: rgba(255,255,255,0.05);
-            color: var(--text-main);
-            border: 1px solid var(--glass-border);
-            padding: 10px 24px;
-            border-radius: 6px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-back:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-        }
     </style>
     <div class="eval-form-container">
 
@@ -195,7 +149,7 @@
                       th:classappend="${evalType == 'COMPETENCY'} ? 'bg-success' : 'bg-primary'"
                       th:text="${mapping.evaluateeName()}">피평가자</span>
             </div>
-            <a href="#" class="btn-back"
+            <a href="#" class="btn ees-btn-glass"
                th:attr="hx-get=@{/eval/performance(evalType=${evalType})}" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true">
                 <i class="bi bi-arrow-left"></i> 목록으로 돌아가기
             </a>
@@ -240,7 +194,7 @@
         </div>
 
         <!-- 평가요소 없을 때 -->
-        <div th:if="${elements == null || elements.isEmpty()}" class="glass-card text-center py-5">
+        <div th:if="${elements == null || elements.isEmpty()}" class="ees-card text-center py-5">
             <i class="bi bi-exclamation-circle fs-1 text-warning mb-3 d-block"></i>
             <h5 class="text-white fw-bold">등록된 평가요소가 없습니다.</h5>
             <p class="text-muted">관리자가 해당 차수의 평가요소를 먼저 등록해야 합니다.</p>
@@ -311,8 +265,7 @@
 
             <!-- 하단 플로팅 버튼 영역 -->
             <div class="d-flex justify-content-end mt-4 mb-5">
-                <button type="submit" form="evaluationForm" class="btn-submit btn-lg py-3 px-5 fs-5"
-                        th:style="${evalType == 'COMPETENCY'} ? 'background-color:#10b981;' : ''">
+                <button type="submit" form="evaluationForm" class="btn ees-btn-glass-primary btn-lg py-3 px-5 fs-5">
                     <i th:class="${evalType == 'COMPETENCY'} ? 'bi bi-stars me-2' : 'bi bi-check2-circle me-2'"></i>
                     <span th:text="${evalType == 'COMPETENCY'} ? '역량 평가 저장 및 제출' : '성과 평가 저장 및 제출'">모든 평가 내용 저장 및 제출</span>
                 </button>

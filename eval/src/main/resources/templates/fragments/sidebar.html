@@ -34,7 +34,7 @@
                 th:classappend="${activeMenu == 'employees' ? 'active' : ''}">
                 <i class="bi bi-people-fill"></i>
                 <span>사원 관리</span>
-                <span id="sidebar-pending-badge" class="badge bg-warning text-dark ms-1" th:if="${pendingCount > 0}"
+                <span id="sidebar-pending-badge" hx-swap-oob="true" class="ees-badge ees-badge-multi ms-1" th:if="${pendingCount > 0}"
                     th:text="${pendingCount}"></span>
             </a>
         </nav>

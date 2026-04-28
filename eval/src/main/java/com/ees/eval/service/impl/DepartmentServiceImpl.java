@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -67,7 +68,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Transactional(readOnly = true)
     public List<DepartmentDTO> getSimpleAllDepartments() {
         return departmentMapper.findAll().stream()
-                .map(dept -> convertToDto(dept, null, null, 0))
+                .map(dept -> convertToDto(dept, null, null, 0, false))
                 .collect(Collectors.toList());
     }
 
@@ -77,28 +78,35 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional(readOnly = true)
     public List<DepartmentDTO> getAllDepartments() {
-        // 1. 전체 부서 조회 및 DTO 변환
-        List<DepartmentDTO> allDepts = departmentMapper.findAll().stream()
+        // 1. 전체 부서 조회
+        List<Department> departments = departmentMapper.findAll();
+        
+        // 2. 부서장 임원 여부 일괄 조회 (N+1 방지)
+        Map<Long, Boolean> execMap = getLeaderExecutiveMap(departments);
+
+        // 3. DTO 변환
+        List<DepartmentDTO> allDepts = departments.stream()
                 .map(dept -> {
                     String parentName = departmentMapper.findParentDeptName(dept.getDeptId());
                     String leaderName = departmentMapper.findLeaderName(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, parentName, leaderName, count);
+                    boolean isExec = execMap.getOrDefault(dept.getLeaderId(), false);
+                    return convertToDto(dept, parentName, leaderName, count, isExec);
                 })
                 .collect(Collectors.toList());
 
-        // 2. 부모-자식 트리 맵 구성 (parentDeptId 기준 그룹화)
+        // 4. 부모-자식 트리 맵 구성 (parentDeptId 기준 그룹화)
         Map<Long, List<DepartmentDTO>> childrenMap = allDepts.stream()
                 .filter(d -> d.parentDeptId() != null)
                 .collect(Collectors.groupingBy(DepartmentDTO::parentDeptId));
 
-        // 3. 최상위(Root) 부서 목록 추출 후 ID 순 정렬
+        // 5. 최상위(Root) 부서 목록 추출 후 ID 순 정렬
         List<DepartmentDTO> roots = allDepts.stream()
                 .filter(d -> d.parentDeptId() == null)
                 .sorted(Comparator.comparing(DepartmentDTO::deptId))
                 .toList();
 
-        // 4. DFS로 트리 순회하여 한 줄로 펼침(Flatten)
+        // 6. DFS로 트리 순회하여 한 줄로 펼침(Flatten)
         List<DepartmentDTO> sortedDepts = new ArrayList<>();
         for (DepartmentDTO root : roots) {
             buildTreeList(root, childrenMap, sortedDepts, 0);
@@ -116,18 +124,21 @@ public class DepartmentServiceImpl implements DepartmentService {
         boolean isSearch = (searchKeyword != null && !searchKeyword.trim().isEmpty())
                 || (searchStatus != null && !searchStatus.trim().isEmpty());
 
-        // 검색 조건이 없다면 기존 트리형의 전체 목록으로 반환합니다.
         if (!isSearch) {
             return getAllDepartments();
         }
 
-        // 검색 조건이 있는 경우, 필터링하여 일차원 리스트로 반환 (depth = 0)
-        return departmentMapper.findAllWithConditions(searchKeyword, searchStatus).stream()
+        List<Department> departments = departmentMapper.findAllWithConditions(searchKeyword, searchStatus);
+        Map<Long, Boolean> execMap = getLeaderExecutiveMap(departments);
+
+        return departments.stream()
                 .map(dept -> {
                     String parentName = departmentMapper.findParentDeptName(dept.getDeptId());
                     String leaderName = departmentMapper.findLeaderName(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, parentName, leaderName, count).toBuilder().treeDepth(0).build();
+                    boolean isExec = execMap.getOrDefault(dept.getLeaderId(), false);
+                    return convertToDto(dept, parentName, leaderName, count, isExec)
+                            .toBuilder().treeDepth(0).build();
                 })
                 .collect(Collectors.toList());
     }
@@ -156,12 +167,15 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional(readOnly = true)
     public List<DepartmentDTO> getRootDepartments() {
-        // 최상위 부서 목록 조회 (parent_dept_id IS NULL)
-        return departmentMapper.findRootDepartments().stream()
+        List<Department> departments = departmentMapper.findRootDepartments();
+        Map<Long, Boolean> execMap = getLeaderExecutiveMap(departments);
+
+        return departments.stream()
                 .map(dept -> {
                     String leaderName = departmentMapper.findLeaderName(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, null, leaderName, count);
+                    boolean isExec = execMap.getOrDefault(dept.getLeaderId(), false);
+                    return convertToDto(dept, null, leaderName, count, isExec);
                 })
                 .collect(Collectors.toList());
     }
@@ -172,15 +186,18 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional(readOnly = true)
     public List<DepartmentDTO> getChildDepartments(Long parentDeptId) {
-        // 상위 부서명을 한 번만 조회하여 하위 부서 목록에 일괄 적용
         Department parentDept = departmentMapper.findById(parentDeptId).orElse(null);
         String parentDeptName = (parentDept != null) ? parentDept.getDeptName() : null;
 
-        return departmentMapper.findByParentDeptId(parentDeptId).stream()
+        List<Department> departments = departmentMapper.findByParentDeptId(parentDeptId);
+        Map<Long, Boolean> execMap = getLeaderExecutiveMap(departments);
+
+        return departments.stream()
                 .map(dept -> {
                     String leaderName = departmentMapper.findLeaderName(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, parentDeptName, leaderName, count);
+                    boolean isExec = execMap.getOrDefault(dept.getLeaderId(), false);
+                    return convertToDto(dept, parentDeptName, leaderName, count, isExec);
                 })
                 .collect(Collectors.toList());
     }
@@ -413,8 +430,15 @@ public class DepartmentServiceImpl implements DepartmentService {
      * @param empId 권한을 부여할 사원 식별자
      */
     private void grantManagerRole(Long empId) {
-        // 현재 사원의 권한 목록을 조회하여 이미 ROLE_MANAGER를 보유 중인지 확인
+        // 현재 사원의 권한 목록을 조회
         List<String> currentRoles = employeeMapper.findRoleNamesByEmpId(empId);
+
+        // 관리자(ADMIN)나 임원(EXECUTIVE) 권한이 있는 경우 권한 변경 생략 (보호 로직)
+        if (currentRoles.contains("ROLE_ADMIN") || currentRoles.contains("ROLE_EXECUTIVE")) {
+            log.info("사원 {}은(는) 상위 권한 보유자이므로 매니저 권한 부여를 생략합니다.", empId);
+            return;
+        }
+
         if (currentRoles.contains("ROLE_MANAGER")) {
             log.debug("사원 {}은(는) 이미 ROLE_MANAGER 권한을 보유 중입니다.", empId);
             return;
@@ -444,9 +468,17 @@ public class DepartmentServiceImpl implements DepartmentService {
         // 해당 사원이 리더로 등록된 부서 수를 확인
         int leaderCount = departmentMapper.countDepartmentsByLeaderId(empId);
 
-        // 현재 해제 중인 부서를 제외했을 때 다른 부서 리더가 아닌 경우에만 권한 회수
-        // (아직 DB에서 해제가 반영되지 않았다면 -1 해야 정확)
+        // 현재 해제 중인 부서를 제외했을 때 다른 부서 리더가 아닌 경우에만 권한 회수 시도
         if (leaderCount <= 1) {
+            // 현재 사원의 권한 목록 조회
+            List<String> currentRoles = employeeMapper.findRoleNamesByEmpId(empId);
+
+            // 관리자나 임원 권한 보유자는 부서장 해제 시에도 권한 유지 (보호 로직)
+            if (currentRoles.contains("ROLE_ADMIN") || currentRoles.contains("ROLE_EXECUTIVE")) {
+                log.info("사원 {}은(는) 상위 권한 보유자이므로 부서장 해제 후에도 권한을 유지합니다.", empId);
+                return;
+            }
+
             // ROLE_USER의 role_id 조회
             Role userRole = roleMapper.findByRoleName("ROLE_USER")
                     .orElseThrow(() -> new IllegalStateException("ROLE_USER 권한 정보를 찾을 수 없습니다."));
@@ -471,7 +503,22 @@ public class DepartmentServiceImpl implements DepartmentService {
      * @param employeeCount  소속 사원 인원수
      * @return 변환된 DepartmentDTO
      */
+    /**
+     * Entity를 DTO로 변환합니다. (단일 변환용)
+     */
     private DepartmentDTO convertToDto(Department dept, String parentDeptName, String leaderName, int employeeCount) {
+        boolean isLeaderExecutive = false;
+        if (dept.getLeaderId() != null) {
+            List<String> roles = employeeMapper.findRoleNamesByEmpId(dept.getLeaderId());
+            isLeaderExecutive = roles.contains("ROLE_EXECUTIVE");
+        }
+        return convertToDto(dept, parentDeptName, leaderName, employeeCount, isLeaderExecutive);
+    }
+
+    /**
+     * Entity를 DTO로 변환합니다. (사전에 계산된 임원 여부 포함)
+     */
+    private DepartmentDTO convertToDto(Department dept, String parentDeptName, String leaderName, int employeeCount, boolean isLeaderExecutive) {
         return DepartmentDTO.builder()
                 .deptId(dept.getDeptId())
                 .parentDeptId(dept.getParentDeptId())
@@ -479,6 +526,7 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .deptName(dept.getDeptName())
                 .parentDeptName(parentDeptName)
                 .leaderName(leaderName)
+                .isLeaderExecutive(isLeaderExecutive)
                 .employeeCount(employeeCount)
                 .isActive(dept.getIsActive())
                 .isDeleted(dept.getIsDeleted())
@@ -488,6 +536,35 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .updatedAt(dept.getUpdatedAt())
                 .updatedBy(dept.getUpdatedBy())
                 .build();
+    }
+
+    /**
+     * 다수 부서의 부서장들에 대한 임원 권한 여부를 일괄 조회하여 맵으로 반환합니다.
+     */
+    private Map<Long, Boolean> getLeaderExecutiveMap(List<Department> departments) {
+        List<Long> leaderIds = departments.stream()
+                .map(Department::getLeaderId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (leaderIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Map<String, Object>> roleList = employeeMapper.findRoleNamesByEmpIds(leaderIds);
+        
+        return roleList.stream()
+                .filter(m -> "ROLE_EXECUTIVE".equals(m.get("ROLE_NAME")))
+                .map(m -> {
+                    Object empId = m.get("EMP_ID");
+                    if (empId instanceof Number) {
+                        return ((Number) empId).longValue();
+                    }
+                    return Long.valueOf(empId.toString());
+                })
+                .distinct()
+                .collect(Collectors.toMap(id -> id, id -> true, (v1, v2) -> v1));
     }
 
     /**

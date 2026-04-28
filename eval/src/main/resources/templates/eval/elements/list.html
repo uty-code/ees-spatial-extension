@@ -1,3 +1,7 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'elements', ~{}, ~{::script})}">
+
 <head>
     <title>평가 요소 관리 - EES</title>
 </head>
@@ -20,25 +24,32 @@
 
         <!-- Title Section -->
         <div class="row align-items-center mb-4">
-            <div class="col-md-6">
-                <h1 class="fw-bold fs-3 mb-0">평가요소 관리</h1>
+            <div class="col-md-4">
+                <h1 class="fw-bold fs-3 mb-1">평가요소 관리</h1>
+                <p class="text-muted mb-0">평가 차수별 성과 및 역량 평가의 항목과 가중치를 구성하고 관리합니다.</p>
             </div>
-            <div class="col-md-6 text-md-end">
-                <form hx-get="/eval/elements" hx-target="#page-content" hx-swap="outerHTML" hx-trigger="change"
-                    class="d-inline-flex gap-2" id="filterForm">
-                    <select name="periodId" class="form-select form-select-sm bg-dark text-white border-secondary">
-                        <option th:each="p : ${periods}" th:value="${p.periodId()}" th:text="${p.periodName()}"
+            <div class="col-md-8 text-md-end">
+                <form hx-get="/eval/elements" hx-target="#page-content" hx-swap="outerHTML"
+                    hx-indicator="#global-loader" hx-trigger="change"
+                    class="d-inline-flex gap-2 align-items-center flex-wrap justify-content-end" id="filterForm">
+                    
+                    <label class="text-muted small text-nowrap">차수 선택:</label>
+                    <select name="periodId" class="form-select form-select-sm bg-dark text-white border-secondary"
+                        style="width: 200px;">
+                        <option th:each="p : ${periods}" th:value="${p.periodId()}" 
+                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
                             th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
                     </select>
-                    <select name="deptId" class="form-select form-select-sm bg-dark text-white border-secondary">
+
+                    <label class="text-muted small text-nowrap ms-2">부서:</label>
+                    <select name="deptId" class="form-select form-select-sm bg-dark text-white border-secondary"
+                        style="width: 150px;">
                         <option value="">전사 공통</option>
                         <th:block th:each="d : ${departments}">
-                            <!-- 상위부서 (본부): parentDeptId == null -->
                             <option th:if="${d.parentDeptId() == null}" th:value="${d.deptId()}"
                                 th:text="'🏢 ' + ${d.deptName()}" th:selected="${selectedDeptId == d.deptId()}"
                                 style="font-weight: 700; color: #a5b4fc;">
                             </option>
-                            <!-- 하위부서 (팀): parentDeptId != null -->
                             <option th:unless="${d.parentDeptId() == null}" th:value="${d.deptId()}"
                                 th:text="'　└ ' + ${d.deptName()}" th:selected="${selectedDeptId == d.deptId()}"
                                 style="color: #94a3b8; padding-left: 1.5rem;">
@@ -48,6 +59,7 @@
                 </form>
             </div>
         </div>
+
         <!-- 수정 불가 알림 배너 -->
         <div th:if="${editable != null && !editable}" class="alert alert-warning bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning d-flex align-items-center mb-4" role="alert">
             <i class="bi bi-lock-fill fs-5 me-2"></i>
@@ -55,9 +67,9 @@
                 <strong>읽기 전용</strong> &mdash; 평가가 시작된 차수의 평가요소는 변경할 수 없습니다.
             </div>
         </div>
-        <!-- 유형별 가중치 설정 바 (가로 나란히 배치) -->
+
+        <!-- 유형별 가중치 설정 바 -->
         <div class="row g-4 mb-5">
-            <!-- 부서원 설정 (비중 확대) -->
             <div class="col-xl-8">
                 <div class="ees-card p-4 h-100">
                     <div class="mb-3">
@@ -69,45 +81,44 @@
                         <input type="hidden" name="deptId" th:value="${selectedDeptId}">
                         <input type="hidden" name="targetRoleCode" value="STAFF">
 
-                        <div class="input-group input-group-photo shadow-sm">
-                            <th:block th:each="weight, iterStat : ${memberWeights}">
-                                <span class="input-group-text bg-dark border-secondary text-white fw-bold px-3"
-                                    th:text="${weight.elementTypeCode() == 'PERFORMANCE' ? '성과' : '역량'}"
-                                    th:classappend="${iterStat.index > 0 ? 'border-start-0' : ''}">성과</span>
-                                <input type="number" name="weights"
-                                    th:value="${#numbers.formatDecimal(weight.weight(), 1, 0)}"
-                                    th:id="'weight-' + ${weight.elementTypeCode()}"
-                                    class="form-control ees-form-control text-center fw-bold border-secondary border-end-0 weight-input-sync"
-                                    style="font-size: 1.1rem; max-width: 100px;" min="0" max="100"
-                                    th:readonly="${!editable}" th:disabled="${!editable}">
-                                <span
-                                    class="input-group-text bg-dark border-secondary border-start-0 text-secondary px-2">%</span>
-                                <input type="hidden" name="types" th:value="${weight.elementTypeCode()}">
+                        <div class="ees-weight-control-bar shadow-sm">
+                            <th:block th:each="weight : ${memberWeights}">
+                                <div class="weight-section">
+                                    <span class="weight-label me-2" 
+                                        th:classappend="${weight.elementTypeCode() == 'PERFORMANCE' ? 'text-performance' : 'text-competency'}"
+                                        th:text="${weight.elementTypeCode() == 'PERFORMANCE' ? '성과' : '역량'}">성과</span>
+                                    <input type="number" name="weights"
+                                        th:value="${#numbers.formatDecimal(weight.weight(), 1, 0)}"
+                                        th:id="'weight-' + ${weight.elementTypeCode()}"
+                                        class="weight-input weight-input-sync"
+                                        min="0" max="100"
+                                        th:readonly="${!editable}" th:disabled="${!editable}">
+                                    <span class="weight-unit">%</span>
+                                    <input type="hidden" name="types" th:value="${weight.elementTypeCode()}">
+                                </div>
                             </th:block>
-                            <button th:if="${editable}" type="submit" class="btn btn-primary fw-bold px-4 border-secondary transition-all">
-                                <i class="bi bi-check-lg me-1"></i>저장
+                            <button th:if="${editable}" type="submit" class="weight-save-btn">
+                                <i class="bi bi-check-lg"></i>저장
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- 부서장 가중치 정보 (축소 배치) -->
             <div class="col-xl-4">
-                <div class="ees-card p-4 h-100" style="border-left: 4px solid #4facfe;">
+                <div class="ees-card p-4 h-100">
                     <div class="mb-3">
                         <h5 class="fw-bold mb-1 ees-text-gradient">부서장(Leader) 설정</h5>
                         <p class="text-secondary small mb-0">다면평가 100% 고정입니다.</p>
                     </div>
-                    <div class="input-group input-group-photo shadow-sm d-flex">
+                    <div class="ees-weight-control-bar shadow-sm">
                         <th:block th:each="weight : ${leaderWeights}">
-                            <span
-                                class="input-group-text bg-dark border-secondary text-primary fw-bold px-3">다면</span>
-                            <input type="number" th:value="${#numbers.formatDecimal(weight.weight(), 1, 0)}"
-                                class="form-control ees-form-control text-center fw-bold border-secondary border-end-0"
-                                style="font-size: 1.1rem; max-width: 100px;" readonly disabled>
-                            <span
-                                class="input-group-text bg-dark border-secondary border-start-0 text-secondary px-2">%</span>
+                            <div class="weight-section">
+                                <span class="weight-label me-2 text-multi" style="color: #f59e0b;">다면</span>
+                                <input type="number" th:value="${#numbers.formatDecimal(weight.weight(), 1, 0)}"
+                                    class="weight-input" readonly disabled>
+                                <span class="weight-unit">%</span>
+                            </div>
                         </th:block>
                     </div>
                 </div>
@@ -115,21 +126,25 @@
         </div>
 
         <div class="row g-4">
-            <!-- 2. 중앙 리스트 (편집 가능 시 75%, 읽기 전용 시 100%) -->
             <div th:classappend="${editable ? 'col-lg-9' : 'col-lg-12'}" class="">
-                <div class="ees-card p-4">
+                <div class="ees-card p-4 overflow-hidden">
                     <div class="d-flex align-items-center justify-content-between mb-4">
                         <div class="d-flex align-items-center">
-                            <i class="bi bi-list-task me-2 text-primary"></i>
-                            <h5 class="fw-bold mb-0">등록된 평가 기준(문항)</h5>
+                            <div class="icon-box me-3 bg-primary bg-opacity-10 p-2 rounded-3">
+                                <i class="bi bi-list-task text-primary fs-5"></i>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold mb-0">등록된 평가 기준(문항)</h5>
+                                <p class="text-muted small mb-0">현재 설정된 평가 항목 및 배점 기준입니다.</p>
+                            </div>
                         </div>
                         <form th:if="${selectedDeptId != null && editable}" hx-post="/eval/elements/copy-common"
                             hx-target="#page-content" hx-swap="outerHTML"
-                            hx-confirm="전사 공통 항목을 현재 부서로 가져오시겠습니까? (현재 부서에 이미 있는 항목은 중복해서 가져오지 않습니다.)">
+                            hx-confirm="전사 공통 항목을 현재 부서로 가져오시겠습니까?">
                             <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
                             <input type="hidden" name="deptId" th:value="${selectedDeptId}">
-                            <button type="submit" class="btn btn-sm btn-outline-info fw-bold rounded-pill px-3">
-                                <i class="bi bi-cloud-download me-1"></i> 전사공통 불러오기
+                            <button type="submit" class="btn ees-btn-glass btn-sm px-3">
+                                <i class="bi bi-cloud-download me-1 text-info"></i> 전사공통 불러오기
                             </button>
                         </form>
                     </div>
@@ -137,43 +152,44 @@
                         <table class="ees-table">
                             <thead>
                                 <tr>
-                                    <th>유형</th>
-                                    <th>요소명 (지표)</th>
-                                    <th class="text-center">가중치 (%)</th>
-                                    <th th:if="${editable}" class="text-center">관리</th>
+                                    <th style="width: 15%">유형</th>
+                                    <th style="width: 55%">요소명 (지표)</th>
+                                    <th class="text-center" style="width: 15%">가중치</th>
+                                    <th th:if="${editable}" class="text-center" style="width: 15%">관리</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="el : ${elements}" th:data-type="${el.elementTypeCode()}"
-                                    th:data-weight="${el.weight()}">
+                                <tr th:each="el : ${elements}">
                                     <td>
-                                        <span th:if="${el.elementTypeCode() == 'PERFORMANCE'}"
-                                            class="ees-badge ees-badge-performance">성과</span>
-                                        <span th:if="${el.elementTypeCode() == 'COMPETENCY'}"
-                                            class="ees-badge ees-badge-competency">역량</span>
-                                        <span th:if="${el.elementTypeCode() == 'PEER'}"
-                                            class="ees-badge ees-badge-multi">다면</span>
-
-                                        <span th:if="${el.elementTypeCode() == 'MULTI_DIMENSIONAL'}"
-                                            class="ees-badge ees-badge-multi">다면</span>
+                                        <span th:if="${el.elementTypeCode() == 'PERFORMANCE'}" class="ees-badge ees-badge-performance">성과</span>
+                                        <span th:if="${el.elementTypeCode() == 'COMPETENCY'}" class="ees-badge ees-badge-competency">역량</span>
+                                        <span th:if="${el.elementTypeCode() == 'PEER' || el.elementTypeCode() == 'MULTI_DIMENSIONAL'}" class="ees-badge ees-badge-multi">다면</span>
                                     </td>
-                                    <td class="fw-medium" th:text="${el.elementName()}">요소명</td>
-                                    <td class="text-center text-primary fw-bold"
-                                        th:text="${#numbers.formatDecimal(el.weight(), 1, 0) + '%'}">0%</td>
+                                    <td>
+                                        <div class="fw-bold text-white" th:text="${el.elementName()}">요소명</div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-dark bg-opacity-50 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill" 
+                                              th:text="${#numbers.formatDecimal(el.weight(), 1, 0) + '%'}">0%</span>
+                                    </td>
                                     <td th:if="${editable}" class="text-center">
                                         <form th:attr="hx-post=@{/eval/elements/{id}/delete(id=${el.elementId()})}"
                                             hx-target="#page-content" hx-swap="outerHTML" hx-confirm="항목을 삭제하시겠습니까?">
-                                            <input type="hidden" name="periodId"
-                                                th:value="${selectedPeriod.periodId()}">
+                                            <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
                                             <input type="hidden" name="deptId" th:value="${selectedDeptId}">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0">
+                                            <button type="submit" class="btn ees-btn-glass-danger btn-sm rounded-circle p-0" style="width: 32px; height: 32px;">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
                                     </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(elements)}">
-                                    <td colspan="4" class="text-center py-5 text-muted">등록된 문항이 없습니다.</td>
+                                    <td colspan="4" class="text-center py-5">
+                                        <div class="text-muted opacity-50 mb-2">
+                                            <i class="bi bi-inbox fs-1"></i>
+                                        </div>
+                                        <div class="text-muted">등록된 문항이 없습니다.</div>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -181,152 +197,143 @@
                 </div>
             </div>
 
-            <!-- 3. 우측 추가 폼 (25%) - 편집 가능할 때만 표시 -->
             <div th:if="${editable}" class="col-lg-3">
                 <div class="ees-card p-4">
                     <div class="d-flex align-items-center mb-4">
-                        <i class="bi bi-plus-circle-fill me-2 text-primary"></i>
+                        <div class="icon-box me-2 bg-primary bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-plus-circle text-primary"></i>
+                        </div>
                         <h5 class="fw-bold mb-0">평가요소 추가</h5>
                     </div>
-                    <form hx-post="/eval/elements" hx-target="#page-content" hx-swap="outerHTML">
+                    <form hx-post="/eval/elements" hx-target="#page-content" hx-swap="outerHTML" hx-indicator="#global-loader">
                         <input type="hidden" name="periodId" th:value="${selectedPeriod?.periodId()}">
                         <input type="hidden" name="deptId" th:value="${selectedDeptId}">
                         <input type="hidden" name="maxScore" value="100">
 
                         <div class="mb-4">
-                            <label class="form-label small text-muted">평가 유형</label>
-                            <select name="elementTypeCode" id="newElementType" class="form-select ees-form-control ees-form-select"
-                                required>
+                            <label class="form-label small text-muted fw-bold">평가 유형</label>
+                            <select name="elementTypeCode" class="form-select ees-form-control ees-form-select" required>
                                 <option value="PERFORMANCE">성과 평가</option>
                                 <option value="COMPETENCY">역량 평가</option>
-                                <option value="PEER">다면 평가</option>
-
+                                <option value="MULTI_DIMENSIONAL">다면 평가</option>
                             </select>
                         </div>
                         <div class="mb-4">
-                            <label class="form-label small text-muted">평가요소명</label>
-                            <input type="text" name="elementName" class="form-control ees-form-control"
-                                placeholder="예: 의사소통 및 협업" required>
+                            <label class="form-label small text-muted fw-bold">요소명 (지표)</label>
+                            <input type="text" name="elementName" class="form-control ees-form-control" placeholder="예: 목표 달성도" required>
                         </div>
                         <div class="mb-4">
-                            <label class="form-label small text-muted">가중치 (%)</label>
-                            <input type="number" name="weight" id="newElementWeight"
-                                class="form-control ees-form-control" placeholder="30" step="1" required>
-                            <div id="weightFeedback" class="form-text small mt-1"></div>
+                            <label class="form-label small text-muted fw-bold d-flex justify-content-between">
+                                가중치 (%)
+                                <span id="remaining-weight-info" class="text-info" style="font-size: 0.75rem;">(잔여: 100%)</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" name="weight" id="new-element-weight" class="form-control ees-form-control text-center" placeholder="0" min="0" max="100" required>
+                                <span class="input-group-text bg-dark border-secondary text-muted">%</span>
+                            </div>
                         </div>
 
-                        <button type="submit" id="submitElementBtn"
-                            class="btn btn-primary w-100 py-2 fw-bold shadow-sm mt-2">
-                            추가하기
+                        <button type="submit" class="btn ees-btn-glass-primary w-100 py-3 mt-2 shadow-sm">
+                            <i class="bi bi-plus-lg me-1"></i> 추가하기
                         </button>
                     </form>
                 </div>
-
-                <!-- Quick Reset / Tooltips -->
-                <div class="ees-card p-3 mt-4">
-                    <p class="x-small text-muted mb-1">
-                        <i class="bi bi-info-circle me-1"></i>
-                        각 유형(Type) 내 문항 가중치의 합계는 100%여야 최종 점수가 정상 산출됩니다.
-                    </p>
-                    <div id="typeSummary" class="mt-2 pt-2 border-top border-secondary border-opacity-10">
-                        <!-- JS로 채워짐 -->
-                    </div>
-                </div>
             </div>
         </div>
-        <!-- HTMX 교체 시에도 무조건 실행되도록 fragment 내부에 스크립트 배치 -->
+
         <script th:inline="javascript">
-            (function () {
-                // 1. 역할별 가중치 실시간 밸런싱 (body에 딱 한 번만 위임하여 영구 생존)
-                if (!document.body.dataset.weightSyncBound) {
-                    document.body.dataset.weightSyncBound = 'true';
-                    document.body.addEventListener('input', function (e) {
-                        if (e.target.id === 'weight-PERFORMANCE') {
-                            const compInput = document.getElementById('weight-COMPETENCY');
-                            if (compInput) {
-                                let val = parseInt(e.target.value) || 0;
-                                val = Math.max(0, Math.min(100, val));
-                                e.target.value = val;
-                                compInput.value = 100 - val;
-                            }
-                        } else if (e.target.id === 'weight-COMPETENCY') {
-                            const perfInput = document.getElementById('weight-PERFORMANCE');
-                            if (perfInput) {
-                                let val = parseInt(e.target.value) || 0;
-                                val = Math.max(0, Math.min(100, val));
-                                e.target.value = val;
-                                perfInput.value = 100 - val;
+            (function() {
+                function initWeightValidation() {
+                    // 1. 유형별 가중치(성과/역량) 동기화 로직
+                    const syncInputs = document.querySelectorAll('.weight-input-sync');
+                    const saveBtn = document.querySelector('.weight-save-btn');
+                    
+                    if (syncInputs.length === 2 && saveBtn) {
+                        const input1 = syncInputs[0];
+                        const input2 = syncInputs[1];
+
+                        function syncWeights(e) {
+                            const current = e.target;
+                            const other = (current === input1) ? input2 : input1;
+                            
+                            let val = parseInt(current.value);
+                            if (isNaN(val)) val = 0;
+                            if (val > 100) val = 100;
+                            if (val < 0) val = 0;
+                            
+                            current.value = val;
+                            other.value = 100 - val;
+                            validateWeights();
+                        }
+
+                        function validateWeights() {
+                            let total = 0;
+                            syncInputs.forEach(input => {
+                                total += parseInt(input.value) || 0;
+                            });
+
+                            if (total !== 100) {
+                                saveBtn.disabled = true;
+                                saveBtn.classList.add('opacity-50');
+                                saveBtn.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>합계 100% 필요`;
+                            } else {
+                                saveBtn.disabled = false;
+                                saveBtn.classList.remove('opacity-50');
+                                saveBtn.innerHTML = `<i class="bi bi-check-lg me-1"></i>저장`;
                             }
                         }
-                    });
+
+                        syncInputs.forEach(input => {
+                            input.addEventListener('input', syncWeights);
+                        });
+                        validateWeights();
+                    }
+
+                    // 2. 개별 문항 추가 시 잔여 가중치 계산 로직
+                    const typeSelect = document.querySelector('select[name="elementTypeCode"]');
+                    const infoSpan = document.getElementById('remaining-weight-info');
+                    const weightInput = document.getElementById('new-element-weight');
+
+                    function updateRemainingWeight() {
+                        if (!typeSelect || !infoSpan) return;
+
+                        const selectedType = typeSelect.value;
+                        const tableRows = document.querySelectorAll('.ees-table tbody tr');
+                        let currentSum = 0;
+
+                        tableRows.forEach(row => {
+                            const badge = row.querySelector('.ees-badge');
+                            if (!badge) return;
+                            
+                            let rowType = '';
+                            if (badge.classList.contains('ees-badge-performance')) rowType = 'PERFORMANCE';
+                            else if (badge.classList.contains('ees-badge-competency')) rowType = 'COMPETENCY';
+                            else if (badge.classList.contains('ees-badge-multi')) rowType = 'MULTI_DIMENSIONAL';
+
+                            if (rowType === selectedType) {
+                                const weightBadge = row.querySelector('span.badge.bg-dark');
+                                if (weightBadge) {
+                                    currentSum += parseInt(weightBadge.textContent) || 0;
+                                }
+                            }
+                        });
+
+                        const remaining = 100 - currentSum;
+                        infoSpan.textContent = `(잔여: ${remaining}%)`;
+                        if (weightInput) weightInput.placeholder = remaining > 0 ? remaining : 0;
+                    }
+
+                    if (typeSelect) {
+                        typeSelect.addEventListener('change', updateRemainingWeight);
+                        updateRemainingWeight(); // 초기 실행
+                    }
                 }
 
-                // 2. 가중치 요약 및 하단 폼 검증 (교체될 때마다 실행)
-                const updateSummaryAndValidation = () => {
-                    const typeWeights = {};
-                    // 화면의 표에서 직접 데이터 추출
-                    const rows = document.querySelectorAll('tr[data-weight]');
-                    rows.forEach(row => {
-                        const type = row.getAttribute('data-type');
-                        const weight = Number(row.getAttribute('data-weight')) || 0;
-                        typeWeights[type] = (typeWeights[type] || 0) + weight;
-                    });
-
-                    // 하단 요약(Summary) 업데이트
-                    const summary = document.getElementById('typeSummary');
-                    const typeNames = { 'PERFORMANCE': '성과', 'COMPETENCY': '역량', 'PEER': '다면', 'MULTI_DIMENSIONAL': '다면' };
-                    if (summary) {
-                        let summaryHtml = '';
-                        ['PERFORMANCE', 'COMPETENCY', 'PEER'].forEach(t => {
-                            const s = typeWeights[t] || 0;
-                            const color = s === 100 ? 'text-success' : (s > 100 ? 'text-danger' : 'text-warning');
-                            summaryHtml += `<div class="d-flex justify-content-between x-small mb-1">
-                                <span>${typeNames[t]} 합계:</span>
-                                <span class="${color} fw-bold">${s}%</span>
-                            </div>`;
-                        });
-                        summary.innerHTML = summaryHtml;
-                    }
-
-                    // 폼 피드백 검증
-                    const typeSelect = document.getElementById('newElementType');
-                    const weightInput = document.getElementById('newElementWeight');
-                    const feedback = document.getElementById('weightFeedback');
-                    const submitBtn = document.getElementById('submitElementBtn');
-
-                    if (typeSelect && weightInput && feedback) {
-                        const selectedType = typeSelect.value;
-                        const inputWeight = parseFloat(weightInput.value) || 0;
-                        const currentSum = typeWeights[selectedType] || 0;
-                        const remaining = 100 - currentSum;
-
-                        if (currentSum >= 100) {
-                            feedback.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> [${typeNames[selectedType]}] 가중치 합계가 이미 100%입니다.</span>`;
-                            if (submitBtn) submitBtn.disabled = true;
-                        } else if (inputWeight > remaining) {
-                            feedback.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle"></i> 남은 가중치(${remaining}%)를 초과했습니다.</span>`;
-                            if (submitBtn) submitBtn.disabled = true;
-                        } else {
-                            feedback.innerHTML = `<span class="text-info"><i class="bi bi-info-circle"></i> 현재 [${typeNames[selectedType]}] 잔여 가중치: <strong>${remaining}%</strong></span>`;
-                            if (submitBtn) submitBtn.disabled = false;
-                        }
-                    }
-                };
-
-                // 즉시 1회 실행
-                updateSummaryAndValidation();
-
-                // 입력 이벤트 바인딩
-                const typeSelect = document.getElementById('newElementType');
-                const weightInput = document.getElementById('newElementWeight');
-                if (typeSelect) typeSelect.onchange = updateSummaryAndValidation;
-                if (weightInput) weightInput.oninput = updateSummaryAndValidation;
+                initWeightValidation();
+                document.body.addEventListener('htmx:afterSettle', initWeightValidation);
             })();
         </script>
     </div>
-
-    <th:block id="page-scripts">
-    </th:block>
 </body>
 
 </html>

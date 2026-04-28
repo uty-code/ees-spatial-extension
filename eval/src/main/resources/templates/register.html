@@ -10,6 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
     <style>
         @keyframes fadeIn {
             from {
@@ -45,7 +46,7 @@
 <body class="login-container">
 
     <div class="register-wrapper">
-        <div class="register-card glass-card p-5 animate-fade-in">
+        <div class="register-card ees-card p-5 animate-fade-in">
 
             <!-- 헤더 -->
             <div class="text-center mb-4">
@@ -62,7 +63,7 @@
                 <i class="bi bi-check-circle-fill me-2"></i>
                 <span th:text="${successMessage}"></span>
                 <div class="mt-2">
-                    <a th:href="@{/login}" class="btn btn-sm btn-outline-success">로그인 페이지로 돌아가기</a>
+                    <a th:href="@{/login}" class="btn btn-sm ees-btn-glass-success">로그인 페이지로 돌아가기</a>
                 </div>
             </div>
 
@@ -191,7 +192,7 @@
                     등록 신청 후 관리자가 승인하면 사번이 발급되어 로그인이 가능합니다.
                 </div>
 
-                <button type="submit" class="btn btn-success w-100 mb-3" id="btn-submit-register">
+                <button type="submit" class="btn ees-btn-glass-primary w-100 mb-3" id="btn-submit-register">
                     <i class="bi bi-send-fill me-2"></i>등록 신청하기
                 </button>
 

@@ -32,6 +32,8 @@ public record DepartmentDTO(
     String deptName,
     String parentDeptName,
     String leaderName,
+    /** 부서장의 임원 권한(ROLE_EXECUTIVE) 보유 여부 (UI 색상 구분용) */
+    Boolean isLeaderExecutive,
     Integer employeeCount,
     Integer treeDepth,
     String isActive,

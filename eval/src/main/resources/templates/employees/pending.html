@@ -7,13 +7,18 @@
 </head>
 
 <body>
-    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
+    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark" th:fragment="content">
 
         <!-- Page Header -->
         <div class="row align-items-center mb-4">
-            <div class="col-md-12">
+            <div class="col-md-8">
                 <h1 class="fw-bold fs-3 mb-1">사원 등록 신청 관리</h1>
                 <p class="text-muted mb-0">로그인 페이지에서 자가 등록 신청한 사원 목록입니다. 승인 시 즉시 로그인이 활성화됩니다.</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a th:href="@{/employees/new}" class="btn ees-btn-glass-primary px-4" id="btn-new-employee">
+                    <i class="bi bi-person-plus-fill me-2"></i>신규 사원 등록
+                </a>
             </div>
         </div>
 
@@ -38,7 +43,7 @@
             <!-- Stats Row (HTMX 교체 범위 안) -->
             <div class="row g-3 mb-4">
                 <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3">
+                    <div class="ees-card p-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:46px;height:46px;background:rgba(99,102,241,0.15);">
                             <i class="bi bi-people-fill text-primary fs-5"></i>
@@ -50,7 +55,7 @@
                     </div>
                 </div>
                 <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3">
+                    <div class="ees-card p-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:46px;height:46px;background:rgba(16,185,129,0.15);">
                             <i class="bi bi-person-check-fill text-success fs-5"></i>
@@ -62,7 +67,7 @@
                     </div>
                 </div>
                 <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3">
+                    <div class="ees-card p-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:46px;height:46px;background:rgba(186,104,200,0.15);">
                             <i class="bi bi-person-badge-fill text-purple fs-5" style="color: #a855f7;"></i>
@@ -74,7 +79,7 @@
                     </div>
                 </div>
                 <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3">
+                    <div class="ees-card p-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
                             <i class="bi bi-hourglass-split text-warning fs-5"></i>
@@ -86,8 +91,7 @@
                     </div>
                 </div>
                 <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3"
-                        style="border-color:rgba(239,68,68,0.3);">
+                    <div class="ees-card p-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:46px;height:46px;background:rgba(239,68,68,0.15);">
                             <i class="bi bi-lock-fill fs-5" style="color:#f87171;"></i>
@@ -112,9 +116,6 @@
                     <i class="bi bi-person-plus-fill"></i> 승인 대기
                     <span class="tab-badge" th:if="${pendingCount > 0}" th:text="${pendingCount}">0</span>
                 </a>
-                <a th:href="@{/employees/new}" class="nav-link-custom">
-                    <i class="bi bi-person-plus-fill"></i> 신규 사원 등록
-                </a>
                 <a href="javascript:void(0)" class="nav-link-custom" hx-get="/employees/locked"
                     hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
                     <i class="bi bi-lock-fill"></i> 계정 잠금
@@ -124,7 +125,12 @@
             </div>
 
             <!-- 대기 목록 테이블 -->
-            <div class="glass-card p-4">
+            <div class="ees-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-muted small">
+                        총 <strong th:text="${pendingCount}" class="text-warning">0</strong>명의 사원이 승인 대기중입니다.
+                    </span>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-hover table-dark-custom align-middle mb-0" id="pending-table">
                         <thead>
@@ -151,7 +157,7 @@
                             <tr th:each="emp : ${pendingEmployees}" th:id="'pending-' + ${emp.empId()}">
                                 <!-- 사번 -->
                                 <td class="py-3">
-                                    <span class="badge bg-warning bg-opacity-10 text-warning fw-normal px-2 py-1"
+                                    <span class="ees-badge ees-badge-multi"
                                         th:text="${emp.empId()}">1001</span>
                                 </td>
                                 <!-- 이름 -->
@@ -177,9 +183,10 @@
                                 </td>
                                 <!-- 직급 -->
                                 <td class="py-3">
-                                    <span th:if="${emp.positionName() != null}"
-                                        class="badge bg-primary bg-opacity-10 text-primary fw-normal px-3 py-2"
-                                        th:text="${emp.positionName()}"></span>
+                                    <span th:if="${emp.positionName() != null}" class="text-muted small">
+                                        <i class="bi bi-person-badge me-1 opacity-50"></i>
+                                        <span th:text="${emp.positionName()}"></span>
+                                    </span>
                                     <span th:unless="${emp.positionName() != null}" class="text-muted small">-</span>
                                 </td>
                                 <!-- 신청일 -->
@@ -190,7 +197,7 @@
                                 <td class="py-3 text-center">
                                     <div class="d-flex gap-1 justify-content-center">
                                         <!-- 승인 버튼 -->
-                                        <button type="button" class="btn btn-sm btn-outline-success me-1"
+                                        <button type="button" class="btn btn-sm ees-btn-glass-primary me-1"
                                             th:attr="hx-post=@{/employees/pending/approve/{id}(id=${emp.empId()})}"
                                             hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
                                             hx-indicator="#global-loader"
@@ -198,7 +205,7 @@
                                             <i class="bi bi-check-lg"></i> 승인
                                         </button>
                                         <!-- 거절 버튼 -->
-                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                        <button type="button" class="btn btn-sm ees-btn-glass-danger"
                                             th:attr="hx-post=@{/employees/pending/reject/{id}(id=${emp.empId()})}"
                                             hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
                                             hx-indicator="#global-loader"
@@ -214,7 +221,7 @@
             </div>
 
             <!-- 안내 카드 -->
-            <div class="glass-card p-4 mt-4 bg-warning bg-opacity-10 border-warning border-opacity-25">
+            <div class="ees-card p-4 mt-4 bg-warning bg-opacity-10 border-warning border-opacity-25">
                 <h6 class="fw-bold mb-3 text-warning"><i class="bi bi-info-circle me-2"></i>승인 처리 안내</h6>
                 <ul class="text-muted small mb-0 ps-3">
                     <li>승인 시 사원 상태가 <strong class="text-white">EMPLOYED(재직)</strong>로 변경되며 <strong
@@ -228,7 +235,7 @@
         
         <!-- Sidebar Badge OOB Update -->
         <span id="sidebar-pending-badge" hx-swap-oob="true" 
-              class="badge bg-warning text-dark ms-1" th:if="${pendingCount > 0}" 
+              class="ees-badge ees-badge-multi ms-1" th:if="${pendingCount > 0}" 
               th:text="${pendingCount}"></span>
     </div>
 

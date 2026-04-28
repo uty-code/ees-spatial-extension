@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
+    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark" th:fragment="content">
         <!-- Page Header / Breadcrumb -->
         <div class="row align-items-center mb-4">
             <div class="col">
@@ -29,7 +29,7 @@
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <!-- Form Card -->
-                <div class="glass-card p-4 p-md-5">
+                <div class="ees-card p-4 p-md-5">
                     <form th:action="@{${isNew ? '/employees' : '/employees/' + employee.empId()}}" method="post"
                         id="employee-form" class="needs-validation">
 
@@ -222,8 +222,8 @@
 
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-end gap-2 mt-5">
-                            <a th:href="@{/employees}" class="btn btn-outline-secondary px-4">취소</a>
-                            <button type="submit" class="btn btn-primary px-4">
+                            <a th:href="@{/employees}" class="btn ees-btn-glass px-4">취소</a>
+                            <button type="submit" class="btn ees-btn-glass-primary px-4">
                                 <i class="bi" th:classappend="${isNew ? 'bi-plus-circle me-2' : 'bi-save me-2'}"></i>
                                 <span th:text="${isNew ? '등록하기' : '수정하기'}"></span>
                             </button>
@@ -235,7 +235,7 @@
             <!-- 계정 잠금 상태 패널 (수정 모드 + 잠긴 계정인 경우만 표시) -->
             <div class="col-lg-8 mt-4"
                 th:if="${!isNew and employee.isLocked() != null and employee.isLocked()}">
-                <div class="glass-card p-4 border border-danger border-opacity-50">
+                <div class="ees-card p-4 border border-danger border-opacity-50">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                         <div>
                             <h6 class="fw-bold text-danger mb-1">
