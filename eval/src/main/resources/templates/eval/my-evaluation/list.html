@@ -21,90 +21,153 @@
                             <option th:each="p : ${periods}" 
                                     th:value="${p.periodId()}" 
                                     th:text="${p.periodName()}"
-                                    th:selected="${p.periodId() == selectedPeriodId}">차수 선택</option>
+                                    th:selected="${selectedPeriod != null and p.periodId() == selectedPeriod.periodId()}">차수 선택</option>
                         </select>
                     </form>
                 </div>
             </div>
         </div>
 
-        <div th:if="${selectedPeriodId != null}">
-            <!-- Progress Overview -->
-            <div class="row g-4 mb-4">
-                <div class="col-md-3">
-                    <div class="ees-card p-4 text-center">
-                        <div class="ees-badge ees-badge-performance mb-2">성과 비중</div>
-                        <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(perfWeight, 1, 0)} + '%'">0%</h2>
+        <div th:if="${selectedPeriod != null}">
+
+            <!-- ===== 부서장: 다면평가 ===== -->
+            <div th:if="${isLeader}">
+                <div class="ees-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-people me-2 text-primary"></i>평가 항목 리스트</h5>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="ees-card p-4 text-center">
-                        <div class="ees-badge ees-badge-competency mb-2">역량 비중</div>
-                        <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(compWeight, 1, 0)} + '%'">0%</h2>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="ees-card p-4 text-center">
-                        <div class="ees-badge ees-badge-multi mb-2">총 가중치</div>
-                        <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(perfWeight + compWeight, 1, 0)} + '%'">0%</h2>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="ees-card p-4 text-center" style="border-color: rgba(99, 102, 241, 0.4);">
-                        <div class="ees-badge ees-badge-self mb-2">현재 진행</div>
-                        <h2 class="fw-bold mb-0" th:text="${completedCount} + '/' + ${totalCount}">0/0</h2>
+                    <div class="table-responsive">
+                        <table class="ees-table align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 20%">유형</th>
+                                    <th style="width: 60%">평가 항목</th>
+                                    <th style="width: 20%" class="text-end">평가하기</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="ees-badge ees-badge-multi">다면평가</span></td>
+                                    <td>
+                                        <div class="fw-bold">다면평가 (부서원 → 부서장)</div>
+                                        <small class="text-muted">부서원들이 부서장을 평가합니다.</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <a th:if="${selfTask != null}"
+                                           th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType='PERFORMANCE')}"
+                                           class="btn ees-btn-glass btn-sm">
+                                            <i class="bi bi-pencil-square me-1"></i> 진입
+                                        </a>
+                                        <span th:unless="${selfTask != null}" class="text-muted small">미배정</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Evaluation Elements List -->
-            <div class="ees-card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold mb-0"><i class="bi bi-journal-check me-2 text-primary"></i>평가 항목 리스트</h5>
+            <!-- ===== 부서원: 성과/역량 ===== -->
+            <div th:unless="${isLeader}">
+                <!-- Progress Overview -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3" th:each="tw : ${typeWeights}" th:if="${tw.elementTypeCode() == 'PERFORMANCE'}">
+                        <div class="ees-card p-4 text-center">
+                            <div class="ees-badge ees-badge-performance mb-2">성과 비중</div>
+                            <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3" th:each="tw : ${typeWeights}" th:if="${tw.elementTypeCode() == 'COMPETENCY'}">
+                        <div class="ees-card p-4 text-center">
+                            <div class="ees-badge ees-badge-competency mb-2">역량 비중</div>
+                            <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="ees-card p-4 text-center">
+                            <div class="ees-badge ees-badge-multi mb-2">총 항목 수</div>
+                            <h2 class="fw-bold mb-0"
+                                th:text="${(perfElements != null ? perfElements.size() : 0) + (compElements != null ? compElements.size() : 0)}">0</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="ees-card p-4 text-center" style="border-color: rgba(99, 102, 241, 0.4);">
+                            <div class="ees-badge ees-badge-self mb-2">현재 진행</div>
+                            <h2 class="fw-bold mb-0"
+                                th:text="${selfPerfSubmitted and selfCompSubmitted ? '완료' : (selfPerfSubmitted or selfCompSubmitted ? '일부완료' : '미완료')}">미완료</h2>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="ees-table align-middle">
-                        <thead>
-                            <tr>
-                                <th style="width: 15%">유형</th>
-                                <th style="width: 40%">평가 요소명</th>
-                                <th style="width: 15%" class="text-center">배점(비중)</th>
-                                <th style="width: 15%" class="text-center">상태</th>
-                                <th style="width: 15%" class="text-end">평가하기</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="item : ${evaluationItems}">
-                                <td>
-                                    <span th:if="${item.elementTypeCode() == 'PERFORMANCE'}" class="ees-badge ees-badge-performance">성과</span>
-                                    <span th:if="${item.elementTypeCode() == 'COMPETENCY'}" class="ees-badge ees-badge-competency">역량</span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold" th:text="${item.elementName()}">의사소통 및 협업</div>
-                                </td>
-                                <td class="text-center fw-bold text-info" th:text="${#numbers.formatDecimal(item.weight(), 1, 0)} + '%'">10%</td>
-                                <td class="text-center">
-                                    <span th:if="${item.isCompleted()}" class="ees-badge ees-badge-self">완료</span>
-                                    <span th:if="${!item.isCompleted()}" class="ees-badge ees-badge-multi" style="background: rgba(108, 117, 125, 0.1); color: #adb5bd;">대기</span>
-                                </td>
-                                <td class="text-end">
-                                    <a th:href="@{/eval/my-evaluation/item/{id}(id=${item.elementId()}, periodId=${selectedPeriodId})}" 
-                                       class="btn ees-btn-glass btn-sm">
-                                        <i class="bi bi-pencil-square me-1"></i> 진입
-                                    </a>
-                                </td>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(evaluationItems)}">
-                                <td colspan="5" class="text-center py-5 text-muted">등록된 평가 항목이 없습니다.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Evaluation Elements List -->
+                <div class="ees-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-journal-check me-2 text-primary"></i>평가 항목 리스트</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="ees-table align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%">유형</th>
+                                    <th style="width: 40%">평가 요소명</th>
+                                    <th style="width: 15%" class="text-center">배점(비중)</th>
+                                    <th style="width: 15%" class="text-center">상태</th>
+                                    <th style="width: 15%" class="text-end">평가하기</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 성과 평가 항목 -->
+                                <tr th:each="item : ${perfElements}">
+                                    <td><span class="ees-badge ees-badge-performance">성과</span></td>
+                                    <td>
+                                        <div class="fw-bold" th:text="${item.elementName()}">항목명</div>
+                                    </td>
+                                    <td class="text-center fw-bold text-info" th:text="${#numbers.formatDecimal(item.weight(), 1, 0)} + '%'">0%</td>
+                                    <td class="text-center">
+                                        <span th:if="${selfPerfSubmitted}" class="ees-badge ees-badge-self">완료</span>
+                                        <span th:unless="${selfPerfSubmitted}" class="ees-badge ees-badge-multi" style="background: rgba(108, 117, 125, 0.1); color: #adb5bd;">대기</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a th:if="${selfTask != null}"
+                                           th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType='PERFORMANCE')}"
+                                           class="btn ees-btn-glass btn-sm">
+                                            <i class="bi bi-pencil-square me-1"></i> 진입
+                                        </a>
+                                        <span th:unless="${selfTask != null}" class="text-muted small">미배정</span>
+                                    </td>
+                                </tr>
+                                <!-- 역량 평가 항목 -->
+                                <tr th:each="item : ${compElements}">
+                                    <td><span class="ees-badge ees-badge-competency">역량</span></td>
+                                    <td>
+                                        <div class="fw-bold" th:text="${item.elementName()}">항목명</div>
+                                    </td>
+                                    <td class="text-center fw-bold text-info" th:text="${#numbers.formatDecimal(item.weight(), 1, 0)} + '%'">0%</td>
+                                    <td class="text-center">
+                                        <span th:if="${selfCompSubmitted}" class="ees-badge ees-badge-self">완료</span>
+                                        <span th:unless="${selfCompSubmitted}" class="ees-badge ees-badge-multi" style="background: rgba(108, 117, 125, 0.1); color: #adb5bd;">대기</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a th:if="${selfTask != null}"
+                                           th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType='COMPETENCY')}"
+                                           class="btn ees-btn-glass btn-sm">
+                                            <i class="bi bi-pencil-square me-1"></i> 진입
+                                        </a>
+                                        <span th:unless="${selfTask != null}" class="text-muted small">미배정</span>
+                                    </td>
+                                </tr>
+                                <!-- 항목이 아예 없는 경우 -->
+                                <tr th:if="${#lists.isEmpty(perfElements) and #lists.isEmpty(compElements)}">
+                                    <td colspan="5" class="text-center py-5 text-muted">등록된 평가 항목이 없습니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div th:if="${selectedPeriodId == null}" class="ees-card p-5 text-center text-muted">
+        <div th:if="${selectedPeriod == null}" class="ees-card p-5 text-center text-muted">
             <i class="bi bi-calendar-x fs-1 mb-3 d-block opacity-25"></i>
             조회할 평가 차수를 선택해 주세요.
         </div>
