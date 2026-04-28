@@ -349,14 +349,77 @@ class PerformanceEvaluationControllerTest {
     }
 
     @Test
+    @DisplayName("평가 목록 조회 - 부서 전용 평가 요소가 있으면 이를 우선 사용해야 한다")
+    void list_ShouldUseDepartmentElements() throws Exception {
+        // given
+        Long periodId = 10L;
+        Long deptId = 10L;
+        EvaluationPeriodDTO period = EvaluationPeriodDTO.builder().periodId(periodId).statusCode("ACTIVE").build();
+        given(periodService.getAllPeriods()).willReturn(List.of(period));
+        given(periodService.getPeriodById(periodId)).willReturn(period); // 추가: 차수 조회 스터빙
+        
+        // 과업이 있어야 항목 조회가 발생하므로 자가평가 과업 추가
+        EvaluatorMappingDTO selfTask = EvaluatorMappingDTO.builder().mappingId(100L).relationTypeCode("SELF").build();
+        given(mappingService.getMyEvaluationTasks(periodId, 1001L)).willReturn(List.of(selfTask));
+        // 자가평가 데이터가 있어야 항목을 조회함
+        Evaluation eval = Evaluation.builder().elementId(1L).confirmStatusCode("SUBMITTED").build();
+        given(evaluationMapper.findByMappingId(100L)).willReturn(List.of(eval));
+
+        EvaluationElementDTO deptElement = EvaluationElementDTO.builder().elementId(1L).elementName("부서항목").build();
+        given(elementService.getElementsByPeriodId(periodId, deptId)).willReturn(List.of(deptElement));
+
+        // when & then
+        mockMvc.perform(get("/eval/performance").param("periodId", "10"))
+            .andExpect(status().isOk());
+
+        // 검증: 부서 ID로만 조회하고, null(전사공통) 조지는 호출되지 않아야 함
+        verify(elementService).getElementsByPeriodId(periodId, deptId);
+        verify(elementService, never()).getElementsByPeriodId(periodId, null);
+    }
+
+    @Test
+    @DisplayName("평가 목록 조회 - 부서 전용 요소가 없으면 전사 공통 요소로 폴백해야 한다")
+    void list_ShouldFallbackToGlobalElements() throws Exception {
+        // given
+        Long periodId = 10L;
+        Long deptId = 10L;
+        EvaluationPeriodDTO period = EvaluationPeriodDTO.builder().periodId(periodId).statusCode("ACTIVE").build();
+        given(periodService.getAllPeriods()).willReturn(List.of(period));
+        given(periodService.getPeriodById(periodId)).willReturn(period); // 추가: 차수 조회 스터빙
+        
+        // 자가평가 과업 추가
+        EvaluatorMappingDTO selfTask = EvaluatorMappingDTO.builder().mappingId(100L).relationTypeCode("SELF").build();
+        given(mappingService.getMyEvaluationTasks(periodId, 1001L)).willReturn(List.of(selfTask));
+        Evaluation eval = Evaluation.builder().elementId(1L).confirmStatusCode("SUBMITTED").build();
+        given(evaluationMapper.findByMappingId(100L)).willReturn(List.of(eval));
+
+        EvaluationElementDTO globalElement = EvaluationElementDTO.builder().elementId(2L).elementName("전사공통").build();
+        
+        // 1. 부서 ID(10L)로 조회 시 빈 리스트 반환
+        given(elementService.getElementsByPeriodId(periodId, deptId)).willReturn(Collections.emptyList());
+        // 2. null(전사공통)로 조회 시 데이터 반환
+        given(elementService.getElementsByPeriodId(periodId, null)).willReturn(List.of(globalElement));
+
+        // when & then
+        mockMvc.perform(get("/eval/performance").param("periodId", "10"))
+            .andExpect(status().isOk());
+
+        // 검증: 부서 ID 조회 후, 결과가 없으므로 null(전사공통) 조회가 순차적으로 발생함
+        verify(elementService).getElementsByPeriodId(periodId, deptId);
+        verify(elementService).getElementsByPeriodId(periodId, null);
+    }
+
+    @Test
     @DisplayName("평가 목록 조회 - 자가평가 미제출 및 팀원 매핑 부재 상황 (Gate B, C, D)")
     void list_ShouldHandleIncompleteTasks() throws Exception {
         // given
-        Long empId = 1L;
+        Long empId = 1001L; // setUp의 mockUser와 맞춤
         Long periodId = 10L;
+        Long deptId = 10L;
         EvaluationPeriodDTO period = EvaluationPeriodDTO.builder()
                 .periodId(periodId).periodName("2024 상반기").statusCode("ACTIVE").build();
         when(periodService.getAllPeriods()).thenReturn(List.of(period));
+        when(periodService.getPeriodById(periodId)).thenReturn(period); // 추가: 차수 조회 스터빙
 
         // 나의 업무 목록: SELF 1개, MANAGER 1개
         EvaluatorMappingDTO selfTask = EvaluatorMappingDTO.builder()
@@ -365,33 +428,34 @@ class PerformanceEvaluationControllerTest {
         EvaluatorMappingDTO teamTask = EvaluatorMappingDTO.builder()
                 .mappingId(1001L).periodId(periodId).evaluateeId(2L).evaluatorId(empId)
                 .relationTypeCode("MANAGER").isDeleted("n").build();
-        when(mappingService.getMyEvaluationTasks(anyLong(), anyLong())).thenReturn(List.of(selfTask, teamTask));
+        when(mappingService.getMyEvaluationTasks(periodId, empId)).thenReturn(List.of(selfTask, teamTask));
 
-        // Gate B: 나의 자가평가 데이터가 아예 없음 (empty list)
+        // Gate B: 나의 자가평가 데이터가 아예 없음
         when(evaluationMapper.findByMappingId(100L)).thenReturn(Collections.emptyList());
 
-        // 팀원 업무 처리
+        // 폴백 로직 처리 (부서 조회 -> 실패 -> 전사 조회 순서 명시)
+        when(elementService.getElementsByPeriodId(periodId, deptId)).thenReturn(Collections.emptyList());
         when(elementService.getElementsByPeriodId(periodId, null)).thenReturn(Collections.emptyList());
+        
         when(evaluationMapper.findByMappingId(1001L)).thenReturn(Collections.emptyList());
 
         // Gate C & D: 팀원의 SELF 매핑 조회
-        // 팀원(2L)에 대한 SELF 매핑이 없다고 가정 (Gate C 공략)
         when(evaluatorMappingMapper.findByEvaluateeId(periodId, 2L)).thenReturn(Collections.emptyList());
 
         // when & then
-        mockMvc.perform(get("/eval/performance"))
+        mockMvc.perform(get("/eval/performance").param("periodId", "10"))
             .andExpect(status().isOk())
-            .andExpect(model().attribute("selfPerfSubmitted", false)) // Gate B 결과
-            .andExpect(model().attribute("selfCompSubmitted", false)) // Gate B 결과
+            .andExpect(model().attribute("selfPerfSubmitted", false))
+            .andExpect(model().attribute("selfCompSubmitted", false))
             .andExpect(result -> {
                 java.util.Map<Long, Boolean> map = (java.util.Map<Long, Boolean>) result.getModelAndView().getModel().get("evaluateeSelfSubmittedMap");
                 org.junit.jupiter.api.Assertions.assertNotNull(map);
                 org.junit.jupiter.api.Assertions.assertTrue(map.containsKey(1001L));
                 org.junit.jupiter.api.Assertions.assertFalse(map.get(1001L));
-            }); // Gate C 결과
+            });
 
-        verify(evaluationMapper).findByMappingId(100L);
-        verify(evaluatorMappingMapper).findByEvaluateeId(periodId, 2L);
+        verify(elementService).getElementsByPeriodId(periodId, deptId);
+        verify(elementService).getElementsByPeriodId(periodId, null);
     }
 
     /**
@@ -723,7 +787,7 @@ class PerformanceEvaluationControllerTest {
     void list_WithCompetencyAndNoElements() throws Exception {
         EvaluationPeriodDTO p1 = EvaluationPeriodDTO.builder().periodId(1L).statusCode("ACTIVE").build();
         given(periodService.getAllPeriods()).willReturn(List.of(p1));
-        given(elementService.getElementsByPeriodId(anyLong(), any())).willReturn(Collections.emptyList());
+        lenient().when(elementService.getElementsByPeriodId(anyLong(), any())).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/eval/performance")
                 .param("evalType", "COMPETENCY")
