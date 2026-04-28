@@ -48,9 +48,9 @@
                     </th:block>
 
                     <input type="text" name="searchName"
-                        class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="사원명/사번 검색"
-                        th:value="${searchName}" style="width: 120px; height: 31px; padding-top: 0.2rem; padding-bottom: 0.2rem;">
-                    <button type="submit" class="btn btn-sm btn-outline-secondary">조회</button>
+                        class="form-control form-control-sm ees-form-control" placeholder="사원명/사번 검색"
+                        th:value="${searchName}" style="width: 140px;">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary rounded-3 px-3">조회</button>
                 </form>
             </div>
         </div>
@@ -83,7 +83,7 @@
         <!-- Stats & Actions -->
         <div th:if="${selectedPeriod != null}" class="row g-4 mb-4">
             <div class="col-md-3">
-                <div class="glass-card p-4 h-100 d-flex flex-column justify-content-center">
+                <div class="ees-card p-4 h-100 d-flex flex-column justify-content-center">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="text-muted small">피평가자 수</span>
                         <span class="fs-4 fw-bold text-info" th:text="${groupedMappings.size()} + '명'">0명</span>
@@ -96,60 +96,74 @@
                 </div>
             </div>
             <div class="col-md-9">
-                <div class="glass-card p-4 h-100 d-flex align-items-center justify-content-end gap-3 flex-wrap">
+                <div class="ees-card p-4 h-100 d-flex align-items-center justify-content-end gap-3 flex-wrap">
                     <div class="me-auto">
                         <h6 class="fw-bold mb-1">매핑 관리</h6>
                         <p class="small text-muted mb-0">대상 조직의 평가자를 자동 매핑하거나 수동으로 추가, 전체 초기화 할 수 있습니다.</p>
                     </div>
 
-                    <button type="button" class="btn btn-outline-info px-3 py-2" data-bs-toggle="modal"
-                        data-bs-target="#createMappingModal">
-                        <i class="bi bi-plus-lg me-1"></i>수동 추가
-                    </button>
+                    <!-- Glassmorphism Button Group -->
+                    <div class="ees-glass-group shadow-lg">
+                        <!-- 1. 수동 추가 -->
+                        <button type="button" class="btn ees-btn-glass" 
+                                data-bs-toggle="modal" data-bs-target="#createMappingModal" title="개별 평가자를 직접 지정하여 추가합니다.">
+                            <i class="bi bi-plus-circle me-1 text-info"></i> 수동 추가
+                        </button>
 
-                    <form th:action="@{/eval/evaluators/initialize}" method="post" class="m-0"
-                        onsubmit="return confirm('선택된 대상의 모든 평가 매핑을 정말 삭제(초기화)하시겠습니까? (되돌릴 수 없습니다)')">
+                        <!-- 2. 정합성 검사 -->
+                        <button type="button" class="btn ees-btn-glass" 
+                                onclick="checkIntegrity()" title="누락되거나 부적절한 매핑 관계를 검사합니다.">
+                            <i class="bi bi-shield-check me-1 text-warning"></i> 정합성 검사
+                        </button>
+
+                        <!-- 3. 자동 생성 -->
+                        <button type="button" class="btn ees-btn-glass"
+                                onclick="if(confirm('조직 정보를 기반으로 평가자를 자동 생성하시겠습니까?')) { this.innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span> 처리 중...'; this.classList.add('disabled'); document.getElementById('autoGenerateForm').submit(); }"
+                                title="조직도를 분석하여 표준 평가 관계를 자동으로 구성합니다.">
+                            <i class="bi bi-magic me-1 text-primary"></i> 자동 생성
+                        </button>
+
+                        <!-- 4. 일괄 초기화 -->
+                        <button type="button" class="btn ees-btn-glass"
+                                onclick="if(confirm('선택된 대상의 모든 평가 매핑을 정말 삭제하시겠습니까?')) { this.innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span> 처리 중...'; this.classList.add('disabled'); document.getElementById('initializeForm').submit(); }"
+                                title="현재 조회된 모든 매핑 데이터를 삭제합니다.">
+                            <i class="bi bi-trash3 me-1 text-danger"></i> 일괄 초기화
+                        </button>
+                    </div>
+
+
+                    <!-- Hidden Forms for Actions -->
+                    <form id="autoGenerateForm" th:action="@{/eval/evaluators/auto-generate}" method="post" class="d-none">
                         <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
                         <input type="hidden" name="targetDeptId" th:value="${selectedDeptId}">
                         <input type="hidden" name="searchName" th:value="${searchName}">
-                        <button type="submit" class="btn btn-outline-danger px-3 py-2">
-                            <i class="bi bi-trash3 me-1"></i>일괄 초기화
-                        </button>
                     </form>
 
-                    <form th:action="@{/eval/evaluators/auto-generate}" method="post" class="m-0"
-                        onsubmit="return confirm('조직 정보를 기반으로 평가자를 자동 생성하시겠습니까? (이미 존재하는 관계는 중복되지 않습니다)')">
+                    <form id="initializeForm" th:action="@{/eval/evaluators/initialize}" method="post" class="d-none">
                         <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
                         <input type="hidden" name="targetDeptId" th:value="${selectedDeptId}">
                         <input type="hidden" name="searchName" th:value="${searchName}">
-                        <button type="submit" class="btn btn-primary px-3 py-2">
-                            <i class="bi bi-magic me-1"></i>자동 생성
-                        </button>
                     </form>
-
-                    <button type="button" class="btn btn-warning px-3 py-2 text-dark fw-bold" onclick="checkIntegrity()">
-                        <i class="bi bi-shield-exclamation me-1"></i>정합성 검사
-                    </button>
                 </div>
             </div>
         </div>
 
         <!-- Mappings Table -->
-        <div th:if="${selectedPeriod != null}" class="glass-card p-4">
+        <div th:if="${selectedPeriod != null}" class="ees-card p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="fw-bold mb-0">평가 대상 및 평가자 목록</h5>
             </div>
 
             <div class="table-responsive">
-                <table class="table table-hover table-dark-custom align-middle">
+                <table class="ees-table align-middle">
                     <thead>
-                        <tr class="text-secondary">
-                            <th class="fw-normal pb-3" style="width: 18%">피평가자 (대상)</th>
-                            <th class="fw-normal pb-3" style="width: 12%">자기 평가</th>
-                            <th class="fw-normal pb-3" style="width: 20%">1차 평가자 (부서장)</th>
-                            <th class="fw-normal pb-3" style="width: 20%">최종 평가자 (임원)</th>
-                            <th class="fw-normal pb-3" style="width: 20%">다면 평가자 (부서원)</th>
-                            <th class="fw-normal pb-3 text-end" style="width: 10%">상세/관리</th>
+                        <tr>
+                            <th style="width: 18%">피평가자 (대상)</th>
+                            <th style="width: 12%">자기 평가</th>
+                            <th style="width: 20%">1차 평가자 (부서장)</th>
+                            <th style="width: 20%">최종 평가자 (임원)</th>
+                            <th style="width: 20%">다면 평가자 (부서원)</th>
+                            <th class="text-end" style="width: 10%">상세/관리</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -170,7 +184,7 @@
                             <!-- 자기 평가 -->
                             <td>
                                 <div th:if="${g.self != null}">
-                                    <span class="badge bg-success bg-opacity-10 text-success fw-normal">본인</span>
+                                    <span class="ees-badge ees-badge-self">본인</span>
                                 </div>
                                 <span th:if="${g.self == null}" class="text-muted small">-</span>
                             </td>
@@ -178,7 +192,7 @@
                             <!-- 1차 평가자 (부서장) -->
                             <td>
                                 <div th:if="${g.manager != null}" class="d-flex align-items-center">
-                                    <span class="badge bg-warning bg-opacity-10 text-warning fw-normal me-2">부서장</span>
+                                    <span class="ees-badge ees-badge-multi">부서장</span>
                                     <span class="text-white small" th:text="${g.manager.evaluatorName()}">평가자명</span>
                                 </div>
                                 <span th:if="${g.manager == null}" class="text-muted small">-</span>
@@ -187,7 +201,7 @@
                             <!-- 최종 평가자 (임원) -->
                             <td>
                                 <div th:if="${g.executive != null}" class="d-flex align-items-center">
-                                    <span class="badge bg-info bg-opacity-10 text-info fw-normal me-2">임원</span>
+                                    <span class="ees-badge ees-badge-executive">임원</span>
                                     <span class="text-white small" th:text="${g.executive.evaluatorName()}">평가자명</span>
                                 </div>
                                 <span th:if="${g.executive == null}" class="text-muted small">-</span>

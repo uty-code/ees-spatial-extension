@@ -1,0 +1,174 @@
+/* 
+ * 사원 평가 시스템(EES) 표준 디자인 시스템
+ * 작성일: 2026-04-28
+ */
+
+:root {
+    /* Design Tokens */
+    --ees-card-bg: rgba(30, 32, 40, 0.6);
+    --ees-card-blur: 10px;
+    --ees-card-border: rgba(255, 255, 255, 0.1);
+    --ees-card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    
+    --ees-primary-gradient: linear-gradient(90deg, #6366f1, #a855f7);
+    --ees-secondary-gradient: linear-gradient(90deg, #4facfe, #00f2fe);
+    
+    /* Status Colors */
+    --ees-status-performance: #0d6efd;
+    --ees-status-competency: #198754;
+    --ees-status-multi: #f59e0b;
+    --ees-status-self: #10b981;
+    --ees-status-executive: #0dcaf0;
+    
+    /* Transitions */
+    --ees-transition-fast: all 0.2s ease;
+    --ees-transition-base: all 0.3s ease;
+}
+
+/* Glassmorphism Card */
+.ees-card {
+    background: var(--ees-card-bg);
+    backdrop-filter: blur(var(--ees-card-blur));
+    -webkit-backdrop-filter: blur(var(--ees-card-blur));
+    border: 1px solid var(--ees-card-border);
+    border-radius: 12px;
+    box-shadow: var(--ees-card-shadow);
+}
+
+/* High-end Glass Button */
+.ees-btn-glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: var(--ees-transition-fast);
+}
+
+.ees-btn-glass:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.ees-btn-glass:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.18);
+}
+
+/* Glass Tool Group */
+.ees-glass-group {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    overflow: hidden;
+    display: inline-flex;
+}
+
+.ees-glass-group .btn {
+    border-radius: 0;
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ees-glass-group .btn:last-child {
+    border-right: none;
+}
+
+/* EES Table System */
+.ees-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.ees-table thead th {
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ees-table tbody td {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+}
+
+.ees-table tbody tr {
+    transition: var(--ees-transition-fast);
+}
+
+.ees-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* EES Form Control */
+.ees-form-control {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    transition: var(--ees-transition-fast);
+}
+
+.ees-form-control:focus {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+    outline: none;
+}
+
+.ees-form-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+}
+
+/* Standard Badges */
+.ees-badge {
+    padding: 0.35em 0.8em;
+    font-weight: 600;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.ees-badge-performance { background: rgba(13, 110, 253, 0.1); color: var(--ees-status-performance); }
+.ees-badge-competency { background: rgba(25, 135, 84, 0.1); color: var(--ees-status-competency); }
+.ees-badge-multi { background: rgba(245, 158, 11, 0.1); color: var(--ees-status-multi); }
+.ees-badge-self { background: rgba(16, 185, 129, 0.1); color: var(--ees-status-self); }
+.ees-badge-executive { background: rgba(13, 202, 240, 0.1); color: var(--ees-status-executive); }
+
+/* Text Gradient */
+.ees-text-gradient {
+    background: var(--ees-primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* HTMX Loading Indicator */
+.htmx-indicator {
+    opacity: 0;
+    transition: opacity 200ms ease-in;
+}
+.htmx-request .htmx-indicator {
+    opacity: 1;
+}
+.htmx-request.htmx-indicator {
+    opacity: 1;
+}
