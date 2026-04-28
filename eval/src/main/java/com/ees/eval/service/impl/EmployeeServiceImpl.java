@@ -219,6 +219,17 @@ public class EmployeeServiceImpl implements EmployeeService {
             } else {
                 employee.setRetireDate(LocalDate.now());
             }
+            // 부서장인 경우 부서장 해제 처리
+            Long adminId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
+            LocalDateTime now = LocalDateTime.now();
+            departmentMapper.updateLeaderToNullByLeaderId(employee.getEmpId(), adminId, now);
+
+            // 퇴사 시 권한 자동 변경: 기존 권한 삭제 후 ROLE_USER만 부여
+            employeeMapper.deleteEmployeeRolesByEmpId(employee.getEmpId(), adminId, now);
+            Long userRoleId = roleMapper.findByRoleName("ROLE_USER")
+                    .orElseThrow(() -> new IllegalStateException("ROLE_USER 권한 정보를 찾을 수 없습니다."))
+                    .getRoleId();
+            employeeMapper.insertEmployeeRole(employee.getEmpId(), userRoleId, adminId, now);
         } else {
             // 퇴사 상태가 아니면 퇴사일 초기화
             employee.setRetireDate(null);
@@ -278,6 +289,15 @@ public class EmployeeServiceImpl implements EmployeeService {
             } else {
                 employee.setRetireDate(LocalDate.now());
             }
+            // 부서장인 경우 부서장 해제 처리
+            Long adminId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
+            departmentMapper.updateLeaderToNullByLeaderId(employee.getEmpId(), adminId, LocalDateTime.now());
+
+            // 퇴사 시 권한을 ROLE_USER로 강제 변경 (roleIds 매개변수 조작)
+            Long userRoleId = roleMapper.findByRoleName("ROLE_USER")
+                    .orElseThrow(() -> new IllegalStateException("ROLE_USER 권한 정보를 찾을 수 없습니다."))
+                    .getRoleId();
+            roleIds = new java.util.ArrayList<>(java.util.List.of(userRoleId));
         } else {
             employee.setRetireDate(null);
         }
@@ -306,9 +326,9 @@ public class EmployeeServiceImpl implements EmployeeService {
                 }
             }
 
-            // 부서장 권한 보호: 해당 사원이 부서장이면 권한 변경 자체를 차단
+            // 부서장 권한 보호: 해당 사원이 부서장이면 권한 변경 자체를 차단 (단, 퇴사 처리는 허용)
             int leaderCount = departmentMapper.countDepartmentsByLeaderId(employee.getEmpId());
-            if (leaderCount > 0) {
+            if (leaderCount > 0 && !"RETIRED".equalsIgnoreCase(employee.getStatusCode())) {
                 Long managerRoleId = roleMapper.findByRoleName("ROLE_MANAGER")
                         .orElseThrow(() -> new IllegalStateException("ROLE_MANAGER 권한 정보를 찾을 수 없습니다."))
                         .getRoleId();

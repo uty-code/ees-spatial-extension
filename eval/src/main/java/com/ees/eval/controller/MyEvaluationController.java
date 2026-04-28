@@ -5,6 +5,7 @@ import com.ees.eval.domain.Evaluation;
 import com.ees.eval.dto.EvaluationElementDTO;
 import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.dto.EvaluatorMappingDTO;
+import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationMapper;
 import com.ees.eval.service.EvaluationElementService;
@@ -39,6 +40,7 @@ public class MyEvaluationController {
     private final EvaluationTypeWeightService typeWeightService;
     private final EvaluationMapper evaluationMapper;
     private final EmployeeMapper employeeMapper;
+    private final DepartmentMapper departmentMapper;
 
     /**
      * 사용자의 부서에 맞는 평가요소를 조회합니다.
@@ -69,6 +71,10 @@ public class MyEvaluationController {
         // 사원 정보 조회
         Employee currentEmp = employeeMapper.findById(empId).orElse(null);
         model.addAttribute("currentEmp", currentEmp);
+
+        // 부서장 여부 판별
+        boolean isLeader = departmentMapper.countDepartmentsByLeaderId(empId) > 0;
+        model.addAttribute("isLeader", isLeader);
 
         // 차수 목록
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();

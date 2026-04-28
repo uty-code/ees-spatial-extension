@@ -217,4 +217,14 @@
           and is_deleted = 'n'
     </update>
 
+    <!-- 퇴사한 사원이 부서장인 경우 해당 부서의 리더를 해제(NULL) -->
+    <update id="updateLeaderToNullByLeaderId">
+        update departments_51
+        set leader_id  = NULL,
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where leader_id = #{leaderId}
+          and is_deleted = 'n'
+    </update>
+
 </mapper>
