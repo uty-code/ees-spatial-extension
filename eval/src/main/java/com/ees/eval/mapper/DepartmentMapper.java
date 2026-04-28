@@ -138,4 +138,15 @@ public interface DepartmentMapper {
      * @return 리더로 등록된 부서의 수
      */
     int countDepartmentsByLeaderId(@Param("empId") Long empId);
+
+    /**
+     * 특정 사원이 리더로 지정된 모든 부서에서 해당 사원을 리더에서 해제(NULL 처리)합니다.
+     * 퇴사 처리 시 자동으로 부서장 직위를 해제하기 위해 사용됩니다.
+     *
+     * @param leaderId  해제할 리더 사원 식별자
+     * @param updatedBy 처리자 ID
+     * @param updatedAt 처리 시각
+     * @return 업데이트된 행 수
+     */
+    int updateLeaderToNullByLeaderId(@Param("leaderId") Long leaderId, @Param("updatedBy") Long updatedBy, @Param("updatedAt") LocalDateTime updatedAt);
 }
