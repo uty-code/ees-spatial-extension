@@ -50,7 +50,7 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
                 );
             } else if ("LEADER".equals(targetRoleCode)) {
                 dtoList = List.of(
-                    EvaluationTypeWeightDTO.builder().elementTypeCode("PEER").weight(new BigDecimal("100.00")).build()
+                    EvaluationTypeWeightDTO.builder().elementTypeCode("MULTI_DIMENSIONAL").weight(new BigDecimal("100.00")).build()
                 );
             }
         }
@@ -127,9 +127,11 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
                     .filter(e -> typeCode.equals(e.elementTypeCode()))
                     .map(EvaluationElementDTO::weight)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
             // 항목이 하나도 없거나, 합계가 100이 아니면 무효
             boolean hasElements = elements.stream()
                     .anyMatch(e -> typeCode.equals(e.elementTypeCode()));
+            
             if (!hasElements || elementSum.compareTo(new BigDecimal("100.00")) != 0) {
                 return false;
             }
