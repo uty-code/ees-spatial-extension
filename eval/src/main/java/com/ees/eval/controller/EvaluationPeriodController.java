@@ -27,7 +27,7 @@ import java.util.List;
 @Controller
 @RequestMapping("/eval/periods")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')")
+@PreAuthorize("hasRole('ADMIN')")
 public class EvaluationPeriodController {
 
     private final EvaluationPeriodService periodService;
