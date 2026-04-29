@@ -67,7 +67,8 @@
                     <div class="col-md-6">
                         <label for="startDate" class="form-label text-muted small">평가 시작일 <span
                                 class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="startDate" th:field="*{startDate}"
+                        <input type="date" class="form-control" id="startDate" name="startDate"
+                            th:value="${period.startDate()}"
                             th:classappend="${#fields.hasErrors('startDate')} ? 'is-invalid' : ''">
                         <div class="invalid-feedback" th:if="${#fields.hasErrors('startDate')}"
                             th:errors="*{startDate}">시작일 오류</div>
@@ -77,7 +78,8 @@
                     <div class="col-md-6">
                         <label for="endDate" class="form-label text-muted small">평가 종료일 <span
                                 class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="endDate" th:field="*{endDate}"
+                        <input type="date" class="form-control" id="endDate" name="endDate"
+                            th:value="${period.endDate()}"
                             th:classappend="${#fields.hasErrors('endDate')} ? 'is-invalid' : ''">
                         <div class="invalid-feedback" th:if="${#fields.hasErrors('endDate')}" th:errors="*{endDate}">종료일
                             오류</div>

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -15,6 +16,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -39,10 +41,24 @@ class EvaluationPeriodControllerTest {
     @InjectMocks
     private EvaluationPeriodController periodController;
 
+    /** 테스트에서 반복 사용되는 기존 차수 mock 데이터 */
+    private EvaluationPeriodDTO existingPeriod;
+
     @BeforeEach
     void setUp() {
         // 독립 실행형 설정으로 MockMvc 초기화
         mockMvc = MockMvcBuilders.standaloneSetup(periodController).build();
+
+        // 기존 차수 데이터 (수정 테스트에서 statusCode 조회용)
+        existingPeriod = EvaluationPeriodDTO.builder()
+                .periodId(1L)
+                .periodYear(2024)
+                .periodName("2024 상반기")
+                .statusCode("PLANNED")
+                .startDate(LocalDate.of(2024, 1, 1))
+                .endDate(LocalDate.of(2024, 6, 30))
+                .version(1)
+                .build();
     }
 
     @Test
@@ -94,6 +110,9 @@ class EvaluationPeriodControllerTest {
     @Test
     @DisplayName("차수 정보 수정 성공 - 유효한 데이터 입력 시 목록으로 리다이렉트된다")
     void updatePeriod_Success_ShouldRedirect() throws Exception {
+        // given: 기존 차수 조회 mock (statusCode 유지를 위해 필요)
+        given(periodService.getPeriodById(1L)).willReturn(existingPeriod);
+
         // when & then
         mockMvc.perform(post("/eval/periods/1")
                         .param("periodYear", "2024")
@@ -106,6 +125,67 @@ class EvaluationPeriodControllerTest {
                 .andExpect(flash().attributeExists("successMessage"));
 
         verify(periodService).updatePeriod(any(EvaluationPeriodDTO.class));
+    }
+
+    @Test
+    @DisplayName("차수 수정 시 statusCode 보존 - 폼에 없는 statusCode가 기존 DB 값으로 유지된다")
+    void updatePeriod_ShouldPreserveExistingStatusCode() throws Exception {
+        // given: 기존 차수의 statusCode가 IN_PROGRESS인 경우
+        EvaluationPeriodDTO inProgressPeriod = EvaluationPeriodDTO.builder()
+                .periodId(1L)
+                .periodYear(2024)
+                .periodName("2024 상반기")
+                .statusCode("IN_PROGRESS")
+                .startDate(LocalDate.of(2024, 1, 1))
+                .endDate(LocalDate.of(2024, 6, 30))
+                .version(2)
+                .build();
+        given(periodService.getPeriodById(1L)).willReturn(inProgressPeriod);
+
+        // when: 폼 제출 (statusCode 파라미터 없음)
+        mockMvc.perform(post("/eval/periods/1")
+                        .param("periodYear", "2024")
+                        .param("periodName", "수정된차수")
+                        .param("startDate", "2024-03-01")
+                        .param("endDate", "2024-09-30")
+                        .param("version", "2"))
+                .andExpect(status().is3xxRedirection());
+
+        // then: Service에 전달된 DTO의 statusCode가 "IN_PROGRESS"로 유지되는지 검증
+        ArgumentCaptor<EvaluationPeriodDTO> captor = ArgumentCaptor.forClass(EvaluationPeriodDTO.class);
+        verify(periodService).updatePeriod(captor.capture());
+
+        EvaluationPeriodDTO capturedDto = captor.getValue();
+        assertThat(capturedDto.statusCode()).isEqualTo("IN_PROGRESS");
+        assertThat(capturedDto.periodId()).isEqualTo(1L);
+        assertThat(capturedDto.startDate()).isEqualTo(LocalDate.of(2024, 3, 1));
+        assertThat(capturedDto.endDate()).isEqualTo(LocalDate.of(2024, 9, 30));
+    }
+
+    @Test
+    @DisplayName("차수 수정 시 날짜 바인딩 - HTML date input의 yyyy-MM-dd 형식이 LocalDate로 정상 변환된다")
+    void updatePeriod_ShouldBindDatesCorrectly() throws Exception {
+        // given
+        given(periodService.getPeriodById(1L)).willReturn(existingPeriod);
+
+        // when: 날짜를 변경하여 제출
+        mockMvc.perform(post("/eval/periods/1")
+                        .param("periodYear", "2026")
+                        .param("periodName", "2026 상반기 평가")
+                        .param("startDate", "2026-04-01")
+                        .param("endDate", "2026-06-30")
+                        .param("version", "1"))
+                .andExpect(status().is3xxRedirection());
+
+        // then: 변경된 날짜가 정확히 바인딩되었는지 검증
+        ArgumentCaptor<EvaluationPeriodDTO> captor = ArgumentCaptor.forClass(EvaluationPeriodDTO.class);
+        verify(periodService).updatePeriod(captor.capture());
+
+        EvaluationPeriodDTO capturedDto = captor.getValue();
+        assertThat(capturedDto.startDate()).isEqualTo(LocalDate.of(2026, 4, 1));
+        assertThat(capturedDto.endDate()).isEqualTo(LocalDate.of(2026, 6, 30));
+        assertThat(capturedDto.periodYear()).isEqualTo(2026);
+        assertThat(capturedDto.periodName()).isEqualTo("2026 상반기 평가");
     }
 
     @Test

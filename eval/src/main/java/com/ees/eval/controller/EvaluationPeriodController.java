@@ -152,10 +152,13 @@ public class EvaluationPeriodController {
         }
 
         // 서비스 호출을 위해 DTO에 ID와 버전이 확실히 포함되도록 빌더 사용 (ID는 경로변수 우선)
+        // 상태 코드는 폼에서 전달되지 않으므로 기존 값을 DB에서 조회하여 유지
+        EvaluationPeriodDTO existingPeriod = periodService.getPeriodById(periodId);
         EvaluationPeriodDTO updateDto = EvaluationPeriodDTO.builder()
                 .periodId(periodId)
                 .periodYear(dto.periodYear())
                 .periodName(dto.periodName())
+                .statusCode(existingPeriod.statusCode())
                 .startDate(dto.startDate())
                 .endDate(dto.endDate())
                 .version(dto.version())
