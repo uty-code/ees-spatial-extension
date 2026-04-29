@@ -105,6 +105,7 @@ public class MyEvaluationController {
             // 성과/역량 각각 제출 여부
             boolean selfPerfSubmitted = false;
             boolean selfCompSubmitted = false;
+            boolean selfPeerSubmitted = false;
             // 제출된 항목의 elementId별 평가 내용
             java.util.Map<Long, Evaluation> selfEvalMap = new java.util.HashMap<>();
 
@@ -131,32 +132,43 @@ public class MyEvaluationController {
                     selfCompSubmitted = allElements.stream()
                             .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
                             .anyMatch(el -> submittedElementIds.contains(el.elementId()));
+                    selfPeerSubmitted = allElements.stream()
+                            .filter(el -> "PEER".equals(el.elementTypeCode()))
+                            .anyMatch(el -> submittedElementIds.contains(el.elementId()));
                 }
             }
             model.addAttribute("selfPerfSubmitted", selfPerfSubmitted);
             model.addAttribute("selfCompSubmitted", selfCompSubmitted);
+            model.addAttribute("selfPeerSubmitted", selfPeerSubmitted);
 
-            // 평가요소 목록 (성과/역량 분리) - 부서 전용 → 전사 공통 폴백
-            Long myDeptId2 = (currentEmp != null) ? currentEmp.getDeptId() : null;
-            List<EvaluationElementDTO> allElements = getElementsWithFallback(selectedPeriod.periodId(), myDeptId2);
+            // 부서 정보 및 가중치/항목 조회
+            Long myDeptId = (currentEmp != null) ? currentEmp.getDeptId() : null;
+            String targetRole = isLeader ? "LEADER" : "STAFF";
+            
+            boolean selfWeightValid = typeWeightService.isWeightSumValid(selectedPeriod.periodId(), myDeptId, targetRole);
+            model.addAttribute("selfWeightValid", selfWeightValid);
+
+            var typeWeights = typeWeightService.getTypeWeights(selectedPeriod.periodId(), myDeptId, targetRole);
+            model.addAttribute("typeWeights", typeWeights);
+            model.addAttribute("targetRole", targetRole);
+
+            // 해당 차수의 평가요소 조회
+            List<EvaluationElementDTO> allElements = getElementsWithFallback(selectedPeriod.periodId(), myDeptId);
+            
             List<EvaluationElementDTO> perfElements = allElements.stream()
                     .filter(e -> "PERFORMANCE".equals(e.elementTypeCode()))
                     .toList();
             List<EvaluationElementDTO> compElements = allElements.stream()
                     .filter(e -> "COMPETENCY".equals(e.elementTypeCode()))
                     .toList();
+            List<EvaluationElementDTO> peerElements = allElements.stream()
+                    .filter(e -> "PEER".equals(e.elementTypeCode()))
+                    .toList();
+            
             model.addAttribute("perfElements", perfElements);
             model.addAttribute("compElements", compElements);
+            model.addAttribute("peerElements", peerElements);
             model.addAttribute("selfEvalMap", selfEvalMap);
-
-            // 가중치 검증
-            Long myDeptId = (currentEmp != null) ? currentEmp.getDeptId() : null;
-            boolean selfWeightValid = typeWeightService.isWeightSumValid(selectedPeriod.periodId(), myDeptId, "STAFF");
-            model.addAttribute("selfWeightValid", selfWeightValid);
-
-            // 성과/역량 가중치 비중 정보
-            var typeWeights = typeWeightService.getTypeWeights(selectedPeriod.periodId(), myDeptId, "STAFF");
-            model.addAttribute("typeWeights", typeWeights);
         }
 
         return "eval/my-evaluation/list";
@@ -172,7 +184,7 @@ public class MyEvaluationController {
             @AuthenticationPrincipal UserDetails userDetails,
             RedirectAttributes redirectAttributes) {
 
-        if (!"PERFORMANCE".equals(evalType) && !"COMPETENCY".equals(evalType)) {
+        if (!"PERFORMANCE".equals(evalType) && !"COMPETENCY".equals(evalType) && !"PEER".equals(evalType)) {
             evalType = "PERFORMANCE";
         }
 
@@ -187,9 +199,14 @@ public class MyEvaluationController {
         // 가중치 검증
         Employee evaluatee = employeeMapper.findById(mapping.evaluateeId()).orElse(null);
         Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
-        if (!typeWeightService.isWeightSumValid(mapping.periodId(), evaluateeDeptId, "STAFF")) {
+        
+        // 피평가자가 부서장인지 여부 확인
+        boolean evaluateeIsLeader = departmentMapper.countDepartmentsByLeaderId(mapping.evaluateeId()) > 0;
+        String targetRole = evaluateeIsLeader ? "LEADER" : "STAFF";
+
+        if (!typeWeightService.isWeightSumValid(mapping.periodId(), evaluateeDeptId, targetRole)) {
             redirectAttributes.addFlashAttribute("errorMessage",
-                    "유형별 가중치 합계가 100%가 아닙니다. 관리자에게 가중치 설정을 요청하세요.");
+                    "[" + targetRole + "] 유형별 가중치 합계가 100%가 아닙니다. 관리자에게 가중치 설정을 요청하세요.");
             return "redirect:/eval/my-evaluation?periodId=" + mapping.periodId();
         }
 
@@ -202,6 +219,10 @@ public class MyEvaluationController {
         List<EvaluationElementDTO> elements = allElements.stream()
                 .filter(e -> finalEvalType.equals(e.elementTypeCode()))
                 .toList();
+        
+        log.info("[MyEvaluation] getForm - mappingId: {}, evalType: {}, found elements: {}, deptId: {}, role: {}", 
+                mappingId, evalType, elements.size(), evaluateeDeptId, targetRole);
+        
         model.addAttribute("elements", elements);
         model.addAttribute("mappingId", mappingId);
 
@@ -243,7 +264,11 @@ public class MyEvaluationController {
         EvaluatorMappingDTO submitMapping = mappingService.getMappingById(mappingId);
         Employee submitEvaluatee = employeeMapper.findById(submitMapping.evaluateeId()).orElse(null);
         Long submitDeptId = (submitEvaluatee != null) ? submitEvaluatee.getDeptId() : null;
-        if (!typeWeightService.isWeightSumValid(submitMapping.periodId(), submitDeptId, "STAFF")) {
+        
+        boolean submitIsLeader = departmentMapper.countDepartmentsByLeaderId(submitMapping.evaluateeId()) > 0;
+        String targetRole = submitIsLeader ? "LEADER" : "STAFF";
+
+        if (!typeWeightService.isWeightSumValid(submitMapping.periodId(), submitDeptId, targetRole)) {
             String currentEvalType = params.getOrDefault("evalType", "PERFORMANCE");
             redirectAttributes.addFlashAttribute("errorMessage",
                     "유형별 가중치 합계가 100%가 아니어서 평가를 제출할 수 없습니다.");
