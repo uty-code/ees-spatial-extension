@@ -21,6 +21,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
 @Controller
 @RequestMapping("/eval/my-evaluation")
 @RequiredArgsConstructor
+@PreAuthorize("!hasRole('ADMIN')")
 public class MyEvaluationController {
 
     private final EvaluationPeriodService periodService;

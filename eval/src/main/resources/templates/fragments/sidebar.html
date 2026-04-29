@@ -71,6 +71,7 @@
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/eval/my-evaluation}" hx-get="/eval/my-evaluation" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                sec:authorize="!hasRole('ADMIN')"
                 th:classappend="${activeMenu == 'my-evaluation' ? 'active' : ''}">
                 <i class="bi bi-person-workspace"></i>
                 <span>나의 자가평가</span>
