@@ -65,10 +65,7 @@
                                                 class="ees-badge ees-badge-performance">성과 평가</span>
                                             <span th:if="${tw.elementTypeCode() == 'COMPETENCY'}"
                                                 class="ees-badge ees-badge-competency">역량 평가</span>
-                                            <span th:if="${tw.elementTypeCode() == 'PEER'}"
-                                                class="ees-badge ees-badge-multi">다면 평가</span>
-                                            <span
-                                                th:if="${tw.elementTypeCode() == 'PEER' or tw.elementTypeCode() == 'MULTI_DIMENSIONAL'}"
+                                            <span th:if="${tw.elementTypeCode() == 'PEER' or tw.elementTypeCode() == 'MULTI_DIMENSIONAL'}"
                                                 class="ees-badge ees-badge-multi">다면 평가</span>
                                             <span
                                                 th:if="${tw.elementTypeCode() != 'PERFORMANCE' and tw.elementTypeCode() != 'COMPETENCY' and tw.elementTypeCode() != 'PEER' and tw.elementTypeCode() != 'MULTI_DIMENSIONAL'}"
@@ -174,10 +171,10 @@
                                                 class="ees-badge ees-badge-performance">성과 평가</span>
                                             <span th:if="${tw.elementTypeCode() == 'COMPETENCY'}"
                                                 class="ees-badge ees-badge-competency">역량 평가</span>
-                                            <span th:if="${tw.elementTypeCode() == 'PEER'}"
+                                            <span th:if="${tw.elementTypeCode() == 'PEER' or tw.elementTypeCode() == 'MULTI_DIMENSIONAL'}"
                                                 class="ees-badge ees-badge-multi">다면 평가</span>
                                             <span
-                                                th:if="${tw.elementTypeCode() != 'PERFORMANCE' and tw.elementTypeCode() != 'COMPETENCY' and tw.elementTypeCode() != 'PEER'}"
+                                                th:if="${tw.elementTypeCode() != 'PERFORMANCE' and tw.elementTypeCode() != 'COMPETENCY' and tw.elementTypeCode() != 'PEER' and tw.elementTypeCode() != 'MULTI_DIMENSIONAL'}"
                                                 class="ees-badge ees-badge-multi"
                                                 th:text="${tw.elementTypeCode()}">기타</span>
                                         </td>
@@ -187,7 +184,7 @@
                                         <td class="text-center">
                                             <!-- 상태 판별 -->
                                             <th:block
-                                                th:with="isSubmitted=${tw.elementTypeCode() == 'PERFORMANCE' ? selfPerfSubmitted : (tw.elementTypeCode() == 'COMPETENCY' ? selfCompSubmitted : (tw.elementTypeCode() == 'PEER' ? selfPeerSubmitted : false))}">
+                                                th:with="isSubmitted=${tw.elementTypeCode() == 'PERFORMANCE' ? selfPerfSubmitted : (tw.elementTypeCode() == 'COMPETENCY' ? selfCompSubmitted : ((tw.elementTypeCode() == 'PEER' or tw.elementTypeCode() == 'MULTI_DIMENSIONAL') ? selfPeerSubmitted : false))}">
                                                 <span th:if="${isSubmitted}" class="ees-badge ees-badge-self">완료</span>
                                                 <span th:unless="${isSubmitted}" class="ees-badge ees-badge-multi"
                                                     style="background: rgba(108, 117, 125, 0.1); color: #adb5bd;">대기</span>

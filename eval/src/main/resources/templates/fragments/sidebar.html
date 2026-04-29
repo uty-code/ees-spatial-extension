@@ -90,7 +90,9 @@
                 <i class="bi bi-award-fill"></i>
                 <span>역량 평가 관리</span>
             </a>
-            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+            <a class="nav-link" th:href="@{/eval/multi-dimensional}" hx-get="/eval/multi-dimensional" hx-target="#page-content"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                th:classappend="${activeMenu == 'multi-dimensional-eval' ? 'active' : ''}">
                 <i class="bi bi-people"></i>
                 <span>다면 평가</span>
             </a>

@@ -21,13 +21,15 @@ import java.util.List;
  * 평가 차수(EvaluationPeriod) 관리 화면을 위한 컨트롤러입니다.
  * 차수 목록 조회, 생성, 수정, 상태 전이 등의 화면 진입점과 폼 처리를 담당합니다.
  *
- * <p>접근 권한: ADMIN 역할을 가진 사용자만 접근 가능합니다.</p>
+ * <p>
+ * 접근 권한: ADMIN 역할을 가진 사용자만 접근 가능합니다.
+ * </p>
  */
 @Slf4j
 @Controller
 @RequestMapping("/eval/periods")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')")
 public class EvaluationPeriodController {
 
     private final EvaluationPeriodService periodService;
@@ -43,7 +45,7 @@ public class EvaluationPeriodController {
     public String listPeriods(Model model, HttpServletResponse response) {
         // HTMX/브라우저 캐싱 방지
         response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-        
+
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
         model.addAttribute("periods", periods);
         log.info("평가 차수 목록 조회 - 총 {}건", periods.size());
@@ -75,7 +77,7 @@ public class EvaluationPeriodController {
      * 기존 차수 정보를 조회하여 모델에 담아 전달합니다.
      *
      * @param periodId 수정할 차수 식별자
-     * @param model Thymeleaf 모델 객체
+     * @param model    Thymeleaf 모델 객체
      * @return eval/periods/form.html 템플릿 경로
      */
     @GetMapping("/{periodId}/edit")
@@ -90,18 +92,18 @@ public class EvaluationPeriodController {
      * 평가 차수를 신규 생성합니다.
      * 폼으로부터 전달된 데이터를 기반으로 차수를 생성하고 목록으로 리다이렉트합니다.
      *
-     * @param periodYear 평가 연도
-     * @param periodName 차수 명칭
-     * @param startDate 시작일
-     * @param endDate 종료일
+     * @param periodYear         평가 연도
+     * @param periodName         차수 명칭
+     * @param startDate          시작일
+     * @param endDate            종료일
      * @param redirectAttributes 성공 메시지 전달용 플래시 속성
      * @return 차수 목록으로 리다이렉트
      */
     @PostMapping
     public String createPeriod(@ModelAttribute("period") @Valid EvaluationPeriodDTO dto,
-                               BindingResult result,
-                               Model model,
-                               RedirectAttributes redirectAttributes) {
+            BindingResult result,
+            Model model,
+            RedirectAttributes redirectAttributes) {
         // 1. 기본 검증(JSR-303) 체크
         if (result.hasErrors()) {
             model.addAttribute("isNew", true);
@@ -127,21 +129,21 @@ public class EvaluationPeriodController {
      * 기존 평가 차수 정보를 수정합니다.
      * 낙관적 락(version)을 통해 동시 수정 충돌을 감지합니다.
      *
-     * @param periodId 수정할 차수 식별자
-     * @param periodYear 평가 연도
-     * @param periodName 차수 명칭
-     * @param startDate 시작일
-     * @param endDate 종료일
-     * @param version 낙관적 락 현재 버전
+     * @param periodId           수정할 차수 식별자
+     * @param periodYear         평가 연도
+     * @param periodName         차수 명칭
+     * @param startDate          시작일
+     * @param endDate            종료일
+     * @param version            낙관적 락 현재 버전
      * @param redirectAttributes 성공/에러 메시지 전달용 플래시 속성
      * @return 차수 목록으로 리다이렉트
      */
     @PostMapping("/{periodId}")
     public String updatePeriod(@PathVariable Long periodId,
-                               @ModelAttribute("period") @Valid EvaluationPeriodDTO dto,
-                               BindingResult result,
-                               Model model,
-                               RedirectAttributes redirectAttributes) {
+            @ModelAttribute("period") @Valid EvaluationPeriodDTO dto,
+            BindingResult result,
+            Model model,
+            RedirectAttributes redirectAttributes) {
         // 1. 기본 검증(JSR-303) 체크
         if (result.hasErrors()) {
             model.addAttribute("isNew", false);
@@ -180,15 +182,15 @@ public class EvaluationPeriodController {
      * 평가 차수의 상태를 전이합니다.
      * 전이 규칙: PLANNED → IN_PROGRESS → COMPLETED → CLOSED
      *
-     * @param periodId 대상 차수 식별자
-     * @param newStatus 전이할 새 상태 코드
+     * @param periodId           대상 차수 식별자
+     * @param newStatus          전이할 새 상태 코드
      * @param redirectAttributes 성공/에러 메시지 전달용 플래시 속성
      * @return 차수 목록으로 리다이렉트
      */
     @PostMapping("/{periodId}/transition")
     public String transitionStatus(@PathVariable Long periodId,
-                                    @RequestParam String newStatus,
-                                    RedirectAttributes redirectAttributes) {
+            @RequestParam String newStatus,
+            RedirectAttributes redirectAttributes) {
         try {
             EvaluationPeriodDTO updated = periodService.transitionStatus(periodId, newStatus);
             log.info("평가 차수 상태 전이 완료 - periodId: {}, newStatus: {}", periodId, updated.statusCode());
@@ -213,13 +215,13 @@ public class EvaluationPeriodController {
     /**
      * 평가 차수를 논리적으로 삭제합니다.
      *
-     * @param periodId 삭제할 차수 식별자
+     * @param periodId           삭제할 차수 식별자
      * @param redirectAttributes 성공 메시지 전달용 플래시 속성
      * @return 차수 목록으로 리다이렉트
      */
     @PostMapping("/{periodId}/delete")
     public String deletePeriod(@PathVariable Long periodId,
-                               RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes) {
         periodService.deletePeriod(periodId);
         log.info("평가 차수 삭제 완료 - periodId: {}", periodId);
 
