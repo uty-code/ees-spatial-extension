@@ -54,6 +54,11 @@ pipeline {
                             --resource-group ${RESOURCE_GROUP} \
                             --container-image-name ${ACR_URL}/${IMAGE_NAME}:${TAG}
                             
+                        # 환경 변수 설정 (운영 프로파일 활성화)
+                        az webapp config appsettings set --name ${APP_NAME} \
+                            --resource-group ${RESOURCE_GROUP} \
+                            --settings SPRING_PROFILES_ACTIVE=prod
+                            
                         # 확실한 반영을 위해 웹 앱 강제 재시작
                         az webapp restart --name ${APP_NAME} --resource-group ${RESOURCE_GROUP}
                     """

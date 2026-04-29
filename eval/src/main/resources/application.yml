@@ -6,6 +6,8 @@ server:
     min-response-size: 1024
 
 spring:
+  profiles:
+    active: dev  # 기본값은 로컬용 dev
   threads:
     virtual:
       enabled: true
@@ -16,27 +18,11 @@ spring:
         cachecontrol:
           max-age: 3600
           cache-public: true
-  docker:
-    compose:
-      enabled: false  # 외부 SKU DB 사용 중 - Docker 로컬 DB 불필요
   thymeleaf:
     cache: false
-  devtools:
-    livereload:
-      enabled: true
-    restart:
-      enabled: true
-  datasource:
-    # SKU 공용 DB 서버 연결
-    url: jdbc:sqlserver://211.232.94.161:1533;databaseName=SKUEDU;encrypt=true;trustServerCertificate=true;
-    username: SKUEDU01
-    password: init000!
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   sql:
     init:
-      mode: never  # 강제 초기화를 위해 always로 변경
-      schema-locations: classpath:eval-schema.sql
-      data-locations: classpath:eval-data.sql
+      mode: never
       encoding: UTF-8
 
 mybatis:
@@ -50,3 +36,32 @@ logging:
   level:
     root: INFO
     com.ees.eval: INFO
+
+---
+# [dev] 로컬 개발 환경 - 학교 공용 DB
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:sqlserver://211.232.94.161:1533;databaseName=SKUEDU;encrypt=true;trustServerCertificate=true;
+    username: SKUEDU01
+    password: init000!
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  docker:
+    compose:
+      enabled: false
+
+---
+# [prod] Azure 운영 환경 - Azure SQL DB
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    # Azure CLI로 확인한 정보 반영
+    url: jdbc:sqlserver://ees-server-hk.database.windows.net:1433;databaseName=ees-db-hk;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
+    username: dbmaster
+    # 비밀번호는 보안상 Azure Web App의 환경변수(DB_PASSWORD)에서 가져옵니다.
+    password: ${DB_PASSWORD}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
