@@ -241,8 +241,8 @@
                         </div>
                         <input type="number" class="eval-textarea text-center fs-4 fw-bold" style="min-height: 60px;"
                                th:name="'score_' + ${element.elementId()}"
-                               th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
-                               min="0" th:max="${element.maxScore()}" step="0.1" 
+                               th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? (mapping.relationTypeCode() == 'MANAGER' ? savedMap.get(element.elementId()).getScore1() : savedMap.get(element.elementId()).getScore2()) : ''}"
+                               min="0" th:max="${element.maxScore()}" step="1" 
                                required>
                     </div>
                     <!-- 코멘트 영역: 매니저면 9칸, 본인이면 12칸 (전체) 차지 -->
@@ -258,7 +258,7 @@
                                   th:placeholder="${mapping.relationTypeCode() == 'SELF'}
                                                   ? (${evalType == 'COMPETENCY'} ? '이 역량에 대해 본인이 보여준 구체적인 행동과 성과를 서술하세요.' : '이 목표에 대한 본인의 구체적인 실적과 기여도를 서술하세요.')
                                                   : (evalType == 'COMPETENCY' ? '제출된 역량 서술을 바탕으로 전문성, 협업, 문제해결 능력 중심으로 피드백을 작성해주세요.' : '제출된 실적을 바탕으로 구체적인 피드백을 작성해주세요.')"
-                                  th:readonly="${submitted}" required th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getComments() : ''}"></textarea>
+                                  th:readonly="${submitted}" required th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? (mapping.relationTypeCode() == 'MANAGER' ? savedMap.get(element.elementId()).getReason1() : savedMap.get(element.elementId()).getReason2()) : ''}"></textarea>
                     </div>
                 </div>
             </div>

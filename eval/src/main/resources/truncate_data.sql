@@ -8,6 +8,7 @@ delete from interviews_51;
 delete from login_logs_51; -- [추가] 사원 삭제 전 로그 먼저 삭제
 
 -- 2. 평가 수행 데이터
+delete from final_grades_51;
 delete from evaluations_51;
 
 -- 3. 매핑 및 평가 기준 데이터
@@ -36,6 +37,7 @@ dbcc checkident('evaluation_periods_51', reseed, 0);
 dbcc checkident('evaluation_elements_51', reseed, 0);
 dbcc checkident('evaluator_mappings_51', reseed, 0);
 dbcc checkident('evaluations_51', reseed, 0);
+dbcc checkident('final_grades_51', reseed, 0);
 dbcc checkident('interviews_51', reseed, 0);
 dbcc checkident('evidences_51', reseed, 0);
 dbcc checkident('common_codes_51', reseed, 0);

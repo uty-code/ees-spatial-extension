@@ -22,7 +22,9 @@ spring:
     cache: false
   sql:
     init:
-      mode: never
+      mode: always
+      schema-locations: classpath:eval-schema.sql
+      data-locations: classpath:truncate_data.sql, classpath:eval-data.sql
       encoding: UTF-8
 
 mybatis:

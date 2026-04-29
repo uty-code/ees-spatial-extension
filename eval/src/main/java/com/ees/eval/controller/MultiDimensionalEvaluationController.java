@@ -211,21 +211,21 @@ public class MultiDimensionalEvaluationController {
             String comment = params.get("comment_" + elementId);
             String scoreStr = params.get("score_" + elementId);
 
-            java.math.BigDecimal score = null;
+            Integer score = null;
             if (scoreStr != null && !scoreStr.trim().isEmpty()) {
                 try {
-                    score = new java.math.BigDecimal(scoreStr.trim());
+                    score = Integer.valueOf(scoreStr.trim());
                 } catch (Exception e) {}
             }
 
-            final java.math.BigDecimal finalScore = score;
+            final Integer finalScore = score;
             final String finalComment = (comment != null) ? comment.trim() : "";
 
             evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
                 .ifPresentOrElse(
                     existing -> {
-                        existing.setComments(finalComment);
-                        existing.setScore(finalScore);
+                        existing.setReason1(finalComment);
+                        existing.setScore1(finalScore);
                         existing.setConfirmStatusCode("SUBMITTED");
                         existing.preUpdate();
                         evaluationMapper.update(existing);
@@ -234,10 +234,10 @@ public class MultiDimensionalEvaluationController {
                         Evaluation eval = Evaluation.builder()
                             .mappingId(mappingId)
                             .elementId(elementId)
-                            .comments(finalComment)
-                            .score(finalScore)
                             .confirmStatusCode("SUBMITTED")
                             .build();
+                        eval.setReason1(finalComment);
+                        eval.setScore1(finalScore);
                         eval.prePersist();
                         eval.setCreatedBy(empId);
                         eval.setUpdatedBy(empId);

@@ -263,7 +263,7 @@ public class PerformanceEvaluationController {
             .anyMatch(entry -> "SUBMITTED".equals(entry.getValue().getConfirmStatusCode()));
         model.addAttribute("submitted", submitted);
 
-        // MANAGER/EXECUTIVE 평가인 경우: 피평가자의 자가평가 내용을 참고용으로 조회
+        // MANAGER/EXECUTIVE 평가인 경우: 피평가자의 자가평가 내용을 참고용으로 조회 (자가평가 코멘트는 구조 변경으로 인해 미제공)
         if ("MANAGER".equals(mapping.relationTypeCode()) || "EXECUTIVE".equals(mapping.relationTypeCode())) {
             java.util.Map<Long, String> selfEvalMap = evaluatorMappingMapper
                 .findByEvaluateeId(mapping.periodId(), mapping.evaluateeId())
@@ -274,7 +274,7 @@ public class PerformanceEvaluationController {
                     .stream()
                     .collect(java.util.stream.Collectors.toMap(
                         com.ees.eval.domain.Evaluation::getElementId,
-                        e -> e.getComments() != null ? e.getComments() : "",
+                        e -> "", // 자가평가 코멘트 스키마 삭제됨
                         (a, b) -> a
                     )))
                 .orElse(java.util.Collections.emptyMap());
@@ -322,10 +322,10 @@ public class PerformanceEvaluationController {
             String comment = params.get("comment_" + elementId);
             String scoreStr = params.get("score_" + elementId);
 
-            java.math.BigDecimal score = null;
+            Integer score = null;
             if (scoreStr != null && !scoreStr.trim().isEmpty()) {
                 try {
-                    score = new java.math.BigDecimal(scoreStr.trim());
+                    score = Integer.valueOf(scoreStr.trim());
                 } catch (Exception e) {
                     log.warn("[평가제출] 점수 파싱 실패: elementId={}, scoreStr={}", elementId, scoreStr);
                     String currentEvalType = params.getOrDefault("evalType", "PERFORMANCE");
@@ -334,15 +334,20 @@ public class PerformanceEvaluationController {
                 }
             }
 
-            final java.math.BigDecimal finalScore = score;
+            final Integer finalScore = score;
             final String finalComment = (comment != null) ? comment.trim() : "";
 
             // 이미 저장된 레코드가 있으면 UPDATE, 없으면 INSERT
             evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
                 .ifPresentOrElse(
                     existing -> {
-                        existing.setComments(finalComment);
-                        existing.setScore(finalScore);
+                        if ("MANAGER".equals(submitMapping.relationTypeCode())) {
+                            existing.setReason1(finalComment);
+                            existing.setScore1(finalScore);
+                        } else if ("EXECUTIVE".equals(submitMapping.relationTypeCode())) {
+                            existing.setReason2(finalComment);
+                            existing.setScore2(finalScore);
+                        }
                         existing.setConfirmStatusCode("SUBMITTED");
                         existing.preUpdate();
                         evaluationMapper.update(existing);
@@ -351,10 +356,15 @@ public class PerformanceEvaluationController {
                         Evaluation eval = Evaluation.builder()
                             .mappingId(mappingId)
                             .elementId(elementId)
-                            .comments(finalComment)
-                            .score(finalScore)
                             .confirmStatusCode("SUBMITTED")
                             .build();
+                        if ("MANAGER".equals(submitMapping.relationTypeCode())) {
+                            eval.setReason1(finalComment);
+                            eval.setScore1(finalScore);
+                        } else if ("EXECUTIVE".equals(submitMapping.relationTypeCode())) {
+                            eval.setReason2(finalComment);
+                            eval.setScore2(finalScore);
+                        }
                         eval.prePersist();
                         eval.setCreatedBy(empId);
                         eval.setUpdatedBy(empId);

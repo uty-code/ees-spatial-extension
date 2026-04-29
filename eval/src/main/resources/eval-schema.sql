@@ -232,8 +232,8 @@ create table evaluations_51
     eval_id bigint identity(1,1) primary key,
     mapping_id bigint not null,
     element_id bigint not null,
-    score1 decimal(5,2),
-    score2 decimal(5,2),
+    score1 int,
+    score2 int,
     -- 2차 평가용
     reason1 nvarchar(255),
     -- 1차 평가 사유
@@ -291,7 +291,7 @@ create table final_grades_51
     grade_id bigint identity(1,1) primary key,
     period_id bigint not null,
     emp_id bigint not null,
-    total_score decimal(7,2),
+    total_score int,
     final_grade_code varchar(50),
     is_deleted char(1) default 'n',
     version int default 0,

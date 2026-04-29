@@ -8,12 +8,11 @@
         <id property="evalId"           column="eval_id"/>
         <result property="mappingId"    column="mapping_id"/>
         <result property="elementId"    column="element_id"/>
-        <result property="score"        column="score"/>
-        <result property="oldScore"     column="old_score"/>
-        <result property="reason"       column="reason"/>
-        <result property="comments"     column="comments"/>
-        <result property="totalScore"   column="total_score"/>
-        <result property="gradeCode"    column="grade_code"/>
+        <result property="score1"       column="score1"/>
+        <result property="score2"       column="score2"/>
+        <result property="selfScore"    column="self_score"/>
+        <result property="reason1"      column="reason1"/>
+        <result property="reason2"      column="reason2"/>
         <result property="confirmStatusCode" column="confirm_status_code"/>
         <result property="isDeleted"    column="is_deleted"/>
         <result property="version"      column="version"/>
@@ -26,11 +25,11 @@
     <!-- 단건 삽입 -->
     <insert id="insert" parameterType="com.ees.eval.domain.Evaluation">
         INSERT INTO evaluations_51 (
-            mapping_id, element_id, score, reason, comments,
+            mapping_id, element_id, score1, score2, self_score, reason1, reason2,
             confirm_status_code, is_deleted, version,
             created_at, created_by, updated_at, updated_by
         ) VALUES (
-            #{mappingId}, #{elementId}, #{score}, #{reason}, #{comments},
+            #{mappingId}, #{elementId}, #{score1}, #{score2}, #{selfScore}, #{reason1}, #{reason2},
             #{confirmStatusCode}, #{isDeleted}, #{version},
             #{createdAt}, #{createdBy}, #{updatedAt}, #{updatedBy}
         )
@@ -48,13 +47,17 @@
     <!-- 코멘트 및 상태 업데이트 -->
     <update id="update" parameterType="com.ees.eval.domain.Evaluation">
         UPDATE evaluations_51
-        SET comments             = #{comments},
-            reason               = #{reason},
-            score                = #{score},
-            confirm_status_code  = #{confirmStatusCode},
-            updated_at           = #{updatedAt},
-            updated_by           = #{updatedBy},
-            version              = version + 1
+        <set>
+            <if test="score1 != null">score1 = #{score1},</if>
+            <if test="score2 != null">score2 = #{score2},</if>
+            <if test="selfScore != null">self_score = #{selfScore},</if>
+            <if test="reason1 != null">reason1 = #{reason1},</if>
+            <if test="reason2 != null">reason2 = #{reason2},</if>
+            <if test="confirmStatusCode != null">confirm_status_code = #{confirmStatusCode},</if>
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy},
+            version = version + 1
+        </set>
         WHERE eval_id = #{evalId}
           AND version = #{version}
     </update>

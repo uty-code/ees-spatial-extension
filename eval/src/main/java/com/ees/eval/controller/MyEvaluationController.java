@@ -314,10 +314,10 @@ public class MyEvaluationController {
             String comment = params.get("comment_" + elementId);
             String scoreStr = params.get("score_" + elementId);
 
-            java.math.BigDecimal score = null;
+            Integer score = null;
             if (scoreStr != null && !scoreStr.trim().isEmpty()) {
                 try {
-                    score = new java.math.BigDecimal(scoreStr.trim());
+                    score = Integer.valueOf(scoreStr.trim());
                 } catch (Exception e) {
                     log.warn("[자가평가 제출] 점수 파싱 실패: elementId={}, scoreStr={}", elementId, scoreStr);
                     String currentEvalType = params.getOrDefault("evalType", "PERFORMANCE");
@@ -326,14 +326,12 @@ public class MyEvaluationController {
                 }
             }
 
-            final java.math.BigDecimal finalScore = score;
-            final String finalComment = (comment != null) ? comment.trim() : "";
+            final Integer finalScore = score;
 
             evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
                     .ifPresentOrElse(
                             existing -> {
-                                existing.setComments(finalComment);
-                                existing.setScore(finalScore);
+                                existing.setSelfScore(finalScore);
                                 existing.setConfirmStatusCode("SUBMITTED");
                                 existing.preUpdate();
                                 evaluationMapper.update(existing);
@@ -342,10 +340,9 @@ public class MyEvaluationController {
                                 Evaluation eval = Evaluation.builder()
                                         .mappingId(mappingId)
                                         .elementId(elementId)
-                                        .comments(finalComment)
-                                        .score(finalScore)
                                         .confirmStatusCode("SUBMITTED")
                                         .build();
+                                eval.setSelfScore(finalScore);
                                 eval.prePersist();
                                 eval.setCreatedBy(empId);
                                 eval.setUpdatedBy(empId);
