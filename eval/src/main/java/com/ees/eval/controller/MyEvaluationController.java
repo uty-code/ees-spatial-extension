@@ -136,7 +136,7 @@ public class MyEvaluationController {
                             .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
                             .anyMatch(el -> submittedElementIds.contains(el.elementId()));
                     selfPeerSubmitted = allElements.stream()
-                            .filter(el -> "PEER".equals(el.elementTypeCode()))
+                            .filter(el -> "PEER".equals(el.elementTypeCode()) || "MULTI_DIMENSIONAL".equals(el.elementTypeCode()))
                             .anyMatch(el -> submittedElementIds.contains(el.elementId()));
                 }
             }
