@@ -25,7 +25,7 @@ import java.util.List;
 @Controller
 @RequestMapping("/eval/elements")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')")
 public class EvaluationElementController {
 
     private final EvaluationElementService elementService;
@@ -37,12 +37,12 @@ public class EvaluationElementController {
      * 특정 평가 차수의 평가 요소 목록 및 설정 페이지를 반환합니다.
      */
     @GetMapping
-    public String listElements(@RequestParam(required = false) Long periodId, 
-                               @RequestParam(required = false) Long deptId, 
-                               @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
-                               Model model) {
+    public String listElements(@RequestParam(required = false) Long periodId,
+            @RequestParam(required = false) Long deptId,
+            @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+            Model model) {
         prepareListModel(periodId, deptId, model);
-        
+
         if (isHtmx) {
             return "eval/elements/list :: content";
         }
@@ -52,27 +52,28 @@ public class EvaluationElementController {
     private void prepareListModel(Long periodId, Long deptId, Model model) {
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
         List<DepartmentDTO> departments = departmentService.getSimpleAllDepartments();
-        
-        Long selectedId = (periodId != null) ? periodId : 
-                         (!periods.isEmpty() ? periods.get(0).periodId() : null);
+
+        Long selectedId = (periodId != null) ? periodId : (!periods.isEmpty() ? periods.get(0).periodId() : null);
 
         if (selectedId != null) {
             List<EvaluationElementDTO> elements = elementService.getElementsByPeriodId(selectedId, deptId);
             EvaluationPeriodDTO selectedPeriod = periodService.getPeriodById(selectedId);
-            
-            List<com.ees.eval.dto.EvaluationTypeWeightDTO> memberWeights = typeWeightService.getTypeWeights(selectedId, deptId, "STAFF");
-            List<com.ees.eval.dto.EvaluationTypeWeightDTO> leaderWeights = typeWeightService.getTypeWeights(selectedId, deptId, "LEADER");
+
+            List<com.ees.eval.dto.EvaluationTypeWeightDTO> memberWeights = typeWeightService.getTypeWeights(selectedId,
+                    deptId, "STAFF");
+            List<com.ees.eval.dto.EvaluationTypeWeightDTO> leaderWeights = typeWeightService.getTypeWeights(selectedId,
+                    deptId, "LEADER");
 
             model.addAttribute("elements", elements);
             model.addAttribute("selectedPeriod", selectedPeriod);
             model.addAttribute("selectedDeptId", deptId);
             model.addAttribute("memberWeights", memberWeights);
             model.addAttribute("leaderWeights", leaderWeights);
-            
+
             // 편집 가능 여부: PLANNED 상태일 때만 수정 허용
             boolean editable = "PLANNED".equals(selectedPeriod.statusCode());
             model.addAttribute("editable", editable);
-            
+
             BigDecimal memberTotal = elements.stream()
                     .filter(e -> List.of("PERFORMANCE", "COMPETENCY").contains(e.elementTypeCode()))
                     .map(EvaluationElementDTO::weight)
@@ -107,13 +108,13 @@ public class EvaluationElementController {
 
     @PostMapping("/type-weights")
     public String saveTypeWeights(@RequestParam Long periodId,
-                                  @RequestParam(required = false) Long deptId,
-                                  @RequestParam String targetRoleCode,
-                                  @RequestParam List<String> types,
-                                  @RequestParam List<BigDecimal> weights,
-                                  @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
-                                  RedirectAttributes redirectAttributes,
-                                  Model model) {
+            @RequestParam(required = false) Long deptId,
+            @RequestParam String targetRoleCode,
+            @RequestParam List<String> types,
+            @RequestParam List<BigDecimal> weights,
+            @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+            RedirectAttributes redirectAttributes,
+            Model model) {
         try {
             validateEditable(periodId);
             java.util.List<com.ees.eval.dto.EvaluationTypeWeightDTO> dtoList = new java.util.ArrayList<>();
@@ -137,15 +138,16 @@ public class EvaluationElementController {
 
         redirectAttributes.addFlashAttribute("successMessage", targetRoleCode + "용 유형별 비중이 저장되었습니다.");
         String redirectUrl = "redirect:/eval/elements?periodId=" + periodId;
-        if (deptId != null) redirectUrl += "&deptId=" + deptId;
+        if (deptId != null)
+            redirectUrl += "&deptId=" + deptId;
         return redirectUrl;
     }
 
     @PostMapping
-    public String createElement(@ModelAttribute EvaluationElementDTO dto, 
-                               @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
-                               RedirectAttributes redirectAttributes, 
-                               Model model) {
+    public String createElement(@ModelAttribute EvaluationElementDTO dto,
+            @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+            RedirectAttributes redirectAttributes,
+            Model model) {
         try {
             validateEditable(dto.periodId());
             elementService.createElement(dto);
@@ -154,12 +156,12 @@ public class EvaluationElementController {
             log.error("평가 항목 생성 실패", e);
             model.addAttribute("errorMessage", e.getMessage());
         }
-        
+
         if (isHtmx) {
             prepareListModel(dto.periodId(), dto.deptId(), model);
             return "eval/elements/list :: content";
         }
-        
+
         redirectAttributes.addFlashAttribute("successMessage", "평가 항목이 추가되었습니다.");
         String redirectUrl = "redirect:/eval/elements?periodId=" + dto.periodId();
         if (dto.deptId() != null) {
@@ -169,10 +171,10 @@ public class EvaluationElementController {
     }
 
     @PostMapping("/update")
-    public String updateElement(@ModelAttribute EvaluationElementDTO dto, 
-                               @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
-                               RedirectAttributes redirectAttributes,
-                               Model model) {
+    public String updateElement(@ModelAttribute EvaluationElementDTO dto,
+            @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+            RedirectAttributes redirectAttributes,
+            Model model) {
         try {
             validateEditable(dto.periodId());
             elementService.updateElement(dto);
@@ -197,10 +199,10 @@ public class EvaluationElementController {
 
     @PostMapping("/copy-common")
     public String copyCommonElements(@RequestParam Long periodId,
-                                     @RequestParam Long deptId,
-                                     @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
-                                     RedirectAttributes redirectAttributes,
-                                     Model model) {
+            @RequestParam Long deptId,
+            @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+            RedirectAttributes redirectAttributes,
+            Model model) {
         try {
             validateEditable(periodId);
             elementService.copyCommonElementsToDept(periodId, deptId);
@@ -220,11 +222,11 @@ public class EvaluationElementController {
     }
 
     @PostMapping("/reset")
-    public String resetElements(@RequestParam Long periodId, 
-                                @RequestParam(required = false) Long deptId,
-                                @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
-                                RedirectAttributes redirectAttributes,
-                                Model model) {
+    public String resetElements(@RequestParam Long periodId,
+            @RequestParam(required = false) Long deptId,
+            @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+            RedirectAttributes redirectAttributes,
+            Model model) {
         try {
             validateEditable(periodId);
             elementService.resetElements(periodId, deptId);
@@ -248,12 +250,12 @@ public class EvaluationElementController {
     }
 
     @PostMapping("/{elementId}/delete")
-    public String deleteElement(@PathVariable Long elementId, 
-                                @RequestParam Long periodId, 
-                                @RequestParam(required = false) Long deptId,
-                                @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
-                                RedirectAttributes redirectAttributes,
-                                Model model) {
+    public String deleteElement(@PathVariable Long elementId,
+            @RequestParam Long periodId,
+            @RequestParam(required = false) Long deptId,
+            @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+            RedirectAttributes redirectAttributes,
+            Model model) {
         try {
             validateEditable(periodId);
             elementService.deleteElement(elementId);

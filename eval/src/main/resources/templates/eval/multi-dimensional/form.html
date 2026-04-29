@@ -3,6 +3,8 @@
       th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'multi-dimensional-eval', ~{::style}, ~{})}">
 <head>
     <title>다면 평가 작성 - EES</title>
+<body>
+<div id="page-content" class="container-fluid py-4" th:fragment="content">
     <style>
         .eval-form-container { max-width: 1200px; margin: 0 auto; }
         .eval-card {
@@ -70,9 +72,6 @@
             box-shadow: 0 0 0 3px rgba(0,255,255,0.1);
         }
     </style>
-</head>
-<body>
-<div id="page-content" class="container-fluid py-4" th:fragment="content">
     <div class="eval-form-container">
 
         <!-- 상단 헤더 -->

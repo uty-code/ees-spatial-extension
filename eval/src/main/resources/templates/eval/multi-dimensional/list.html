@@ -4,58 +4,56 @@
 
 <head>
     <title>다면 평가 - EES</title>
-    <style>
-        .eval-list-item {
-            display: flex;
-            align-items: center;
-            padding: 18px 24px;
-            border-bottom: 1px solid var(--glass-border);
-            transition: background-color 0.2s ease;
-        }
-
-        .eval-list-item:last-child {
-            border-bottom: none;
-        }
-
-        .eval-list-item:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-
-        .eval-name {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-main);
-            min-width: 140px;
-        }
-
-        .badge-dept {
-            background-color: var(--surface-light);
-            color: var(--text-main);
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 4px 12px;
-            border-radius: 6px;
-            margin-right: 16px;
-            border: 1px solid var(--glass-border);
-        }
-
-        .badge-status {
-            background-color: rgba(245, 158, 11, 0.2);
-            color: #fbd38d;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 4px 12px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-    </style>
-</head>
-
 <body>
     <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <style>
+            .eval-list-item {
+                display: flex;
+                align-items: center;
+                padding: 18px 24px;
+                border-bottom: 1px solid var(--glass-border);
+                transition: background-color 0.2s ease;
+            }
+
+            .eval-list-item:last-child {
+                border-bottom: none;
+            }
+
+            .eval-list-item:hover {
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+
+            .eval-name {
+                font-size: 1.1rem;
+                font-weight: 700;
+                color: var(--text-main);
+                min-width: 140px;
+            }
+
+            .badge-dept {
+                background-color: var(--surface-light);
+                color: var(--text-main);
+                font-size: 0.85rem;
+                font-weight: 600;
+                padding: 4px 12px;
+                border-radius: 6px;
+                margin-right: 16px;
+                border: 1px solid var(--glass-border);
+            }
+
+            .badge-status {
+                background-color: rgba(245, 158, 11, 0.2);
+                color: #fbd38d;
+                border: 1px solid rgba(245, 158, 11, 0.3);
+                font-size: 0.85rem;
+                font-weight: 600;
+                padding: 4px 12px;
+                border-radius: 6px;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+        </style>
         <!-- 상단 헤더 & 차수 선택 영역 -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
