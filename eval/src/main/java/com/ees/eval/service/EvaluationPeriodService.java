@@ -61,4 +61,19 @@ public interface EvaluationPeriodService {
      * @param periodId 삭제할 차수 식별자
      */
     void deletePeriod(Long periodId);
+
+    /**
+     * 특정 상태 코드에 해당하는 평가 차수 수를 DB에서 직접 조회합니다.
+     *
+     * @param statusCode 조회할 상태 코드
+     * @return 해당 상태의 차수 수
+     */
+    long countByStatusCode(String statusCode);
+
+    /**
+     * 전체 평가 차수 수를 DB에서 직접 조회합니다.
+     *
+     * @return 전체 차수 수
+     */
+    long countAll();
 }

@@ -65,4 +65,19 @@ public interface EvaluationPeriodMapper {
      */
     int softDelete(@Param("periodId") Long periodId, @Param("updatedBy") Long updatedBy,
                    @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
+     * 특정 상태 코드에 해당하는 차수 수를 카운트합니다.
+     *
+     * @param statusCode 조회할 상태 코드
+     * @return 해당 상태의 차수 수
+     */
+    long countByStatusCode(String statusCode);
+
+    /**
+     * 삭제되지 않은 전체 차수 수를 카운트합니다.
+     *
+     * @return 전체 차수 수
+     */
+    long countAll();
 }

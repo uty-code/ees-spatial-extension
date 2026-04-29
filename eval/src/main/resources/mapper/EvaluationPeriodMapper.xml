@@ -102,4 +102,21 @@
           and is_deleted = 'n'
     </update>
 
+    <!-- 특정 상태 코드 차수 수 카운트 (대시보드 통계용) -->
+    <select id="countByStatusCode" resultType="long">
+        select
+            count(*) as CNT
+        from evaluation_periods_51 ep
+        where ep.status_code = #{statusCode}
+          and ep.is_deleted = 'n'
+    </select>
+
+    <!-- 전체 차수 수 카운트 -->
+    <select id="countAll" resultType="long">
+        select
+            count(*) as CNT
+        from evaluation_periods_51 ep
+        where ep.is_deleted = 'n'
+    </select>
+
 </mapper>

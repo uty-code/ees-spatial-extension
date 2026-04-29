@@ -185,19 +185,24 @@ public class EvaluationPeriodController {
     public String transitionStatus(@PathVariable Long periodId,
                                     @RequestParam String newStatus,
                                     RedirectAttributes redirectAttributes) {
-        EvaluationPeriodDTO updated = periodService.transitionStatus(periodId, newStatus);
-        log.info("평가 차수 상태 전이 완료 - periodId: {}, newStatus: {}", periodId, updated.statusCode());
+        try {
+            EvaluationPeriodDTO updated = periodService.transitionStatus(periodId, newStatus);
+            log.info("평가 차수 상태 전이 완료 - periodId: {}, newStatus: {}", periodId, updated.statusCode());
 
-        // 상태별 한글 메시지 생성
-        String statusName = switch (updated.statusCode()) {
-            case "IN_PROGRESS" -> "진행 중";
-            case "COMPLETED" -> "완료";
-            case "CLOSED" -> "마감";
-            default -> updated.statusCode();
-        };
+            // 상태별 한글 메시지 생성
+            String statusName = switch (updated.statusCode()) {
+                case "IN_PROGRESS" -> "진행 중";
+                case "COMPLETED" -> "완료";
+                case "CLOSED" -> "마감";
+                default -> updated.statusCode();
+            };
 
-        redirectAttributes.addFlashAttribute("successMessage",
-                "'" + updated.periodName() + "' 차수 상태가 '" + statusName + "'(으)로 변경되었습니다.");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "'" + updated.periodName() + "' 차수 상태가 '" + statusName + "'(으)로 변경되었습니다.");
+        } catch (IllegalStateException | com.ees.eval.exception.EesOptimisticLockException e) {
+            log.warn("상태 전이 실패 - periodId: {}, error: {}", periodId, e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
         return "redirect:/eval/periods";
     }
 

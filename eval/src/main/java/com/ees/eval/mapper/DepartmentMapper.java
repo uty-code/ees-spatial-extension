@@ -149,4 +149,11 @@ public interface DepartmentMapper {
      * @return 업데이트된 행 수
      */
     int updateLeaderToNullByLeaderId(@Param("leaderId") Long leaderId, @Param("updatedBy") Long updatedBy, @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
+     * 활성 상태(is_active='y')이고 삭제되지 않은 부서 수를 카운트합니다.
+     *
+     * @return 활성 부서 수
+     */
+    long countActiveDepartments();
 }

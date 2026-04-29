@@ -4,10 +4,12 @@ import com.ees.eval.domain.EvaluationPeriod;
 import com.ees.eval.dto.DepartmentDTO;
 import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.exception.EesOptimisticLockException;
+import com.ees.eval.dto.MappingAnomalyDTO;
 import com.ees.eval.mapper.EvaluationPeriodMapper;
 import com.ees.eval.service.DepartmentService;
 import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.EvaluationTypeWeightService;
+import com.ees.eval.service.EvaluatorMappingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
     private final EvaluationPeriodMapper periodMapper;
     private final EvaluationTypeWeightService typeWeightService;
     private final DepartmentService departmentService;
+    private final EvaluatorMappingService mappingService;
 
     /** 상태 코드 상수 정의 */
     private static final String STATUS_PLANNED = "PLANNED";
@@ -118,6 +121,9 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
                 // 가중치 설정 완료 여부 검증 (전사 공통 + 모든 부서)
                 validateAllWeightsConfigured(periodId);
 
+                // 평가자 매핑 정합성 검증 (ERROR 등급만 차단)
+                validateEvaluatorMappings(periodId);
+
                 yield STATUS_IN_PROGRESS;
             }
             case String s when s.equals(STATUS_IN_PROGRESS) && newStatusCode.equals(STATUS_COMPLETED) ->
@@ -189,6 +195,32 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
     }
 
     /**
+     * 평가 시작 전 평가자 매핑 정합성을 검증합니다.
+     * 기존 EvaluatorMappingService의 checkMappingIntegrity를 활용하여
+     * ERROR 등급의 매핑 이상이 발견되면 평가 시작을 차단합니다.
+     *
+     * @param periodId 검증 대상 차수 식별자
+     * @throws IllegalStateException ERROR 등급 매핑 이상이 존재할 경우
+     */
+    private void validateEvaluatorMappings(Long periodId) {
+        List<MappingAnomalyDTO> anomalies = mappingService.checkMappingIntegrity(periodId);
+
+        // ERROR 등급만 필터링
+        List<MappingAnomalyDTO> errors = anomalies.stream()
+                .filter(a -> "ERROR".equals(a.severity()))
+                .toList();
+
+        if (!errors.isEmpty()) {
+            // 첫 번째 에러의 상세 정보를 예시로 포함
+            MappingAnomalyDTO firstError = errors.getFirst();
+            throw new IllegalStateException(
+                    "평가자 매핑 오류가 " + errors.size() + "건 발견되었습니다. " +
+                    "(예: " + firstError.evaluateeName() + " - " + firstError.description() + ") " +
+                    "평가자 매핑 관리에서 정합성 검사를 확인한 후 다시 시도해 주세요.");
+        }
+    }
+
+    /**
      * 엔티티를 DTO 레코드로 변환합니다.
      */
     private EvaluationPeriodDTO convertToDto(EvaluationPeriod period) {
@@ -227,5 +259,23 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
         period.setUpdatedAt(dto.updatedAt());
         period.setUpdatedBy(dto.updatedBy());
         return period;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public long countByStatusCode(String statusCode) {
+        return periodMapper.countByStatusCode(statusCode);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public long countAll() {
+        return periodMapper.countAll();
     }
 }

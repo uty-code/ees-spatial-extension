@@ -36,6 +36,13 @@ public interface DepartmentService {
     List<DepartmentDTO> getAllDepartments();
 
     /**
+     * 활성 상태(is_active='y')인 부서의 수를 DB에서 직접 조회합니다.
+     *
+     * @return 활성 부서 수
+     */
+    long countActiveDepartments();
+
+    /**
      * 검색 조건에 따라 부서 목록을 조회합니다.
      *
      * @param searchKeyword 부서명 또는 코드

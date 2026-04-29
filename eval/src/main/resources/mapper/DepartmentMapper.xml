@@ -227,4 +227,13 @@
           and is_deleted = 'n'
     </update>
 
+    <!-- 활성(is_active='y') 부서 수 카운트 (대시보드 통계용) -->
+    <select id="countActiveDepartments" resultType="long">
+        select
+            count(*) as CNT
+        from departments_51 d
+        where d.is_deleted = 'n'
+          and d.is_active = 'y'
+    </select>
+
 </mapper>

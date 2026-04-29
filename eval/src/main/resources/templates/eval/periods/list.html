@@ -99,18 +99,21 @@
                                         </button>
                                     </form>
 
-                                    <!-- 상태 전이 버튼 -->
-                                    <form th:if="${period.statusCode() == 'PLANNED'}"
-                                        th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
-                                        method="post" class="d-inline">
-                                        <input type="hidden" name="newStatus" value="IN_PROGRESS">
-                                        <button type="submit"
+                                    <!-- 상태 전이 버튼: 시작 (PLANNED → IN_PROGRESS) -->
+                                    <th:block th:if="${period.statusCode() == 'PLANNED'}">
+                                        <button type="button"
                                             class="btn ees-btn-glass btn-sm ees-btn-glass-success-hover"
                                             title="평가 시작"
-                                            onclick="return confirm('이 차수를 진행 상태로 변경하시겠습니까?');">
+                                            th:onclick="|openStartValidation(${period.periodId()})|">
                                             <i class="bi bi-play-fill"></i>
                                         </button>
-                                    </form>
+                                        <!-- 실제 제출용 hidden form -->
+                                        <form th:id="'startForm-' + ${period.periodId()}"
+                                            th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
+                                            method="post" class="d-none">
+                                            <input type="hidden" name="newStatus" value="IN_PROGRESS">
+                                        </form>
+                                    </th:block>
 
                                     <form th:if="${period.statusCode() == 'IN_PROGRESS'}"
                                         th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
@@ -169,11 +172,64 @@
             </div>
             <p class="text-muted small mt-3 mb-0">※ 동시에 하나의 차수만 '진행 중' 상태일 수 있습니다. 기존 차수를 완료한 후 새로운 차수를 시작해 주세요.</p>
         </div>
+
+        <!-- 평가 시작 정합성 검사 모달 -->
+        <div class="modal fade" id="startIntegrityModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-xl">
+                <div class="modal-content bg-dark text-white border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title text-warning fw-bold">
+                            <i class="bi bi-shield-exclamation me-2"></i>평가 시작 전 정합성 검사
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- 로딩 상태 -->
+                        <div id="startIntegrityLoading" class="text-center py-5">
+                            <div class="spinner-border text-warning" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3 text-muted">평가자 매핑 정합성을 검사 중입니다. 잠시만 기다려주세요...</p>
+                        </div>
+                        <!-- 결과 영역 -->
+                        <div id="startIntegrityResults" class="d-none">
+                            <div class="alert bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4" id="startIntegritySummary">
+                            </div>
+                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-dark table-hover align-middle mb-0">
+                                    <thead>
+                                        <tr class="text-secondary small">
+                                            <th class="fw-normal" style="width: 10%">심각도</th>
+                                            <th class="fw-normal" style="width: 15%">피평가자</th>
+                                            <th class="fw-normal" style="width: 15%">소속 부서</th>
+                                            <th class="fw-normal" style="width: 20%">유형</th>
+                                            <th class="fw-normal" style="width: 40%">상세 내용</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="startIntegrityTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- ERROR 시 차단 안내 -->
+                            <div id="startBlockedMessage" class="d-none alert bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger mt-3 mb-0">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                위 오류를 해결한 후 <strong>평가자 매핑 관리</strong> 화면에서 정합성 검사를 다시 확인해 주세요.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn ees-btn-glass px-4" data-bs-dismiss="modal">닫기</button>
+                        <button type="button" id="btnConfirmStart" class="btn btn-success px-4 d-none" onclick="confirmStart()">
+                            <i class="bi bi-play-circle me-2"></i>평가 시작
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Page Specific Scripts -->
     <div id="page-scripts" th:fragment="page-scripts">
-        <script>
+        <script th:inline="javascript">
             // 알림 메시지 자동 꺼짐 (5초)
             document.addEventListener('DOMContentLoaded', function () {
                 const alerts = document.querySelectorAll('.alert-dismissible');
@@ -184,6 +240,115 @@
                     }, 5000);
                 });
             });
+
+            // 현재 선택된 차수 ID를 저장하는 전역 변수
+            let currentStartPeriodId = null;
+
+            /**
+             * 평가 시작 전 정합성 검사 모달을 열고 API를 호출합니다.
+             * @param {number} periodId - 검증할 평가 차수 ID
+             */
+            function openStartValidation(periodId) {
+                currentStartPeriodId = periodId;
+
+                const modal = new bootstrap.Modal(document.getElementById('startIntegrityModal'));
+                modal.show();
+
+                // UI 초기화
+                document.getElementById('startIntegrityLoading').classList.remove('d-none');
+                document.getElementById('startIntegrityResults').classList.add('d-none');
+                document.getElementById('btnConfirmStart').classList.add('d-none');
+                document.getElementById('startBlockedMessage').classList.add('d-none');
+
+                fetch(`/eval/evaluators/validate?periodId=${periodId}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        document.getElementById('startIntegrityLoading').classList.add('d-none');
+                        document.getElementById('startIntegrityResults').classList.remove('d-none');
+
+                        const summary = document.getElementById('startIntegritySummary');
+                        const tbody = document.getElementById('startIntegrityTableBody');
+                        const confirmBtn = document.getElementById('btnConfirmStart');
+                        const blockedMsg = document.getElementById('startBlockedMessage');
+                        tbody.innerHTML = '';
+
+                        if (data.length === 0) {
+                            // 정상: 이상 없음
+                            summary.innerHTML = '<i class="bi bi-check-circle-fill me-2 text-success"></i>모든 평가 매핑이 정상입니다. 평가를 시작할 수 있습니다.';
+                            summary.className = 'alert bg-success bg-opacity-10 border-success border-opacity-25 text-success mb-4';
+                            confirmBtn.classList.remove('d-none', 'btn-warning');
+                            confirmBtn.classList.add('btn-success');
+                            confirmBtn.innerHTML = '<i class="bi bi-play-circle me-2"></i>평가 시작';
+                            blockedMsg.classList.add('d-none');
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = '<td colspan="5" class="text-center py-4 text-muted">발견된 이상 데이터가 없습니다.</td>';
+                            tbody.appendChild(tr);
+                        } else {
+                            const errorCount = data.filter(d => d.severity === 'ERROR').length;
+                            const warningCount = data.filter(d => d.severity === 'WARNING').length;
+
+                            if (errorCount > 0) {
+                                // ERROR 존재: 시작 차단
+                                summary.innerHTML = `<i class="bi bi-x-octagon-fill me-2"></i>중대한 오류 <strong>${errorCount}건</strong>이 발견되어 평가를 시작할 수 없습니다.` +
+                                    (warningCount > 0 ? ` (경고: ${warningCount}건)` : '');
+                                summary.className = 'alert bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4';
+                                confirmBtn.classList.add('d-none');
+                                blockedMsg.classList.remove('d-none');
+                            } else {
+                                // WARNING만 존재: 시작 가능
+                                summary.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>경고 사항이 <strong>${warningCount}건</strong> 있지만 평가를 시작할 수 있습니다.`;
+                                summary.className = 'alert bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4';
+                                confirmBtn.classList.remove('d-none', 'btn-success');
+                                confirmBtn.classList.add('btn-warning');
+                                confirmBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>경고 무시하고 시작';
+                                blockedMsg.classList.add('d-none');
+                            }
+
+                            // 테이블 렌더링
+                            data.forEach(item => {
+                                const tr = document.createElement('tr');
+                                const severityBadge = item.severity === 'ERROR'
+                                    ? '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">ERROR</span>'
+                                    : '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">WARNING</span>';
+                                tr.innerHTML = `
+                                    <td>${severityBadge}</td>
+                                    <td>
+                                        <div class="fw-bold">${item.evaluateeName}</div>
+                                        <div class="small text-muted">${item.evaluateeId}</div>
+                                    </td>
+                                    <td class="text-muted">${item.deptName}</td>
+                                    <td><span class="badge bg-secondary bg-opacity-25 text-light">${item.anomalyType}</span></td>
+                                    <td class="text-white">${item.description}</td>
+                                `;
+                                tbody.appendChild(tr);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching anomalies:', error);
+                        document.getElementById('startIntegrityLoading').innerHTML = `
+                            <div class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger m-0">
+                                <i class="bi bi-x-circle-fill me-2"></i>검사 중 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
+                            </div>
+                        `;
+                    });
+            }
+
+            /**
+             * 최종 평가 시작 버튼 클릭 시 실제 폼을 제출합니다.
+             */
+            function confirmStart() {
+                if (!currentStartPeriodId) return;
+
+                const btn = document.getElementById('btnConfirmStart');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>처리 중...';
+
+                document.getElementById('startForm-' + currentStartPeriodId).submit();
+            }
         </script>
     </div>
 </body>

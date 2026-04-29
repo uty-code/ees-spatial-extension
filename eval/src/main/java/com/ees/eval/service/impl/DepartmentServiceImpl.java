@@ -120,6 +120,15 @@ public class DepartmentServiceImpl implements DepartmentService {
      */
     @Override
     @Transactional(readOnly = true)
+    public long countActiveDepartments() {
+        return departmentMapper.countActiveDepartments();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
     public List<DepartmentDTO> searchDepartments(String searchKeyword, String searchStatus) {
         boolean isSearch = (searchKeyword != null && !searchKeyword.trim().isEmpty())
                 || (searchStatus != null && !searchStatus.trim().isEmpty());

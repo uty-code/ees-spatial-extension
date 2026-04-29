@@ -31,18 +31,11 @@ public class MainController {
      */
     @GetMapping({ "/", "/dashboard" })
     public String dashboard(Model model) {
-        // 1. 기초 통계 데이터 - 실제 DB에서 조회
-        model.addAttribute("employeeCount", employeeService.getAllEmployees().size());
-        model.addAttribute("departmentCount", departmentService.getAllDepartments().size());
-
-        // 진행 중(IN_PROGRESS) 상태의 평가 차수 수를 실제 DB에서 계산
-        long activePeriodCount = evaluationPeriodService.getAllPeriods().stream()
-                .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
-                .count();
-        model.addAttribute("activePeriodCount", activePeriodCount);
-
-        // 전체 평가 차수 수
-        model.addAttribute("totalPeriodCount", evaluationPeriodService.getAllPeriods().size());
+        // 1. 기초 통계 데이터 - COUNT 전용 쿼리로 직접 조회 (성능 최적화)
+        model.addAttribute("employeeCount", employeeService.countActiveEmployees());
+        model.addAttribute("departmentCount", departmentService.countActiveDepartments());
+        model.addAttribute("activePeriodCount", evaluationPeriodService.countByStatusCode("IN_PROGRESS"));
+        model.addAttribute("totalPeriodCount", evaluationPeriodService.countAll());
 
         // 2. 시각화용 데이터 (Notion 요구사항 기반 Mock 데이터 - 평가 기능 구현 후 대체 예정)
         // 등급 분포

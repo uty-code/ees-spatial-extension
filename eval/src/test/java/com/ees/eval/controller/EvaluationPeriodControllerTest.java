@@ -254,4 +254,36 @@ class EvaluationPeriodControllerTest {
 
         verify(periodService).deletePeriod(1L);
     }
+
+    @Test
+    @DisplayName("상태 전이 실패 - 서비스 예외 발생 시 errorMessage를 flash에 담아 리다이렉트한다")
+    void transitionStatus_Fail_ShouldRedirectWithErrorMessage() throws Exception {
+        // given: 서비스에서 IllegalStateException 발생
+        String errorMsg = "평가자 매핑 오류가 3건 발견되었습니다. 평가자 매핑 관리에서 정합성 검사를 확인해 주세요.";
+        given(periodService.transitionStatus(1L, "IN_PROGRESS"))
+                .willThrow(new IllegalStateException(errorMsg));
+
+        // when & then: 500 에러가 아닌 리다이렉트와 에러 메시지 반환
+        mockMvc.perform(post("/eval/periods/1/transition")
+                        .param("newStatus", "IN_PROGRESS"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/eval/periods"))
+                .andExpect(flash().attribute("errorMessage", errorMsg));
+    }
+
+    @Test
+    @DisplayName("상태 전이 실패(낙관적 락) - EesOptimisticLockException 발생 시 errorMessage를 반환한다")
+    void transitionStatus_OptimisticLockFail_ShouldRedirectWithErrorMessage() throws Exception {
+        // given: 서비스에서 EesOptimisticLockException 발생
+        String errorMsg = "차수 상태 전이 중 충돌이 발생했습니다.";
+        given(periodService.transitionStatus(1L, "IN_PROGRESS"))
+                .willThrow(new com.ees.eval.exception.EesOptimisticLockException(errorMsg));
+
+        // when & then
+        mockMvc.perform(post("/eval/periods/1/transition")
+                        .param("newStatus", "IN_PROGRESS"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/eval/periods"))
+                .andExpect(flash().attribute("errorMessage", errorMsg));
+    }
 }
