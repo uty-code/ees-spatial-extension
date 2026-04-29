@@ -142,7 +142,8 @@ create table login_logs_51
     emp_id bigint,
     login_input varchar(255) not null,
     result_code varchar(20) not null,
-    is_failure char(1) default 'n', -- 로그인 실패 여부 (y/n)
+    is_failure char(1) default 'n',
+    -- 로그인 실패 여부 (y/n)
     ip_address varchar(50),
     user_agent nvarchar(max),
     created_at datetime default getdate(),
@@ -231,15 +232,16 @@ create table evaluations_51
     eval_id bigint identity(1,1) primary key,
     mapping_id bigint not null,
     element_id bigint not null,
-    score decimal(5,2),
-    old_score decimal(5,2),
-    reason nvarchar(255),
-    comments nvarchar(max),
-    -- final_grades 통합을 위한 확정 점수 및 등급 정보
-    total_score decimal(7,2),
-    grade_code varchar(50),
+    score1 decimal(5,2),
+    score2 decimal(5,2),
+    -- 2차 평가용
+    reason1 nvarchar(255),
+    -- 1차 평가 사유
+    reason2 nvarchar(255),
+    -- 2차 평가 사유
+    self_score int,
+    -- 자가평가용 (숫자형태)
     confirm_status_code varchar(50),
-    -- 텍스트 피드백/수행과정 기록용
     is_deleted char(1) default 'n',
     version int default 0,
     created_at datetime default getdate(),
@@ -279,4 +281,24 @@ create table evidences_51
     updated_at datetime,
     updated_by bigint,
     foreign key (eval_id) references evaluations_51(eval_id)
+);
+
+-- ==========================================
+-- 5. 최종 결과 관리
+-- ==========================================
+create table final_grades_51
+(
+    grade_id bigint identity(1,1) primary key,
+    period_id bigint not null,
+    emp_id bigint not null,
+    total_score decimal(7,2),
+    final_grade_code varchar(50),
+    is_deleted char(1) default 'n',
+    version int default 0,
+    created_at datetime default getdate(),
+    created_by bigint,
+    updated_at datetime,
+    updated_by bigint,
+    foreign key (period_id) references evaluation_periods_51(period_id),
+    foreign key (emp_id) references employees_51(emp_id)
 );
