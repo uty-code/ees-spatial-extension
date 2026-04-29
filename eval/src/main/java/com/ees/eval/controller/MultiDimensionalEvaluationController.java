@@ -142,10 +142,10 @@ public class MultiDimensionalEvaluationController {
 
         model.addAttribute("mapping", mapping);
 
-        // 다면평가 요소(PEER)만 필터링
+        // 다면평가 요소(PEER 또는 MULTI_DIMENSIONAL)만 필터링
         List<EvaluationElementDTO> allElements = getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
         List<EvaluationElementDTO> elements = allElements.stream()
-                .filter(e -> "PEER".equals(e.elementTypeCode()))
+                .filter(e -> "PEER".equals(e.elementTypeCode()) || "MULTI_DIMENSIONAL".equals(e.elementTypeCode()))
                 .collect(Collectors.toList());
 
         model.addAttribute("elements", elements);
