@@ -74,6 +74,7 @@ public class MyEvaluationController {
 
         // 부서장 여부 판별
         boolean isLeader = departmentMapper.countDepartmentsByLeaderId(empId) > 0;
+        log.info("[MyEvaluation] list - empId: {}, isLeader: {}", empId, isLeader);
         model.addAttribute("isLeader", isLeader);
 
         // 차수 목록
@@ -184,7 +185,8 @@ public class MyEvaluationController {
             @AuthenticationPrincipal UserDetails userDetails,
             RedirectAttributes redirectAttributes) {
 
-        if (!"PERFORMANCE".equals(evalType) && !"COMPETENCY".equals(evalType) && !"PEER".equals(evalType)) {
+        if (!"PERFORMANCE".equals(evalType) && !"COMPETENCY".equals(evalType) && 
+            !"PEER".equals(evalType) && !"MULTI_DIMENSIONAL".equals(evalType)) {
             evalType = "PERFORMANCE";
         }
 
@@ -205,6 +207,7 @@ public class MyEvaluationController {
         String targetRole = evaluateeIsLeader ? "LEADER" : "STAFF";
 
         if (!typeWeightService.isWeightSumValid(mapping.periodId(), evaluateeDeptId, targetRole)) {
+            log.warn("[MyEvaluation] getForm - Weight sum invalid for role: {}, redirecting to list", targetRole);
             redirectAttributes.addFlashAttribute("errorMessage",
                     "[" + targetRole + "] 유형별 가중치 합계가 100%가 아닙니다. 관리자에게 가중치 설정을 요청하세요.");
             return "redirect:/eval/my-evaluation?periodId=" + mapping.periodId();
