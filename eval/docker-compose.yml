@@ -7,26 +7,16 @@
 version: '3.8'
 
 services:
-  # [기존 MSSQL 서비스 - 현재 비활성화, 공용 SKU DB 사용 중]
-  # sqlserver:
-  #   image: mcr.microsoft.com/mssql/server:2022-latest
-  #   container_name: ees_mssql
-  #   hostname: mssql
-  #   ports:
-  #     - "1433:1433"
-  #   environment:
-  #     - ACCEPT_EULA=Y
-  #     - MSSQL_SA_PASSWORD=EesAdmin!2026
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'EesAdmin!2026' -C -Q 'SELECT 1' || exit 1"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   volumes:
-  #     - ees_mssql_data:/var/opt/mssql
-
-  # ngrok 터널링 서비스
-  # host.docker.internal = Docker Desktop(Windows/Mac)에서 호스트 PC를 가리키는 주소
+  jenkins:
+    image: jenkins/jenkins:lts-jdk21
+    container_name: jenkins
+    user: root
+    ports:
+      - "9090:8080"
+      - "50000:50000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins_home:/var/jenkins_home
   ngrok:
     image: ngrok/ngrok:latest
     container_name: ees_ngrok
@@ -40,3 +30,5 @@ services:
 
 volumes:
   ees_mssql_data:
+  jenkins_home:
+    external: true
