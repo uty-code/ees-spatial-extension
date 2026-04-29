@@ -58,6 +58,9 @@ spring:
   config:
     activate:
       on-profile: prod
+  sql:
+    init:
+      mode: never  # 테이블 생성이 완료되었으므로 안전을 위해 never로 원복
   datasource:
     # Azure CLI로 확인한 정보 반영
     url: jdbc:sqlserver://ees-server-hk.database.windows.net:1433;databaseName=ees-db-hk;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
