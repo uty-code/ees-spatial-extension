@@ -186,6 +186,12 @@ public class PerformanceEvaluationController {
                 teamWeightValidMap.put(task.mappingId(), weightValid);
             }
             model.addAttribute("teamWeightValidMap", teamWeightValidMap);
+            model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
+
+            // 평가 시작 전(PLANNED) 알림 처리
+            if ("PLANNED".equals(selectedPeriod.statusCode())) {
+                model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
+            }
         }
 
         return "eval/performance/list";
@@ -205,6 +211,13 @@ public class PerformanceEvaluationController {
 
         // 매핑 정보 조회 (피평가자 정보, 차수 정보 포함)
         EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
+
+        // 평가 시작 전(PLANNED) 접근 차단
+        EvaluationPeriodDTO period = periodService.getPeriodById(mapping.periodId());
+        if ("PLANNED".equals(period.statusCode())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 시작 전입니다. 평가 기간에 다시 접속해 주세요.");
+            return "redirect:/eval/performance?periodId=" + mapping.periodId() + "&evalType=" + evalType;
+        }
 
         // 부서별 유형별 가중치 합계 100 검증
         Employee evaluatee = employeeMapper.findById(mapping.evaluateeId()).orElse(null);

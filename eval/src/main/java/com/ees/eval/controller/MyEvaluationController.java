@@ -170,6 +170,11 @@ public class MyEvaluationController {
             model.addAttribute("compElements", compElements);
             model.addAttribute("peerElements", peerElements);
             model.addAttribute("selfEvalMap", selfEvalMap);
+
+            // 평가 시작 전(PLANNED) 알림 처리
+            if ("PLANNED".equals(selectedPeriod.statusCode())) {
+                model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
+            }
         }
 
         return "eval/my-evaluation/list";
@@ -196,6 +201,14 @@ public class MyEvaluationController {
         if (!"SELF".equals(mapping.relationTypeCode())) {
             redirectAttributes.addFlashAttribute("errorMessage", "자가평가만 이 페이지에서 진행할 수 있습니다.");
             return "redirect:/eval/my-evaluation";
+        }
+
+        // 차수 상태 검증 (PLANNED 상태에서는 진입 차단)
+        EvaluationPeriodDTO period = periodService.getPeriodById(mapping.periodId());
+        if ("PLANNED".equals(period.statusCode())) {
+            log.warn("[MyEvaluation] getForm - Period is in PLANNED status, blocking access. periodId: {}", mapping.periodId());
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 시작 전입니다. 평가 기간에 다시 접속해 주세요.");
+            return "redirect:/eval/my-evaluation?periodId=" + mapping.periodId();
         }
 
         // 가중치 검증

@@ -8,180 +8,231 @@
 
 <body>
     <div id="page-content" class="container-fluid py-4">
-        <!-- Page Header -->
-        <div class="ees-card p-4 mb-4">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="fw-bold fs-3 mb-1 ees-text-gradient">나의 자가평가 대시보드</h1>
-                    <p class="text-muted">이번 차수 나의 성과와 역량을 직접 진단하고 목표 달성도를 기록합니다.</p>
-                </div>
-                <div class="col-md-4 text-md-end">
-                    <form method="get" th:action="@{/eval/my-evaluation/list}" class="d-inline-block">
-                        <select name="periodId" class="form-select ees-form-control ees-form-select" onchange="this.form.submit()">
-                            <option th:each="p : ${periods}" 
-                                    th:value="${p.periodId()}" 
-                                    th:text="${p.periodName()}"
-                                    th:selected="${selectedPeriod != null and p.periodId() == selectedPeriod.periodId()}">차수 선택</option>
-                        </select>
-                    </form>
-                </div>
+        <!-- 상단 헤더 & 차수 선택 영역 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="text-white fs-3 mb-1"><i class="bi bi-person-workspace text-primary me-2"></i>나의 자가평가 대시보드</h1>
+                <p class="text-muted mb-0 small">이번 차수 나의 성과와 역량을 직접 진단하고 목표 달성도를 기록합니다.</p>
+            </div>
+            <div>
+                <form th:action="@{/eval/my-evaluation/list}" method="get"
+                    class="d-inline-flex gap-2 align-items-center bg-dark p-2 rounded-pill shadow-sm"
+                    style="border: 1px solid var(--glass-border);">
+                    <select name="periodId"
+                        class="form-select form-select-sm bg-transparent text-white border-0 fw-bold"
+                        onchange="this.form.submit()" style="width: 200px; box-shadow: none;">
+                        <option class="bg-dark" th:each="p : ${periods}" th:value="${p.periodId()}"
+                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                            th:selected="${selectedPeriod != null and p.periodId() == selectedPeriod.periodId()}">차수 선택</option>
+                    </select>
+                </form>
             </div>
         </div>
 
         <div th:if="${selectedPeriod != null}">
+            <!-- 평가 시작 전 알림 (PLANNED) -->
+            <div th:if="${infoMessage}"
+                class="alert alert-info bg-info bg-opacity-10 border-info border-opacity-25 text-info alert-dismissible fade show mb-4"
+                role="alert">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <span th:text="${infoMessage}"></span>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"
+                    aria-label="Close"></button>
+            </div>
 
-            <!-- ===== 부서장: 다면평가 ===== -->
-            <div th:if="${isLeader}">
-                <div class="ees-card p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="fw-bold mb-0"><i class="bi bi-people me-2 text-primary"></i>평가 항목 리스트</h5>
+            <div th:if="${selectedPeriod.statusCode() != 'PLANNED'}">
+                <!-- ===== 부서장: 다면평가 ===== -->
+                <div th:if="${isLeader}">
+                    <div class="ees-card p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold mb-0"><i class="bi bi-people me-2 text-primary"></i>평가 항목 리스트</h5>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="ees-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 20%">유형</th>
+                                        <th style="width: 20%" class="text-center">배점</th>
+                                        <th style="width: 20%" class="text-center">비중</th>
+                                        <th style="width: 20%" class="text-center">상태</th>
+                                        <th style="width: 20%" class="text-end">평가하기</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="tw : ${typeWeights}">
+                                        <td>
+                                            <span th:if="${tw.elementTypeCode() == 'PERFORMANCE'}"
+                                                class="ees-badge ees-badge-performance">성과 평가</span>
+                                            <span th:if="${tw.elementTypeCode() == 'COMPETENCY'}"
+                                                class="ees-badge ees-badge-competency">역량 평가</span>
+                                            <span th:if="${tw.elementTypeCode() == 'PEER'}"
+                                                class="ees-badge ees-badge-multi">다면 평가</span>
+                                            <span
+                                                th:if="${tw.elementTypeCode() == 'PEER' or tw.elementTypeCode() == 'MULTI_DIMENSIONAL'}"
+                                                class="ees-badge ees-badge-multi">다면 평가</span>
+                                            <span
+                                                th:if="${tw.elementTypeCode() != 'PERFORMANCE' and tw.elementTypeCode() != 'COMPETENCY' and tw.elementTypeCode() != 'PEER' and tw.elementTypeCode() != 'MULTI_DIMENSIONAL'}"
+                                                class="ees-badge ees-badge-multi"
+                                                th:text="${tw.elementTypeCode()}">기타</span>
+                                        </td>
+                                        <td class="text-center fw-bold">100</td>
+                                        <td class="text-center fw-bold text-info"
+                                            th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%</td>
+                                        <td class="text-center">
+                                            <th:block
+                                                th:with="isSubmitted=${tw.elementTypeCode() == 'PERFORMANCE' ? selfPerfSubmitted : (tw.elementTypeCode() == 'COMPETENCY' ? selfCompSubmitted : ((tw.elementTypeCode() == 'PEER' or tw.elementTypeCode() == 'MULTI_DIMENSIONAL') ? selfPeerSubmitted : false))}">
+                                                <span th:if="${isSubmitted}" class="ees-badge ees-badge-self">완료</span>
+                                                <span th:unless="${isSubmitted}" class="ees-badge ees-badge-multi"
+                                                    style="background: rgba(108, 117, 125, 0.1); color: #adb5bd;">대기</span>
+                                            </th:block>
+                                        </td>
+                                        <td class="text-end">
+                                            <a th:if="${selfTask != null and selectedPeriod.statusCode() != 'PLANNED'}"
+                                                th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
+                                                hx-get=""
+                                                th:hx-get="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
+                                                hx-target="#page-content" hx-select="#page-content"
+                                                hx-swap="outerHTML show:window:top" hx-push-url="true"
+                                                class="btn ees-btn-glass btn-sm">
+                                                <i class="bi bi-pencil-square me-1"></i> 진입
+                                            </a>
+                                            <button
+                                                th:if="${selfTask != null and selectedPeriod.statusCode() == 'PLANNED'}"
+                                                class="btn ees-btn-glass btn-sm disabled" disabled title="평가 시작 전입니다.">
+                                                <i class="bi bi-lock me-1"></i> 진입 불가
+                                            </button>
+                                            <span th:unless="${selfTask != null}" class="text-muted small">미배정</span>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(typeWeights)}">
+                                        <td colspan="5" class="text-center py-5 text-muted">등록된 평가 유형 가중치 정보가 없습니다.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="ees-table align-middle">
-                            <thead>
-                                <tr>
-                                    <th style="width: 20%">유형</th>
-                                    <th style="width: 20%" class="text-center">배점</th>
-                                    <th style="width: 20%" class="text-center">비중</th>
-                                    <th style="width: 20%" class="text-center">상태</th>
-                                    <th style="width: 20%" class="text-end">평가하기</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="tw : ${typeWeights}">
-                                    <td>
-                                        <span th:if="${tw.elementTypeCode() == 'PERFORMANCE'}" class="ees-badge ees-badge-performance">성과 평가</span>
-                                        <span th:if="${tw.elementTypeCode() == 'COMPETENCY'}" class="ees-badge ees-badge-competency">역량 평가</span>
-                                        <span th:if="${tw.elementTypeCode() == 'PEER'}" class="ees-badge ees-badge-multi">다면 평가</span>
-                                        <span th:if="${tw.elementTypeCode() == 'PEER' or tw.elementTypeCode() == 'MULTI_DIMENSIONAL'}" class="ees-badge ees-badge-multi">다면 평가</span>
-                                        <span th:if="${tw.elementTypeCode() != 'PERFORMANCE' and tw.elementTypeCode() != 'COMPETENCY' and tw.elementTypeCode() != 'PEER' and tw.elementTypeCode() != 'MULTI_DIMENSIONAL'}" 
-                                              class="ees-badge ees-badge-multi" th:text="${tw.elementTypeCode()}">기타</span>
-                                    </td>
-                                    <td class="text-center fw-bold">100</td>
-                                    <td class="text-center fw-bold text-info" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%</td>
-                                    <td class="text-center">
-                                        <th:block th:with="isSubmitted=${tw.elementTypeCode() == 'PERFORMANCE' ? selfPerfSubmitted : (tw.elementTypeCode() == 'COMPETENCY' ? selfCompSubmitted : ((tw.elementTypeCode() == 'PEER' or tw.elementTypeCode() == 'MULTI_DIMENSIONAL') ? selfPeerSubmitted : false))}">
-                                            <span th:if="${isSubmitted}" class="ees-badge ees-badge-self">완료</span>
-                                            <span th:unless="${isSubmitted}" class="ees-badge ees-badge-multi" style="background: rgba(108, 117, 125, 0.1); color: #adb5bd;">대기</span>
-                                        </th:block>
-                                    </td>
-                                    <td class="text-end">
-                                        <a th:if="${selfTask != null}"
-                                           th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
-                                           hx-get="" th:hx-get="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
-                                           hx-target="#page-content"
-                                           hx-select="#page-content"
-                                           hx-swap="outerHTML show:window:top"
-                                           hx-push-url="true"
-                                           class="btn ees-btn-glass btn-sm">
-                                            <i class="bi bi-pencil-square me-1"></i> 진입
-                                        </a>
-                                        <span th:unless="${selfTask != null}" class="text-muted small">미배정</span>
-                                    </td>
-                                </tr>
-                                <tr th:if="${#lists.isEmpty(typeWeights)}">
-                                    <td colspan="5" class="text-center py-5 text-muted">등록된 평가 유형 가중치 정보가 없습니다.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                </div>
+
+                <!-- ===== 부서원: 성과/역량 ===== -->
+                <div th:unless="${isLeader}">
+                    <!-- Progress Overview -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-3" th:each="tw : ${typeWeights}"
+                            th:if="${tw.elementTypeCode() == 'PERFORMANCE'}">
+                            <div class="ees-card p-4 text-center">
+                                <div class="ees-badge ees-badge-performance mb-2">성과 비중</div>
+                                <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%
+                                </h2>
+                            </div>
+                        </div>
+                        <div class="col-md-3" th:each="tw : ${typeWeights}"
+                            th:if="${tw.elementTypeCode() == 'COMPETENCY'}">
+                            <div class="ees-card p-4 text-center">
+                                <div class="ees-badge ees-badge-competency mb-2">역량 비중</div>
+                                <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%
+                                </h2>
+                            </div>
+                        </div>
+                        <div class="col-md-3" th:each="tw : ${typeWeights}" th:if="${tw.elementTypeCode() == 'PEER'}">
+                            <div class="ees-card p-4 text-center">
+                                <div class="ees-badge ees-badge-multi mb-2">다면 비중</div>
+                                <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%
+                                </h2>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="ees-card p-4 text-center">
+                                <div class="ees-badge ees-badge-multi mb-2">총 항목 수</div>
+                                <h2 class="fw-bold mb-0"
+                                    th:text="${(perfElements != null ? perfElements.size() : 0) + (compElements != null ? compElements.size() : 0) + (peerElements != null ? peerElements.size() : 0)}">
+                                    0</h2>
+                                <p class="text-muted small mb-0">총 평가 항목</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Evaluation Elements List -->
+                    <div class="ees-card p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold mb-0"><i class="bi bi-journal-check me-2 text-primary"></i>평가 항목 리스트</h5>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="ees-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 20%">유형</th>
+                                        <th style="width: 20%" class="text-center">배점</th>
+                                        <th style="width: 20%" class="text-center">비중</th>
+                                        <th style="width: 20%" class="text-center">상태</th>
+                                        <th style="width: 20%" class="text-end">평가하기</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="tw : ${typeWeights}">
+                                        <td>
+                                            <span th:if="${tw.elementTypeCode() == 'PERFORMANCE'}"
+                                                class="ees-badge ees-badge-performance">성과 평가</span>
+                                            <span th:if="${tw.elementTypeCode() == 'COMPETENCY'}"
+                                                class="ees-badge ees-badge-competency">역량 평가</span>
+                                            <span th:if="${tw.elementTypeCode() == 'PEER'}"
+                                                class="ees-badge ees-badge-multi">다면 평가</span>
+                                            <span
+                                                th:if="${tw.elementTypeCode() != 'PERFORMANCE' and tw.elementTypeCode() != 'COMPETENCY' and tw.elementTypeCode() != 'PEER'}"
+                                                class="ees-badge ees-badge-multi"
+                                                th:text="${tw.elementTypeCode()}">기타</span>
+                                        </td>
+                                        <td class="text-center fw-bold">100</td>
+                                        <td class="text-center fw-bold text-info"
+                                            th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%</td>
+                                        <td class="text-center">
+                                            <!-- 상태 판별 -->
+                                            <th:block
+                                                th:with="isSubmitted=${tw.elementTypeCode() == 'PERFORMANCE' ? selfPerfSubmitted : (tw.elementTypeCode() == 'COMPETENCY' ? selfCompSubmitted : (tw.elementTypeCode() == 'PEER' ? selfPeerSubmitted : false))}">
+                                                <span th:if="${isSubmitted}" class="ees-badge ees-badge-self">완료</span>
+                                                <span th:unless="${isSubmitted}" class="ees-badge ees-badge-multi"
+                                                    style="background: rgba(108, 117, 125, 0.1); color: #adb5bd;">대기</span>
+                                            </th:block>
+                                        </td>
+                                        <td class="text-end">
+                                            <a th:if="${selfTask != null and selectedPeriod.statusCode() != 'PLANNED'}"
+                                                th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
+                                                hx-get=""
+                                                th:hx-get="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
+                                                hx-target="#page-content" hx-select="#page-content"
+                                                hx-swap="outerHTML show:window:top" hx-push-url="true"
+                                                class="btn ees-btn-glass btn-sm">
+                                                <i class="bi bi-pencil-square me-1"></i> 진입
+                                            </a>
+                                            <button
+                                                th:if="${selfTask != null and selectedPeriod.statusCode() == 'PLANNED'}"
+                                                class="btn ees-btn-glass btn-sm disabled" disabled title="평가 시작 전입니다.">
+                                                <i class="bi bi-lock me-1"></i> 진입 불가
+                                            </button>
+                                            <span th:unless="${selfTask != null}" class="text-muted small">미배정</span>
+                                        </td>
+                                    </tr>
+                                    <!-- 가중치 설정이 아예 없는 경우 -->
+                                    <tr th:if="${#lists.isEmpty(typeWeights)}">
+                                        <td colspan="5" class="text-center py-5 text-muted">등록된 평가 유형 가중치 정보가 없습니다.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ===== 부서원: 성과/역량 ===== -->
-            <div th:unless="${isLeader}">
-                <!-- Progress Overview -->
-                <div class="row g-4 mb-4">
-                    <div class="col-md-3" th:each="tw : ${typeWeights}" th:if="${tw.elementTypeCode() == 'PERFORMANCE'}">
-                        <div class="ees-card p-4 text-center">
-                            <div class="ees-badge ees-badge-performance mb-2">성과 비중</div>
-                            <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%</h2>
-                        </div>
-                    </div>
-                    <div class="col-md-3" th:each="tw : ${typeWeights}" th:if="${tw.elementTypeCode() == 'COMPETENCY'}">
-                        <div class="ees-card p-4 text-center">
-                            <div class="ees-badge ees-badge-competency mb-2">역량 비중</div>
-                            <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%</h2>
-                        </div>
-                    </div>
-                    <div class="col-md-3" th:each="tw : ${typeWeights}" th:if="${tw.elementTypeCode() == 'PEER'}">
-                        <div class="ees-card p-4 text-center">
-                            <div class="ees-badge ees-badge-multi mb-2">다면 비중</div>
-                            <h2 class="fw-bold mb-0" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%</h2>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="ees-card p-4 text-center">
-                            <div class="ees-badge ees-badge-multi mb-2">총 항목 수</div>
-                            <h2 class="fw-bold mb-0"
-                                th:text="${(perfElements != null ? perfElements.size() : 0) + (compElements != null ? compElements.size() : 0) + (peerElements != null ? peerElements.size() : 0)}">0</h2>
-                            <p class="text-muted small mb-0">총 평가 항목</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Evaluation Elements List -->
-                <div class="ees-card p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="fw-bold mb-0"><i class="bi bi-journal-check me-2 text-primary"></i>평가 항목 리스트</h5>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="ees-table align-middle">
-                            <thead>
-                                <tr>
-                                    <th style="width: 20%">유형</th>
-                                    <th style="width: 20%" class="text-center">배점</th>
-                                    <th style="width: 20%" class="text-center">비중</th>
-                                    <th style="width: 20%" class="text-center">상태</th>
-                                    <th style="width: 20%" class="text-end">평가하기</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="tw : ${typeWeights}">
-                                    <td>
-                                        <span th:if="${tw.elementTypeCode() == 'PERFORMANCE'}" class="ees-badge ees-badge-performance">성과 평가</span>
-                                        <span th:if="${tw.elementTypeCode() == 'COMPETENCY'}" class="ees-badge ees-badge-competency">역량 평가</span>
-                                        <span th:if="${tw.elementTypeCode() == 'PEER'}" class="ees-badge ees-badge-multi">다면 평가</span>
-                                        <span th:if="${tw.elementTypeCode() != 'PERFORMANCE' and tw.elementTypeCode() != 'COMPETENCY' and tw.elementTypeCode() != 'PEER'}" 
-                                              class="ees-badge ees-badge-multi" th:text="${tw.elementTypeCode()}">기타</span>
-                                    </td>
-                                    <td class="text-center fw-bold">100</td>
-                                    <td class="text-center fw-bold text-info" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%</td>
-                                    <td class="text-center">
-                                        <!-- 상태 판별 -->
-                                        <th:block th:with="isSubmitted=${tw.elementTypeCode() == 'PERFORMANCE' ? selfPerfSubmitted : (tw.elementTypeCode() == 'COMPETENCY' ? selfCompSubmitted : (tw.elementTypeCode() == 'PEER' ? selfPeerSubmitted : false))}">
-                                            <span th:if="${isSubmitted}" class="ees-badge ees-badge-self">완료</span>
-                                            <span th:unless="${isSubmitted}" class="ees-badge ees-badge-multi" style="background: rgba(108, 117, 125, 0.1); color: #adb5bd;">대기</span>
-                                        </th:block>
-                                    </td>
-                                    <td class="text-end">
-                                        <a th:if="${selfTask != null}"
-                                           th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
-                                           hx-get="" th:hx-get="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
-                                           hx-target="#page-content"
-                                           hx-select="#page-content"
-                                           hx-swap="outerHTML show:window:top"
-                                           hx-push-url="true"
-                                           class="btn ees-btn-glass btn-sm">
-                                            <i class="bi bi-pencil-square me-1"></i> 진입
-                                        </a>
-                                        <span th:unless="${selfTask != null}" class="text-muted small">미배정</span>
-                                    </td>
-                                </tr>
-                                <!-- 가중치 설정이 아예 없는 경우 -->
-                                <tr th:if="${#lists.isEmpty(typeWeights)}">
-                                    <td colspan="5" class="text-center py-5 text-muted">등록된 평가 유형 가중치 정보가 없습니다.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <!-- 평가 시작 전인 경우의 대체 화면 (리스트 대신 보여줄 안내 카드) -->
+            <div th:if="${selectedPeriod.statusCode() == 'PLANNED'}" class="ees-card p-5 text-center text-muted">
+                <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
+                <h5 class="fw-bold text-white mb-2">평가 준비 중</h5>
+                <p class="mb-0">현재 차수는 평가 항목 구성 및 정합성 검토 중입니다.<br>평가가 시작되면 항목 리스트가 활성화됩니다.</p>
             </div>
-        </div>
 
-        <div th:if="${selectedPeriod == null}" class="ees-card p-5 text-center text-muted">
-            <i class="bi bi-calendar-x fs-1 mb-3 d-block opacity-25"></i>
-            조회할 평가 차수를 선택해 주세요.
+            <div th:if="${selectedPeriod == null}" class="ees-card p-5 text-center text-muted">
+                <i class="bi bi-calendar-x fs-1 mb-3 d-block opacity-25"></i>
+                조회할 평가 차수를 선택해 주세요.
+            </div>
         </div>
     </div>
 </body>

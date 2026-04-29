@@ -3,9 +3,9 @@ package com.ees.eval.controller;
 import com.ees.eval.domain.Employee;
 import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.dto.EvaluatorMappingDTO;
+import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationMapper;
-import com.ees.eval.mapper.EvaluatorMappingMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.EvaluationTypeWeightService;
@@ -29,12 +29,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Collections;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
-class PerformanceEvaluationControllerTest {
+class MyEvaluationControllerTest {
 
     private MockMvc mockMvc;
 
@@ -54,20 +55,21 @@ class PerformanceEvaluationControllerTest {
     private EvaluationMapper evaluationMapper;
 
     @Mock
-    private EvaluatorMappingMapper evaluatorMappingMapper;
-
-    @Mock
     private EmployeeMapper employeeMapper;
 
+    @Mock
+    private DepartmentMapper departmentMapper;
+
     @InjectMocks
-    private PerformanceEvaluationController performanceEvaluationController;
+    private MyEvaluationController myEvaluationController;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(performanceEvaluationController)
+        mockMvc = MockMvcBuilders.standaloneSetup(myEvaluationController)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
 
+        // SecurityContext 설정 (UserDetails.getUsername()이 "1001"을 반환하도록 설정)
         UserDetails userDetails = new User("1001", "password", Collections.emptyList());
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()));
@@ -75,7 +77,7 @@ class PerformanceEvaluationControllerTest {
     }
 
     @Test
-    @DisplayName("평가 차수가 PLANNED 상태일 때 성과/역량 평가 폼 진입 차단 테스트")
+    @DisplayName("평가 차수가 PLANNED 상태일 때 자가평가 폼 진입 차단 테스트")
     void blockAccessWhenPeriodIsPlanned() throws Exception {
         // Given
         Long mappingId = 1L;
@@ -84,8 +86,8 @@ class PerformanceEvaluationControllerTest {
         EvaluatorMappingDTO mapping = EvaluatorMappingDTO.builder()
                 .mappingId(mappingId)
                 .periodId(periodId)
-                .evaluateeId(2001L)
-                .relationTypeCode("MANAGER")
+                .evaluateeId(1001L)
+                .relationTypeCode("SELF")
                 .build();
 
         EvaluationPeriodDTO period = EvaluationPeriodDTO.builder()
@@ -97,11 +99,10 @@ class PerformanceEvaluationControllerTest {
         given(periodService.getPeriodById(periodId)).willReturn(period);
 
         // When & Then
-        mockMvc.perform(get("/eval/performance/form")
-                        .param("mappingId", mappingId.toString())
-                        .param("evalType", "PERFORMANCE"))
+        mockMvc.perform(get("/eval/my-evaluation/form")
+                        .param("mappingId", mappingId.toString()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/eval/performance?periodId=" + periodId + "&evalType=PERFORMANCE"))
+                .andExpect(redirectedUrl("/eval/my-evaluation?periodId=" + periodId))
                 .andExpect(flash().attribute("errorMessage", "평가 시작 전입니다. 평가 기간에 다시 접속해 주세요."));
     }
 
@@ -123,13 +124,13 @@ class PerformanceEvaluationControllerTest {
         given(periodService.getAllPeriods()).willReturn(Collections.singletonList(period));
         given(periodService.getPeriodById(periodId)).willReturn(period);
         given(employeeMapper.findById(empId)).willReturn(Optional.of(emp));
+        given(departmentMapper.countDepartmentsByLeaderId(empId)).willReturn(0); // 부서장 아님
 
         // When & Then
-        mockMvc.perform(get("/eval/performance")
-                        .param("periodId", periodId.toString())
-                        .param("evalType", "PERFORMANCE"))
+        mockMvc.perform(get("/eval/my-evaluation")
+                        .param("periodId", periodId.toString()))
                 .andExpect(status().isOk())
-                .andExpect(view().name("eval/performance/list"))
+                .andExpect(view().name("eval/my-evaluation/list"))
                 .andExpect(model().attribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다."));
     }
 }

@@ -229,8 +229,8 @@
 
         <!-- 페이지 전용 스크립트 (HTMX 부분 갱신을 위해 #page-content 내부로 이동) -->
         <script th:inline="javascript">
-            // 알림 메시지 자동 꺼짐 (5초)
-            document.addEventListener('DOMContentLoaded', function () {
+            // 알림 메시지 자동 꺼짐 (5초) - HTMX 로드 시에도 작동하도록 즉시 실행
+            (function initAlertAutoClose() {
                 const alerts = document.querySelectorAll('.alert-dismissible');
                 alerts.forEach(function (alert) {
                     setTimeout(function () {
@@ -238,10 +238,10 @@
                         if (closeBtn) closeBtn.click();
                     }, 5000);
                 });
-            });
+            })();
 
-            // 현재 선택된 차수 ID를 저장하는 전역 변수
-            let currentStartPeriodId = null;
+            // 현재 선택된 차수 ID를 저장하는 변수 (HTMX 재로드 시 중복 선언 에러 방지를 위해 var 사용)
+            var currentStartPeriodId = currentStartPeriodId || null;
 
             /**
              * 평가 시작 전 정합성 검사 모달을 열고 API를 호출합니다.
