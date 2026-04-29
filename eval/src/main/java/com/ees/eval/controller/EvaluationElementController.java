@@ -25,7 +25,7 @@ import java.util.List;
 @Controller
 @RequestMapping("/eval/elements")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')")
+@PreAuthorize("hasRole('ADMIN')")
 public class EvaluationElementController {
 
     private final EvaluationElementService elementService;

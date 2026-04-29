@@ -1,5 +1,6 @@
 package com.ees.eval.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.ees.eval.domain.Employee;
 import com.ees.eval.domain.Evaluation;
 import com.ees.eval.dto.EvaluationElementDTO;
@@ -32,6 +33,7 @@ import java.util.List;
 @Controller
 @RequestMapping("/eval/performance")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')")
 public class PerformanceEvaluationController {
 
     private final EvaluationPeriodService periodService;
