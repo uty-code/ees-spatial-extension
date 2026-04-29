@@ -78,6 +78,18 @@ class EvaluationPeriodControllerTest {
     }
 
     @Test
+    @DisplayName("차수 목록 조회 - 캐시 방지 헤더가 포함되어야 한다")
+    void listPeriods_ShouldHaveCacheControlHeader() throws Exception {
+        // given
+        given(periodService.getAllPeriods()).willReturn(List.of());
+
+        // when & then
+        mockMvc.perform(get("/eval/periods"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0"));
+    }
+
+    @Test
     @DisplayName("신규 차수 저장 실패 - 종료일이 시작일보다 빠른 경우 에러 메시지를 반환한다")
     void createPeriod_Fail_InvalidDates_ShouldShowError() throws Exception {
         // when & then

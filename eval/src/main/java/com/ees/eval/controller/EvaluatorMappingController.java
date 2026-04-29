@@ -241,14 +241,20 @@ public class EvaluatorMappingController {
     @PreAuthorize("hasRole('ADMIN')")
     public org.springframework.http.ResponseEntity<List<com.ees.eval.dto.MappingAnomalyDTO>> validateMappings(@RequestParam Long periodId) {
         try {
+            // 캐시 방지 헤더 설정
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setCacheControl("no-store, no-cache, must-revalidate, max-age=0");
+            headers.add("Pragma", "no-cache");
+            headers.add("Expires", "0");
+
             // periodId 유효성 검증
             EvaluationPeriodDTO period = periodService.getPeriodById(periodId);
             if (period == null) {
-                return org.springframework.http.ResponseEntity.badRequest().build();
+                return org.springframework.http.ResponseEntity.badRequest().headers(headers).build();
             }
 
             List<com.ees.eval.dto.MappingAnomalyDTO> anomalies = mappingService.checkMappingIntegrity(periodId);
-            return org.springframework.http.ResponseEntity.ok(anomalies);
+            return org.springframework.http.ResponseEntity.ok().headers(headers).body(anomalies);
         } catch (IllegalArgumentException e) {
             log.warn("매핑 정합성 검사 요청 오류 - periodId: {}", periodId, e);
             return org.springframework.http.ResponseEntity.badRequest().build();

@@ -11,6 +11,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 import java.time.LocalDate;
@@ -39,7 +40,10 @@ public class EvaluationPeriodController {
      * @return eval/periods/list.html 템플릿 경로
      */
     @GetMapping
-    public String listPeriods(Model model) {
+    public String listPeriods(Model model, HttpServletResponse response) {
+        // HTMX/브라우저 캐싱 방지
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+        
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
         model.addAttribute("periods", periods);
         log.info("평가 차수 목록 조회 - 총 {}건", periods.size());

@@ -226,9 +226,8 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="page-scripts" th:fragment="page-scripts">
+        <!-- 페이지 전용 스크립트 (HTMX 부분 갱신을 위해 #page-content 내부로 이동) -->
         <script th:inline="javascript">
             // 알림 메시지 자동 꺼짐 (5초)
             document.addEventListener('DOMContentLoaded', function () {
@@ -251,7 +250,9 @@
             function openStartValidation(periodId) {
                 currentStartPeriodId = periodId;
 
-                const modal = new bootstrap.Modal(document.getElementById('startIntegrityModal'));
+                // Bootstrap 5 모달 인스턴스 관리 (중복 생성 방지 및 aria-hidden 오류 해결)
+                const modalElement = document.getElementById('startIntegrityModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
                 modal.show();
 
                 // UI 초기화
@@ -260,7 +261,8 @@
                 document.getElementById('btnConfirmStart').classList.add('d-none');
                 document.getElementById('startBlockedMessage').classList.add('d-none');
 
-                fetch(`/eval/evaluators/validate?periodId=${periodId}`)
+                // 캐시 버스팅 파라미터(t) 추가하여 항상 최신 정합성 결과 조회
+                fetch(`/eval/evaluators/validate?periodId=${periodId}&t=${new Date().getTime()}`)
                     .then(response => {
                         if (!response.ok) throw new Error('Network response was not ok');
                         return response.json();
@@ -350,6 +352,13 @@
                 document.getElementById('startForm-' + currentStartPeriodId).submit();
             }
         </script>
+    </div>
+
+    <div id="page-scripts" th:fragment="page-scripts">
+        <!-- 
+            이 영역의 스크립트를 #page-content 내부로 이동했습니다. 
+            HTMX hx-select='#page-content' 방식 사용 시 선택 영역 밖의 스크립트는 로드되지 않기 때문입니다.
+        -->
     </div>
 </body>
 

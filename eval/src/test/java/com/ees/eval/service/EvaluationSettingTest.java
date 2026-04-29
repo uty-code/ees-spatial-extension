@@ -36,6 +36,9 @@ class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
     @MockitoBean
     private EvaluationTypeWeightService typeWeightService;
 
+    @MockitoBean
+    private EvaluatorMappingService mappingService;
+
     /**
      * 테스트 시작 전 기존 데이터로 인한 충돌을 방지하기 위해
      * '진행 중' 상태인 모든 차수를 '완료' 상태로 전환합니다.
@@ -44,6 +47,9 @@ class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
     void setUp() {
         // 모든 가중치 검증은 기본적으로 통과하도록 설정 (테스트 데이터 부족 방지)
         lenient().when(typeWeightService.isWeightSumValid(anyLong(), any(), any())).thenReturn(true);
+
+        // 평가 시작 시 정합성 검사 통과 설정 (테스트 시 매핑 데이터 생성 생략을 위해)
+        lenient().when(mappingService.checkMappingIntegrity(anyLong())).thenReturn(List.of());
 
         periodService.getAllPeriods().stream()
                 .filter(p -> "IN_PROGRESS".equals(p.statusCode()))

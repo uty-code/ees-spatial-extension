@@ -44,7 +44,7 @@
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">평가 기준 설정</h6>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/eval/periods}" hx-get="/eval/periods" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-history="false"
                 th:classappend="${activeMenu == 'periods' ? 'active' : ''}">
                 <i class="bi bi-calendar-check-fill"></i>
                 <span>평가 차수 설정</span>
@@ -56,7 +56,7 @@
                 <span>평가요소 관리</span>
             </a>
             <a class="nav-link" th:href="@{/eval/evaluators}" hx-get="/eval/evaluators" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-history="false"
                 th:classappend="${activeMenu == 'evaluators' ? 'active' : ''}">
                 <i class="bi bi-person-lines-fill"></i>
                 <span>평가자 관리</span>

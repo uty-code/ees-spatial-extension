@@ -414,13 +414,14 @@
                 const periodId = /*[[${selectedPeriod?.periodId()}]]*/ null;
                 if (!periodId) return;
 
-                const modal = new bootstrap.Modal(document.getElementById('integrityCheckModal'));
+                const modalElement = document.getElementById('integrityCheckModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
                 modal.show();
 
                 document.getElementById('integrityLoading').classList.remove('d-none');
                 document.getElementById('integrityResults').classList.add('d-none');
 
-                fetch(`/eval/evaluators/validate?periodId=${periodId}`)
+                fetch(`/eval/evaluators/validate?periodId=${periodId}&t=${new Date().getTime()}`)
                     .then(response => {
                         if (!response.ok) throw new Error('Network response was not ok');
                         return response.json();
