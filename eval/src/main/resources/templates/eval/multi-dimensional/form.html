@@ -71,6 +71,7 @@
             background-color: rgba(0,0,0,0.25);
             box-shadow: 0 0 0 3px rgba(0,255,255,0.1);
         }
+        .pre-wrap { white-space: pre-wrap; }
     </style>
     <div class="eval-form-container">
 
@@ -131,6 +132,19 @@
                 </div>
 
                 <div class="row g-4">
+                    <!-- 부서장 자가평가 의견 (참고용) -->
+                    <div th:if="${evaluateeSelfEvalMap != null and evaluateeSelfEvalMap.containsKey(element.elementId())}" class="col-12">
+                        <div class="p-3 mb-2" style="background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--glass-border); border-radius: 6px;">
+                            <div class="field-label mb-2" style="color: #adb5bd;">
+                                <i class="bi bi-person-fill-gear"></i> 부서장 자가평가 의견
+                            </div>
+                            <div class="text-white-50 small pre-wrap" 
+                                 th:text="${evaluateeSelfEvalMap.get(element.elementId()).getComments()}">
+                                부서장이 작성한 자가평가 내용이 이곳에 표시됩니다.
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-md-3">
                         <div class="field-label mb-2">
                             <i class="bi bi-award-fill"></i> 점수 (0~100점)

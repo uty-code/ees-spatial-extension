@@ -162,6 +162,20 @@ public class MultiDimensionalEvaluationController {
                 .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
         model.addAttribute("submitted", submitted);
 
+        // 피평가자(부서장)의 자가평가 데이터 조회 (다면평가 참고용)
+        List<EvaluatorMappingDTO> evaluateeTasks = mappingService.getMyEvaluationTasks(mapping.periodId(), mapping.evaluateeId());
+        EvaluatorMappingDTO evaluateeSelfTask = evaluateeTasks.stream()
+                .filter(m -> "SELF".equals(m.relationTypeCode()))
+                .findFirst()
+                .orElse(null);
+
+        if (evaluateeSelfTask != null) {
+            java.util.Map<Long, Evaluation> evaluateeSelfEvalMap = evaluationMapper.findByMappingId(evaluateeSelfTask.mappingId())
+                    .stream()
+                    .collect(Collectors.toMap(Evaluation::getElementId, e -> e, (a, b) -> a));
+            model.addAttribute("evaluateeSelfEvalMap", evaluateeSelfEvalMap);
+        }
+
         return "eval/multi-dimensional/form";
     }
 
