@@ -63,6 +63,13 @@ public interface EvaluationPeriodService {
     void deletePeriod(Long periodId);
 
     /**
+     * 진행 중인 차수를 계획 단계로 초기화하고 모든 평가 데이터를 삭제합니다.
+     *
+     * @param periodId 초기화할 차수 식별자
+     */
+    void resetPeriod(Long periodId);
+
+    /**
      * 특정 상태 코드에 해당하는 평가 차수 수를 DB에서 직접 조회합니다.
      *
      * @param statusCode 조회할 상태 코드

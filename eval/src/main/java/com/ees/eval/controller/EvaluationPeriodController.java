@@ -228,4 +228,17 @@ public class EvaluationPeriodController {
         redirectAttributes.addFlashAttribute("successMessage", "차수가 삭제되었습니다.");
         return "redirect:/eval/periods";
     }
+
+    /**
+     * 진행 중인 차수를 계획 단계로 초기화하고 데이터를 삭제합니다.
+     */
+    @PostMapping("/{periodId}/reset")
+    public String resetPeriod(@PathVariable Long periodId,
+            RedirectAttributes redirectAttributes) {
+        periodService.resetPeriod(periodId);
+        log.info("평가 차수 초기화 완료 - periodId: {}", periodId);
+
+        redirectAttributes.addFlashAttribute("successMessage", "차수가 계획 단계로 초기화되었으며 모든 평가 데이터가 삭제되었습니다.");
+        return "redirect:/eval/periods";
+    }
 }
