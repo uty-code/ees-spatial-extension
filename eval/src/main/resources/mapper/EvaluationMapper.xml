@@ -67,4 +67,14 @@
           AND is_deleted = 'n'
     </select>
 
+    <!-- 특정 차수와 연결된 모든 평가 데이터 삭제 (초기화용) -->
+    <delete id="deleteByPeriodId">
+        DELETE FROM evaluations_51
+        WHERE mapping_id IN (
+            SELECT mapping_id 
+            FROM evaluator_mappings_51 
+            WHERE period_id = #{periodId}
+        )
+    </delete>
+
 </mapper>

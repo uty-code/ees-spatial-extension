@@ -25,4 +25,7 @@ public interface EvaluationMapper {
 
     /** mappingId 기준으로 해당 매핑의 전체 평가 내용 조회 */
     List<Evaluation> findByMappingId(@Param("mappingId") Long mappingId);
+
+    /** 특정 차수(periodId)와 관련된 모든 평가 레코드 삭제 */
+    int deleteByPeriodId(@Param("periodId") Long periodId);
 }
