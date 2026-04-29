@@ -170,10 +170,17 @@ public class MultiDimensionalEvaluationController {
                 .orElse(null);
 
         if (evaluateeSelfTask != null) {
-            java.util.Map<Long, Evaluation> evaluateeSelfEvalMap = evaluationMapper.findByMappingId(evaluateeSelfTask.mappingId())
-                    .stream()
+            List<Evaluation> evaluateeEvals = evaluationMapper.findByMappingId(evaluateeSelfTask.mappingId());
+            java.util.Map<Long, Evaluation> evaluateeSelfEvalMap = evaluateeEvals.stream()
                     .collect(Collectors.toMap(Evaluation::getElementId, e -> e, (a, b) -> a));
+            
+            boolean isEvaluateeSelfSubmitted = evaluateeEvals.stream()
+                    .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
+            
             model.addAttribute("evaluateeSelfEvalMap", evaluateeSelfEvalMap);
+            model.addAttribute("isEvaluateeSelfSubmitted", isEvaluateeSelfSubmitted);
+        } else {
+            model.addAttribute("isEvaluateeSelfSubmitted", false);
         }
 
         return "eval/multi-dimensional/form";

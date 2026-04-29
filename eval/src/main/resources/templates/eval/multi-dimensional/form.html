@@ -107,6 +107,12 @@
             <i class="bi bi-patch-check-fill me-2"></i>
             <span>평가가 제출되었습니다. 수정 후 다시 제출할 수 있습니다.</span>
         </div>
+        
+        <!-- 부서장 자가평가 미완료 시 경고 -->
+        <div th:if="${!isEvaluateeSelfSubmitted}" class="alert alert-warning bg-opacity-10 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span>현재 피평가자(부서장)의 자가평가가 완료되지 않았습니다. 부서장의 의견을 확인한 후 평가를 진행하시는 것을 권장합니다.</span>
+        </div>
 
         <!-- 평가요소 없을 때 -->
         <div th:if="${elements == null || elements.isEmpty()}" class="ees-card text-center py-5">
