@@ -18,15 +18,7 @@ pipeline {
             }
         }
 
-        stage('Maven Build') {
-            steps {
-                dir('eval') {
-                    // 실행 권한 부여 및 빌드
-                    sh 'chmod +x mvnw'
-                    sh './mvnw clean package -DskipTests'
-                }
-            }
-        }
+        // 메이븐 빌드는 Dockerfile 내의 멀티 스테이지 빌드에서 수행하므로 젠킨스에서는 생략합니다.
 
         stage('Docker Build & Push') {
             steps {
@@ -61,6 +53,9 @@ pipeline {
                         az webapp config container set --name ${APP_NAME} \
                             --resource-group ${RESOURCE_GROUP} \
                             --container-image-name ${ACR_URL}/${IMAGE_NAME}:${TAG}
+                            
+                        # 확실한 반영을 위해 웹 앱 강제 재시작
+                        az webapp restart --name ${APP_NAME} --resource-group ${RESOURCE_GROUP}
                     """
                 }
             }
