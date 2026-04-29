@@ -150,7 +150,7 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
                 
         BigDecimal multiSum = elements.stream()
-                .filter(e -> "PEER".equals(e.getElementTypeCode()))
+                .filter(e -> "PEER".equals(e.getElementTypeCode()) || "MULTI_DIMENSIONAL".equals(e.getElementTypeCode()))
                 .map(EvaluationElement::getWeight)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 

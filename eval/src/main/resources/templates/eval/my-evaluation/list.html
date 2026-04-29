@@ -53,13 +53,14 @@
                                         <span th:if="${tw.elementTypeCode() == 'PERFORMANCE'}" class="ees-badge ees-badge-performance">성과 평가</span>
                                         <span th:if="${tw.elementTypeCode() == 'COMPETENCY'}" class="ees-badge ees-badge-competency">역량 평가</span>
                                         <span th:if="${tw.elementTypeCode() == 'PEER'}" class="ees-badge ees-badge-multi">다면 평가</span>
-                                        <span th:if="${tw.elementTypeCode() != 'PERFORMANCE' and tw.elementTypeCode() != 'COMPETENCY' and tw.elementTypeCode() != 'PEER'}" 
+                                        <span th:if="${tw.elementTypeCode() == 'PEER' or tw.elementTypeCode() == 'MULTI_DIMENSIONAL'}" class="ees-badge ees-badge-multi">다면 평가</span>
+                                        <span th:if="${tw.elementTypeCode() != 'PERFORMANCE' and tw.elementTypeCode() != 'COMPETENCY' and tw.elementTypeCode() != 'PEER' and tw.elementTypeCode() != 'MULTI_DIMENSIONAL'}" 
                                               class="ees-badge ees-badge-multi" th:text="${tw.elementTypeCode()}">기타</span>
                                     </td>
                                     <td class="text-center fw-bold">100</td>
                                     <td class="text-center fw-bold text-info" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">0%</td>
                                     <td class="text-center">
-                                        <th:block th:with="isSubmitted=${tw.elementTypeCode() == 'PERFORMANCE' ? selfPerfSubmitted : (tw.elementTypeCode() == 'COMPETENCY' ? selfCompSubmitted : (tw.elementTypeCode() == 'PEER' ? selfPeerSubmitted : false))}">
+                                        <th:block th:with="isSubmitted=${tw.elementTypeCode() == 'PERFORMANCE' ? selfPerfSubmitted : (tw.elementTypeCode() == 'COMPETENCY' ? selfCompSubmitted : ((tw.elementTypeCode() == 'PEER' or tw.elementTypeCode() == 'MULTI_DIMENSIONAL') ? selfPeerSubmitted : false))}">
                                             <span th:if="${isSubmitted}" class="ees-badge ees-badge-self">완료</span>
                                             <span th:unless="${isSubmitted}" class="ees-badge ees-badge-multi" style="background: rgba(108, 117, 125, 0.1); color: #adb5bd;">대기</span>
                                         </th:block>
@@ -67,6 +68,11 @@
                                     <td class="text-end">
                                         <a th:if="${selfTask != null}"
                                            th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
+                                           hx-get="" th:hx-get="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
+                                           hx-target="#page-content"
+                                           hx-select="#page-content"
+                                           hx-swap="outerHTML show:window:top"
+                                           hx-push-url="true"
                                            class="btn ees-btn-glass btn-sm">
                                             <i class="bi bi-pencil-square me-1"></i> 진입
                                         </a>
@@ -151,6 +157,11 @@
                                     <td class="text-end">
                                         <a th:if="${selfTask != null}"
                                            th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
+                                           hx-get="" th:hx-get="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
+                                           hx-target="#page-content"
+                                           hx-select="#page-content"
+                                           hx-swap="outerHTML show:window:top"
+                                           hx-push-url="true"
                                            class="btn ees-btn-glass btn-sm">
                                             <i class="bi bi-pencil-square me-1"></i> 진입
                                         </a>
