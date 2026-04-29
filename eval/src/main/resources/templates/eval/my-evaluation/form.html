@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'my-evaluation', ~{::style}, ~{})}">
 <head>
-    <title th:text="${evalType == 'COMPETENCY'} ? '역량 자가평가 작성 - EES' : '성과 자가평가 작성 - EES'">자가평가 작성 - EES</title>
+    <title th:text="${evalType == 'COMPETENCY'} ? '역량 자가평가 작성 - EES' : (${evalType == 'PEER'} ? '다면 자가평가 작성 - EES' : '성과 자가평가 작성 - EES')">자가평가 작성 - EES</title>
     <style></style>
 </head>
 <body>
@@ -26,6 +26,10 @@
         .form-header.comp {
             background: linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(52,211,153,0.06) 100%);
             border-color: rgba(16,185,129,0.2);
+        }
+        .form-header.peer {
+            background: linear-gradient(135deg, rgba(236,72,153,0.12) 0%, rgba(244,114,182,0.06) 100%);
+            border-color: rgba(236,72,153,0.2);
         }
         .form-header h1 {
             font-size: 1.5rem;
@@ -78,6 +82,9 @@
         }
         .eval-card:not(.submitted).comp-card {
             border-left: 4px solid #10b981;
+        }
+        .eval-card:not(.submitted).peer-card {
+            border-left: 4px solid #ec4899;
         }
         .eval-card-header {
             display: flex;
@@ -229,22 +236,29 @@
         }
         .index-perf { background: rgba(99,102,241,0.2); color: #a5b4fc; }
         .index-comp { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+        .index-peer { background: rgba(236,72,153,0.2); color: #fbcfe8; }
     </style>
 
     <div class="eval-form-container">
 
         <!-- 폼 헤더 -->
-        <div class="form-header" th:classappend="${evalType == 'COMPETENCY'} ? 'comp' : 'perf'">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="text-white">
-                        <i th:class="${evalType == 'COMPETENCY'} ? 'bi bi-stars' : 'bi bi-bar-chart-fill'"
-                           th:style="${evalType == 'COMPETENCY'} ? 'color:#34d399;' : 'color:#818cf8;'"></i>
-                        <span th:text="${evalType == 'COMPETENCY'} ? '역량 자가평가' : '성과 자가평가'">자가평가</span>
-                    </h1>
-                    <div class="subtitle"
-                         th:text="${evalType == 'COMPETENCY'} ? '본인의 역량 강점, 노력, 성장 과정을 상세히 서술해주세요.' : '본인의 실적과 목표 달성 과정, 기여도 등을 상세히 서술해주세요.'">
-                        안내 문구
+        <div class="form-header" th:classappend="${evalType == 'COMPETENCY' ? 'comp' : (evalType == 'PEER' ? 'peer' : 'perf')}">
+            <div class="row align-items-center">
+                <div class="col">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="header-icon">
+                            <i th:if="${evalType == 'PERFORMANCE'}" class="bi bi-rocket-takeoff fs-3 text-indigo-400"></i>
+                            <i th:if="${evalType == 'COMPETENCY'}" class="bi bi-lightning-charge fs-3 text-emerald-400"></i>
+                            <i th:if="${evalType == 'PEER'}" class="bi bi-people fs-3 text-pink-400"></i>
+                        </div>
+                        <div>
+                            <h1 th:text="${evalType == 'COMPETENCY' ? '역량 자가평가' : (evalType == 'PEER' ? '다면 자가평가' : '성과 자가평가')}">평가 작성</h1>
+                            <div class="subtitle">
+                                <span th:if="${evalType == 'PERFORMANCE'}">목표 달성도 및 성과 기여도를 평가합니다.</span>
+                                <span th:if="${evalType == 'COMPETENCY'}">직무 수행 역량 및 태도를 평가합니다.</span>
+                                <span th:if="${evalType == 'PEER'}">동료/부서원과의 협업 및 리더십을 평가합니다.</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <a href="#" class="btn-back-link"
@@ -288,11 +302,12 @@
             <input type="hidden" name="evalType" th:value="${evalType}">
 
             <div th:each="element, iterStat : ${elements}"
-                 th:class="'eval-card ' + (${savedMap != null and savedMap.containsKey(element.elementId())} ? 'submitted' : '') + ' ' + (${evalType == 'COMPETENCY'} ? 'comp-card' : 'perf-card')">
+                 class="eval-card"
+                 th:classappend="${savedMap.containsKey(element.elementId()) and savedMap.get(element.elementId()).confirmStatusCode == 'SUBMITTED' ? 'submitted' : (evalType == 'COMPETENCY' ? 'comp-card' : (evalType == 'PEER' ? 'peer-card' : 'perf-card'))}">
 
                 <div class="eval-card-header">
                     <div class="eval-title">
-                        <span class="element-index" th:classappend="${evalType == 'COMPETENCY'} ? 'index-comp' : 'index-perf'"
+                        <span class="element-index" th:classappend="${evalType == 'COMPETENCY'} ? 'index-comp' : (${evalType == 'PEER'} ? 'index-peer' : 'index-perf')"
                               th:text="${iterStat.count}">1</span>
                         <span th:text="${element.elementName()}">평가 항목</span>
                     </div>
