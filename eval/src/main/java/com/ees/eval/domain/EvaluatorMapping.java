@@ -36,6 +36,9 @@ public class EvaluatorMapping extends BaseEntity {
     /** 평가자 성명 (MyBatis JOIN용) */
     private String evaluatorName;
 
+    /** 피평가자 부서명 (MyBatis JOIN용) */
+    private String deptName;
+
     /**
      * 평가자 매핑 엔티티를 생성하는 빌더 메서드입니다.
      *

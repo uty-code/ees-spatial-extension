@@ -31,6 +31,7 @@ public record EvaluatorMappingDTO(
         String relationTypeCode,
         String evaluateeName,
         String evaluatorName,
+        String deptName,
         String isDeleted,
         Integer version,
         LocalDateTime createdAt,

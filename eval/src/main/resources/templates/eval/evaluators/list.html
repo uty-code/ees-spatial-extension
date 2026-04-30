@@ -157,12 +157,13 @@
                 <table class="ees-table align-middle">
                     <thead>
                         <tr>
-                            <th style="width: 18%">피평가자 (대상)</th>
-                            <th style="width: 12%">자기 평가</th>
-                            <th style="width: 20%">1차 평가자 (부서장)</th>
-                            <th style="width: 20%">최종 평가자 (임원)</th>
-                            <th style="width: 20%">다면 평가자 (부서원)</th>
-                            <th class="text-end" style="width: 10%">상세/관리</th>
+                            <th style="width: 15%">피평가자 (대상)</th>
+                            <th style="width: 12%">부서</th>
+                            <th style="width: 10%">자기 평가</th>
+                            <th style="width: 18%">1차 평가자 (부서장)</th>
+                            <th style="width: 18%">최종 평가자 (임원)</th>
+                            <th style="width: 18%">다면 평가자 (부서원)</th>
+                            <th class="text-end" style="width: 9%">상세/관리</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -178,6 +179,11 @@
                                         <div class="small text-muted" th:text="${'사번: ' + g.evaluateeId}">사번</div>
                                     </div>
                                 </div>
+                            </td>
+
+                            <!-- 부서 -->
+                            <td>
+                                <span class="small text-muted" th:text="${g.deptName} ?: '-'">부서명</span>
                             </td>
 
                             <!-- 자기 평가 -->
@@ -230,7 +236,7 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(groupedMappings)}">
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="bi bi-people fs-2 d-block mb-2"></i>
                                 조건에 해당하는 평가 매핑이 없습니다.
                             </td>

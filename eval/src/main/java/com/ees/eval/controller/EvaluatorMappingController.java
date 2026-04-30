@@ -77,6 +77,7 @@ public class EvaluatorMappingController {
                     java.util.Map<String, Object> map = new java.util.HashMap<>();
                     map.put("evaluateeId", m.evaluateeId());
                     map.put("evaluateeName", m.evaluateeName());
+                    map.put("deptName", m.deptName());
                     map.put("self", null);
                     map.put("manager", null);
                     map.put("executive", null);

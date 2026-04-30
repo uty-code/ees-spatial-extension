@@ -36,6 +36,7 @@
             m.relation_type_code as RELATION_TYPE_CODE,
             e1.name             as EVALUATEE_NAME,
             e2.name             as EVALUATOR_NAME,
+            d.dept_name         as DEPT_NAME,
             m.is_deleted        as IS_DELETED,
             m.version           as VERSION,
             m.created_at        as CREATED_AT,
@@ -45,6 +46,7 @@
         from evaluator_mappings_51 m
         inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
         inner join employees_51 e2 on m.evaluator_id = e2.emp_id
+        left join departments_51 d on e1.dept_id = d.dept_id and d.is_deleted = 'n'
         where m.period_id = #{periodId}
           and m.is_deleted = 'n'
           <if test="deptId != null">
