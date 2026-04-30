@@ -116,13 +116,21 @@
 
                         <div class="flex-grow-1"></div>
                         <div>
-                            <a href="#" class="btn ees-btn-glass-primary btn-sm"
+                            <!-- 자가평가가 완료된 경우에만 평가 작성 가능 -->
+                            <a th:if="${evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                                href="#" class="btn ees-btn-glass-primary btn-sm"
                                 th:attr="hx-get=@{/eval/multi-dimensional/form(mappingId=${task.mappingId()})}"
                                 hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
                                 hx-push-url="true">
                                 <i class="bi bi-pencil-square"></i> 
                                 <span th:text="${submittedMap.getOrDefault(task.mappingId(), false)} ? '평가 수정' : '평가 작성'"></span>
                             </a>
+                            <!-- 자가평가 대기중 -->
+                            <button th:if="${evaluateeSelfSubmittedMap == null || !evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                                class="badge-status"
+                                style="background-color: #4b5563; cursor: not-allowed; opacity: 0.7; border: none; padding: 8px 16px;">
+                                <i class="bi bi-lock-fill"></i> 자가평가 대기중
+                            </button>
                         </div>
                     </div>
                 </div>

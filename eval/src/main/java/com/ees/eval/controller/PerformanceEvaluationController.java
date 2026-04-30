@@ -260,9 +260,9 @@ public class PerformanceEvaluationController {
             .anyMatch(entry -> "SUBMITTED".equals(entry.getValue().getConfirmStatusCode()));
         model.addAttribute("submitted", submitted);
 
-        // MANAGER/EXECUTIVE 평가인 경우: 피평가자의 자가평가 내용을 참고용으로 조회 (자가평가 코멘트는 구조 변경으로 인해 미제공)
+        // MANAGER/EXECUTIVE 평가인 경우: 피평가자의 자가평가 내용을 참고용으로 조회
         if ("MANAGER".equals(mapping.relationTypeCode()) || "EXECUTIVE".equals(mapping.relationTypeCode())) {
-            java.util.Map<Long, String> selfEvalMap = evaluatorMappingMapper
+            java.util.Map<Long, com.ees.eval.domain.Evaluation> selfEvalMap = evaluatorMappingMapper
                 .findByEvaluateeId(mapping.periodId(), mapping.evaluateeId())
                 .stream()
                 .filter(m -> "SELF".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted()))
@@ -271,7 +271,7 @@ public class PerformanceEvaluationController {
                     .stream()
                     .collect(java.util.stream.Collectors.toMap(
                         com.ees.eval.domain.Evaluation::getElementId,
-                        e -> e.getScore() != null ? String.valueOf(e.getScore()) : "", // 본인 점수(self_score) 표시
+                        e -> e,
                         (a, b) -> a
                     )))
                 .orElse(java.util.Collections.emptyMap());

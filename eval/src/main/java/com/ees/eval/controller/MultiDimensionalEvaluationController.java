@@ -87,15 +87,28 @@ public class MultiDimensionalEvaluationController {
 
             model.addAttribute("tasks", multiTasks);
 
-            // 제출 여부 확인 Map
+            // 제출 여부 확인 Map 및 피평가자 자가평가 여부 확인
             java.util.Map<Long, Boolean> submittedMap = new java.util.HashMap<>();
+            java.util.Map<Long, Boolean> evaluateeSelfSubmittedMap = new java.util.HashMap<>();
             for (EvaluatorMappingDTO task : multiTasks) {
+                // 본인의 제출 여부
                 List<Evaluation> evals = evaluationMapper.findByMappingId(task.mappingId());
                 boolean isSubmitted = evals.stream()
                         .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
                 submittedMap.put(task.mappingId(), isSubmitted);
+
+                // 피평가자(부서장)의 자가평가 제출 여부
+                List<EvaluatorMappingDTO> evaluateeTasks = mappingService.getMyEvaluationTasks(selectedPeriod.periodId(), task.evaluateeId());
+                boolean isSelfSubmitted = evaluateeTasks.stream()
+                        .filter(m -> "SELF".equals(m.relationTypeCode()))
+                        .findFirst()
+                        .map(selfMapping -> evaluationMapper.findByMappingId(selfMapping.mappingId()).stream()
+                                .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode())))
+                        .orElse(false);
+                evaluateeSelfSubmittedMap.put(task.mappingId(), isSelfSubmitted);
             }
             model.addAttribute("submittedMap", submittedMap);
+            model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
 
             if ("PLANNED".equals(selectedPeriod.statusCode())) {
                 model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
