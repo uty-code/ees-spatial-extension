@@ -331,7 +331,8 @@ public class MyEvaluationController {
             evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
                     .ifPresentOrElse(
                             existing -> {
-                                existing.setSelfScore(finalScore);
+                                existing.setScore(finalScore);
+                                existing.setReason(comment);
                                 existing.setConfirmStatusCode("SUBMITTED");
                                 existing.preUpdate();
                                 evaluationMapper.update(existing);
@@ -342,7 +343,8 @@ public class MyEvaluationController {
                                         .elementId(elementId)
                                         .confirmStatusCode("SUBMITTED")
                                         .build();
-                                eval.setSelfScore(finalScore);
+                                eval.setScore(finalScore);
+                                eval.setReason(comment);
                                 eval.prePersist();
                                 eval.setCreatedBy(empId);
                                 eval.setUpdatedBy(empId);

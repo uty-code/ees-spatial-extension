@@ -232,15 +232,8 @@ create table evaluations_51
     eval_id bigint identity(1,1) primary key,
     mapping_id bigint not null,
     element_id bigint not null,
-    score1 int,
-    score2 int,
-    -- 2차 평가용
-    reason1 nvarchar(255),
-    -- 1차 평가 사유
-    reason2 nvarchar(255),
-    -- 2차 평가 사유
-    self_score int,
-    -- 자가평가용 (숫자형태)
+    score int,
+    reason nvarchar(255),
     confirm_status_code varchar(50),
     is_deleted char(1) default 'n',
     version int default 0,

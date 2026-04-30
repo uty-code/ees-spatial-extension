@@ -224,8 +224,8 @@ public class MultiDimensionalEvaluationController {
             evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
                 .ifPresentOrElse(
                     existing -> {
-                        existing.setReason1(finalComment);
-                        existing.setScore1(finalScore);
+                        existing.setReason(finalComment);
+                        existing.setScore(finalScore);
                         existing.setConfirmStatusCode("SUBMITTED");
                         existing.preUpdate();
                         evaluationMapper.update(existing);
@@ -236,8 +236,8 @@ public class MultiDimensionalEvaluationController {
                             .elementId(elementId)
                             .confirmStatusCode("SUBMITTED")
                             .build();
-                        eval.setReason1(finalComment);
-                        eval.setScore1(finalScore);
+                        eval.setReason(finalComment);
+                        eval.setScore(finalScore);
                         eval.prePersist();
                         eval.setCreatedBy(empId);
                         eval.setUpdatedBy(empId);

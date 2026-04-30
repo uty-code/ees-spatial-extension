@@ -325,7 +325,7 @@
                        style="min-height: 80px;"
                        th:name="'score_' + ${element.elementId()}"
                        th:placeholder="'점수를 입력하세요 (최대 ' + ${element.maxScore()} + '점)'"
-                       th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getSelfScore() : ''}"
+                       th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
                        min="0" th:max="${element.maxScore()}" step="1" required>
                 <div class="guide-text">
                     <i class="bi bi-info-circle"></i>

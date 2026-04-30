@@ -376,13 +376,31 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         List<com.ees.eval.domain.Department> allDepts = departmentMapper.findAll();
         List<EvaluatorMapping> allMappings = mappingMapper.findAllByPeriodId(periodId);
         
-        List<Long> empIds = allEmployees.stream().map(Employee::getEmpId).toList();
-        List<Map<String, Object>> rawRoles = employeeMapper.findRoleNamesByEmpIds(empIds);
-        Map<Long, Set<String>> rolesMap = rawRoles.stream()
-                .collect(Collectors.groupingBy(
-                        m -> ((Number) m.get("EMP_ID")).longValue(),
-                        Collectors.mapping(m -> (String) m.get("ROLE_NAME"), Collectors.toSet())
-                ));
+        // 권한 정보 일괄 조회 (N+1 방지)
+        Map<Long, Set<String>> rolesMap = new java.util.HashMap<>();
+        if (!allEmployees.isEmpty()) {
+            List<Long> empIds = allEmployees.stream().map(Employee::getEmpId).toList();
+            List<Map<String, Object>> rawRoles = employeeMapper.findRoleNamesByEmpIds(empIds);
+            
+            for (Map<String, Object> row : rawRoles) {
+                Object empIdObj = row.get("EMP_ID");
+                if (empIdObj == null) empIdObj = row.get("emp_id");
+                
+                Object roleNameObj = row.get("ROLE_NAME");
+                if (roleNameObj == null) roleNameObj = row.get("role_name");
+
+                if (empIdObj != null && roleNameObj != null) {
+                    try {
+                        Long empId = Long.valueOf(empIdObj.toString());
+                        String roleName = roleNameObj.toString();
+                        rolesMap.computeIfAbsent(empId, k -> new java.util.HashSet<>()).add(roleName);
+                    } catch (Exception e) {
+                        log.warn("권한 정보 파싱 오류: row={}, error={}", row, e.getMessage());
+                    }
+                }
+            }
+        }
+
 
         Map<Long, Employee> empMap = allEmployees.stream()
                 .collect(Collectors.toMap(Employee::getEmpId, e -> e));

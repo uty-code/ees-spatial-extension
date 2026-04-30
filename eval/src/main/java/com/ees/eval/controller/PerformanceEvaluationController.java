@@ -274,7 +274,7 @@ public class PerformanceEvaluationController {
                     .stream()
                     .collect(java.util.stream.Collectors.toMap(
                         com.ees.eval.domain.Evaluation::getElementId,
-                        e -> "", // 자가평가 코멘트 스키마 삭제됨
+                        e -> e.getReason() != null ? e.getReason() : "", // 통합 reason 컬럼 사용
                         (a, b) -> a
                     )))
                 .orElse(java.util.Collections.emptyMap());
@@ -341,13 +341,8 @@ public class PerformanceEvaluationController {
             evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
                 .ifPresentOrElse(
                     existing -> {
-                        if ("MANAGER".equals(submitMapping.relationTypeCode())) {
-                            existing.setReason1(finalComment);
-                            existing.setScore1(finalScore);
-                        } else if ("EXECUTIVE".equals(submitMapping.relationTypeCode())) {
-                            existing.setReason2(finalComment);
-                            existing.setScore2(finalScore);
-                        }
+                        existing.setReason(finalComment);
+                        existing.setScore(finalScore);
                         existing.setConfirmStatusCode("SUBMITTED");
                         existing.preUpdate();
                         evaluationMapper.update(existing);
@@ -358,13 +353,8 @@ public class PerformanceEvaluationController {
                             .elementId(elementId)
                             .confirmStatusCode("SUBMITTED")
                             .build();
-                        if ("MANAGER".equals(submitMapping.relationTypeCode())) {
-                            eval.setReason1(finalComment);
-                            eval.setScore1(finalScore);
-                        } else if ("EXECUTIVE".equals(submitMapping.relationTypeCode())) {
-                            eval.setReason2(finalComment);
-                            eval.setScore2(finalScore);
-                        }
+                        eval.setReason(finalComment);
+                        eval.setScore(finalScore);
                         eval.prePersist();
                         eval.setCreatedBy(empId);
                         eval.setUpdatedBy(empId);
