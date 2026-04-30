@@ -111,10 +111,6 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
         List<EvaluationElementDTO> elements;
         if (deptId != null) {
             elements = elementService.getElementsByPeriodId(periodId, deptId);
-            // 부서 전용 항목이 설정되지 않은 경우, 전사 공통 항목 설정으로 자동 폴백
-            if (elements.isEmpty()) {
-                elements = elementService.getElementsByPeriodId(periodId, null);
-            }
         } else {
             elements = elementService.getElementsByPeriodId(periodId, null);
         }
