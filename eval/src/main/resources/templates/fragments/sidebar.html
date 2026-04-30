@@ -92,6 +92,7 @@
             </a>
             <a class="nav-link" th:href="@{/eval/multi-dimensional}" hx-get="/eval/multi-dimensional" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                sec:authorize="!hasAnyRole('MANAGER', 'EXECUTIVE')"
                 th:classappend="${activeMenu == 'multi-dimensional-eval' ? 'active' : ''}">
                 <i class="bi bi-people"></i>
                 <span>다면 평가</span>

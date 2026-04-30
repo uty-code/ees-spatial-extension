@@ -8,114 +8,108 @@
     <style>
         .eval-form-container { max-width: 1200px; margin: 0 auto; }
         .eval-card {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: 8px;
-            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.3);
-            border: 1px solid var(--glass-border);
-            border-left: 4px solid var(--info);
-            padding: 24px 30px;
-            margin-bottom: 20px;
-        }
-        .eval-card.submitted {
-            border-left-color: #22c55e;
+            background: #1a1f2c;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 32px;
+            margin-bottom: 24px;
+            position: relative;
         }
         .eval-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 24px;
         }
         .eval-title {
-            font-size: 1.1rem;
+            font-size: 1.25rem;
             font-weight: 700;
-            color: var(--text-main);
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .eval-title i { color: #06b6d4; font-size: 1.4rem; }
+        .weight-badge {
+            background-color: rgba(255,255,255,0.03);
+            color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 6px;
+        }
+        .field-label {
+            color: #06b6d4;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .eval-title i { color: var(--info); }
-        .weight-badge {
-            background-color: rgba(255,255,255,0.05);
-            color: var(--text-muted);
-            border: 1px solid var(--glass-border);
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 4px 12px;
-            border-radius: 4px;
-        }
-        .field-label {
-            color: var(--info);
-            font-size: 0.82rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
         .eval-textarea {
             width: 100%;
-            border: 1px solid var(--glass-border);
-            background-color: rgba(0,0,0,0.15);
-            border-radius: 6px;
-            padding: 14px 16px;
-            font-size: 0.95rem;
-            color: var(--text-main);
-            min-height: 120px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background-color: #242b3d;
+            border-radius: 8px;
+            padding: 18px;
+            font-size: 1rem;
+            color: #f8fafc;
+            min-height: 100px;
             resize: vertical;
+            transition: all 0.2s;
         }
         .eval-textarea:focus {
             outline: none;
-            border-color: var(--info);
-            background-color: rgba(0,0,0,0.25);
-            box-shadow: 0 0 0 3px rgba(0,255,255,0.1);
+            border-color: #06b6d4;
+            box-shadow: 0 0 0 3px rgba(6,182,212,0.15);
         }
-        .pre-wrap { white-space: pre-wrap; }
+        .eval-textarea:read-only {
+            background-color: rgba(255,255,255,0.02);
+            border-color: rgba(255,255,255,0.05);
+            color: #94a3b8;
+            cursor: default;
+            resize: none;
+        }
+        .score-input {
+            font-size: 2rem !important;
+            font-weight: 800 !important;
+            text-align: center;
+            min-height: 80px !important;
+        }
     </style>
     <div class="eval-form-container">
 
         <!-- 상단 헤더 -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-5 mt-2">
             <div class="d-flex align-items-center gap-3">
-                <h1 class="text-white fw-bold fs-3 mb-0">다면 평가 작성</h1>
-                <span class="badge bg-info text-dark px-3 py-2 fs-6" th:text="${mapping.evaluateeName()}">피평가자(부서장)</span>
+                <h1 class="text-white fw-bold fs-2 mb-0">다면 평가 작성</h1>
+                <span class="badge bg-cyan-500 px-4 py-2 fs-6 rounded-pill"
+                      style="background-color: #06b6d4;"
+                      th:text="${mapping.evaluateeName()}">피평가자(부서장)</span>
             </div>
-            <a href="#" class="btn ees-btn-glass"
+            <a href="#" class="btn btn-outline-light border-opacity-25 px-4 py-2"
                hx-get="/eval/multi-dimensional" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true">
-                <i class="bi bi-arrow-left"></i> 목록으로 돌아가기
+                <i class="bi bi-arrow-left me-2"></i> 목록으로 돌아가기
             </a>
         </div>
 
-        <div class="p-3 mb-4 d-flex align-items-start gap-3" 
-             style="background: rgba(0, 188, 212, 0.1); border: 1px solid rgba(0, 188, 212, 0.2); border-radius: 12px;">
-            <i class="bi bi-info-circle-fill fs-4 text-info mt-1"></i>
-            <div>
-                <div class="fw-bold text-white mb-1">다면 평가 유의사항</div>
-                <div class="text-muted small">
-                    부서장의 리더십, 소통 능력, 공정성 등에 대해 객관적이고 솔직한 평가를 부탁드립니다. 작성하신 내용은 익명으로 처리됩니다.
-                </div>
-            </div>
-        </div>
-
         <!-- 메시지 영역 -->
-        <div th:if="${successMessage}" class="alert alert-success bg-opacity-10 mb-3" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            <span th:text="${successMessage}"></span>
-        </div>
-        <div th:if="${submitted}" class="alert alert-info bg-opacity-10 mb-3" role="alert">
-            <i class="bi bi-patch-check-fill me-2"></i>
-            <span>평가가 제출되었습니다. 수정 후 다시 제출할 수 있습니다.</span>
+        <div th:if="${submitted}" class="alert alert-info bg-opacity-10 border-info border-opacity-25 text-info mb-4 d-flex align-items-center gap-3 py-3">
+            <i class="bi bi-patch-check-fill fs-4"></i>
+            <span class="fw-bold">평가가 제출되었습니다. 수정 후 다시 제출할 수 있습니다.</span>
         </div>
         
         <!-- 부서장 자가평가 미완료 시 경고 -->
-        <div th:if="${!isEvaluateeSelfSubmitted}" class="alert alert-warning bg-opacity-10 mb-4" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <span>현재 피평가자(부서장)의 자가평가가 완료되지 않았습니다. 부서장의 의견을 확인한 후 평가를 진행하시는 것을 권장합니다.</span>
+        <div th:if="${!isEvaluateeSelfSubmitted}" class="alert alert-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4 d-flex align-items-center gap-3 py-3">
+            <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+            <span class="fw-bold">현재 피평가자(부서장)의 자가평가가 완료되지 않았습니다.</span>
         </div>
 
         <!-- 평가요소 없을 때 -->
-        <div th:if="${elements == null || elements.isEmpty()}" class="ees-card text-center py-5">
+        <div th:if="${elements == null || elements.isEmpty()}" class="eval-card text-center py-5">
             <i class="bi bi-exclamation-circle fs-1 text-warning mb-3 d-block"></i>
             <h5 class="text-white fw-bold">등록된 다면평가 요소가 없습니다.</h5>
         </div>
@@ -125,8 +119,7 @@
               th:action="@{/eval/multi-dimensional/submit}" method="post">
             <input type="hidden" name="mappingId" th:value="${mappingId}">
 
-            <div th:each="element : ${elements}"
-                 th:class="${savedMap != null and savedMap.containsKey(element.elementId())} ? 'eval-card submitted' : 'eval-card'">
+            <div th:each="element : ${elements}" class="eval-card">
                 <div class="eval-card-header">
                     <div class="eval-title">
                         <i class="bi bi-person-check-fill"></i>
@@ -137,44 +130,52 @@
                     </div>
                 </div>
 
-                <div class="row g-4">
-                    <!-- 부서장 자가평가 의견 (참고용) -->
-                    <div th:if="${evaluateeSelfEvalMap != null and evaluateeSelfEvalMap.containsKey(element.elementId())}" class="col-12">
-                        <div class="p-3 mb-2" style="background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--glass-border); border-radius: 6px;">
-                            <div class="field-label mb-2" style="color: #adb5bd;">
-                                <i class="bi bi-person-fill-gear"></i> 부서장 자가평가 의견
-                            </div>
-                            <div class="text-white-50 small pre-wrap" 
-                                 th:text="${evaluateeSelfEvalMap.get(element.elementId()).getScore() + '점'}">
-                                부서장이 작성한 자가평가 점수가 이곳에 표시됩니다.
-                            </div>
-                        </div>
+                <!-- 부서장 자가평가 의견 (참고용) -->
+                <div th:if="${evaluateeSelfEvalMap != null and evaluateeSelfEvalMap.containsKey(element.elementId())}" class="mb-4">
+                    <div class="field-label">
+                        <i class="bi bi-person-badge"></i> 대상자의 자가 평가 (제출된 실적 기록)
                     </div>
+                    <div class="eval-textarea" readonly 
+                         th:with="hasSelfEval=${evaluateeSelfEvalMap.get(element.elementId()).getScore() != null}"
+                         th:text="${hasSelfEval ? evaluateeSelfEvalMap.get(element.elementId()).getScore() : '작성된 자가 평가 점수가 없습니다.'}"
+                         th:style="${!hasSelfEval ? 'color: #64748b; font-style: italic;' : ''}">
+                    </div>
+                </div>
 
+                <div class="row g-4">
+                    <!-- 점수 입력 -->
                     <div class="col-md-3">
-                        <div class="field-label mb-2">
-                            <i class="bi bi-award-fill"></i> 점수 (0~100점)
+                        <div class="field-label">
+                            <i class="bi bi-award-fill"></i> 
+                            <span th:text="${mapping.relationTypeCode() == 'SELF' ? '자가 평가 점수 (0~100점)' : '최종 평가 점수 (0~100점)'}">최종 평가 점수</span>
                         </div>
-                        <input type="number" class="eval-textarea text-center fs-4 fw-bold" style="min-height: 60px;"
+                        <input type="number" class="eval-textarea score-input"
                                th:name="'score_' + ${element.elementId()}"
                                th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
                                min="0" th:max="${element.maxScore()}" step="1" 
                                required>
                     </div>
-                    <div class="col-md-9">
-                        <div class="field-label mb-2">
-                            <i class="bi bi-chat-left-text-fill"></i> 구체적인 사유 및 코멘트
+
+                    <!-- 코멘트 영역 (본인이 아닐 때만 노출) -->
+                    <div th:if="${mapping.relationTypeCode() != 'SELF'}" class="col-md-9">
+                        <div class="field-label">
+                            <i class="bi bi-chat-left-text-fill"></i> 최종 코멘트 (평가 사유 및 피드백)
                         </div>
                         <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
-                                  th:placeholder="'이 항목에 대한 구체적인 관찰 사례와 평가 사유를 서술해주세요.'"
+                                  placeholder="부서장의 역량 및 리더십에 대한 구체적인 피드백을 입력해주세요."
                                   th:readonly="${submitted}" required th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
                     </div>
+
+                    <!-- 본인일 경우 코멘트 숨김 처리 -->
+                    <input th:if="${mapping.relationTypeCode() == 'SELF'}" type="hidden" 
+                           th:name="'comment_' + ${element.elementId()}" value="다면 자가평가 점수 제출">
                 </div>
             </div>
 
             <!-- 하단 버튼 -->
             <div class="d-flex justify-content-end mt-4 mb-5">
-                <button type="submit" class="btn ees-btn-glass-primary btn-lg py-3 px-5 fs-5">
+                <button type="submit" class="btn btn-info btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg text-white"
+                        style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border: none;">
                     <i class="bi bi-check2-circle me-2"></i> 다면평가 제출하기
                 </button>
             </div>
