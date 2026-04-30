@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'interview-mgmt', ~{::style}, ~{})}">
+<head>
+    <title>면담 기록 작성 - EES</title>
+</head>
+<body>
+<div id="page-content" class="container-fluid py-4" th:fragment="content">
+    <style>
+        .form-container { max-width: 900px; margin: 0 auto; }
+        .interview-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        .header-section {
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .evaluatee-profile { display: flex; align-items: center; gap: 20px; }
+        .profile-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--info);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--info);
+        }
+        .qualitative-textarea {
+            width: 100%;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            color: var(--text-main);
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all 0.3s;
+        }
+        .qualitative-textarea:focus {
+            outline: none;
+            border-color: var(--info);
+            background: rgba(0,0,0,0.3);
+            box-shadow: 0 0 0 4px rgba(0, 188, 212, 0.1);
+        }
+        .qualitative-textarea:disabled {
+            background: rgba(255,255,255,0.02);
+            color: rgba(255,255,255,0.6);
+            cursor: not-allowed;
+        }
+        .label-text {
+            color: var(--info);
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .section-guide {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+    </style>
+
+    <div class="form-container">
+        <!-- 상단 내비 -->
+        <div class="mb-4">
+            <a href="#" class="btn ees-btn-glass"
+               hx-get th:attr="hx-get=@{/eval/interview}" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                <i class="bi bi-arrow-left me-2"></i> 목록으로 돌아가기
+            </a>
+        </div>
+
+        <div class="interview-card">
+            <div class="header-section">
+                <div class="evaluatee-profile">
+                    <div class="profile-icon">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h2 class="text-white fw-bold fs-4 mb-0" th:text="${mapping.evaluateeName}">홍길동</h2>
+                            <span class="badge bg-info text-dark" th:text="${mapping.relationTypeCode == 'MANAGER' ? '팀원' : '본부원'}">팀원</span>
+                        </div>
+                        <p class="text-muted small mb-0" th:text="${mapping.periodName}">2024년 상반기 정기평가</p>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="badge mb-2" 
+                         th:classappend="${interview.statusCode == 'COMPLETED' ? 'bg-success' : (interview.statusCode == 'DRAFT' ? 'bg-warning text-dark' : 'bg-secondary')}"
+                         th:text="${interview.statusCode == 'COMPLETED' ? '최종 확정됨' : (interview.statusCode == 'DRAFT' ? '임시 저장 중' : '작성 전')}">
+                    </div>
+                    <div class="text-muted x-small">마지막 업데이트: <span th:text="${interview.updatedAt != null ? #temporals.format(interview.updatedAt, 'yyyy-MM-dd HH:mm') : '-'}"></span></div>
+                </div>
+            </div>
+
+            <!-- 면담 폼 -->
+            <form id="interviewForm" th:action="@{/eval/interview/save}" method="post">
+                <input type="hidden" name="mappingId" th:value="${mapping.mappingId}">
+                <input type="hidden" name="statusCode" id="statusCode" th:value="${interview.statusCode}">
+
+                <!-- 1. 성과 및 기여도 확인 -->
+                <div class="mb-5">
+                    <label class="label-text">
+                        <i class="bi bi-bar-chart-fill me-2"></i> 1. 성과 및 기여도 확인
+                    </label>
+                    <div class="section-guide">
+                        • <strong>지표 확인:</strong> KPI 및 목표 대비 실제 결과 확인<br>
+                        • <strong>과정 복기:</strong> 유효했던 전략 또는 한계점 논의<br>
+                        • <strong>정성 평가:</strong> 협업, 리더십, 조직문화 기여도 등
+                    </div>
+                    <textarea class="qualitative-textarea" name="content1" 
+                              style="min-height: 180px;"
+                              placeholder="지난 기간 동안 달성한 주요 성과와 기여도를 입력하세요."
+                              th:text="${interview.content1}"
+                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee}"></textarea>
+                </div>
+
+                <!-- 2. 피드백 주고받기 -->
+                <div class="mb-5">
+                    <label class="label-text">
+                        <i class="bi bi-chat-left-dots-fill me-2"></i> 2. 피드백 주고받기 (양방향 소통)
+                    </label>
+                    <div class="section-guide">
+                        • <strong>상사의 피드백:</strong> 강점(Keep) 및 개선점(Problem/Improve) 전달<br>
+                        • <strong>사원의 의견:</strong> 업무 수행 시 어려움 및 지원 필요 사항 청취
+                    </div>
+                    <textarea class="qualitative-textarea" name="content2" 
+                              style="min-height: 180px;"
+                              placeholder="피드백 내용과 사원의 건의 사항을 입력하세요."
+                              th:text="${interview.content2}"
+                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee}"></textarea>
+                </div>
+
+                <!-- 3. 역량 개발 및 커리어 플랜 -->
+                <div class="mb-5">
+                    <label class="label-text">
+                        <i class="bi bi-graph-up-arrow me-2"></i> 3. 역량 개발 및 커리어 플랜 설정
+                    </label>
+                    <div class="section-guide">
+                        • <strong>강약점 분석:</strong> 강점 극대화 및 부족한 역량 보완 계획<br>
+                        • <strong>직무 비전:</strong> 향후 성장 방향성 논의 (전문가 vs 관리자 등)
+                    </div>
+                    <textarea class="qualitative-textarea" name="content3" 
+                              style="min-height: 180px;"
+                              placeholder="사원의 역량 개발 및 커리어 성장 계획을 입력하세요."
+                              th:text="${interview.content3}"
+                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee}"></textarea>
+                </div>
+
+                <!-- 4. 다음 분기/연도 목표 설정 -->
+                <div class="mb-5">
+                    <label class="label-text">
+                        <i class="bi bi-flag-fill me-2"></i> 4. 다음 분기/연도 목표 설정
+                    </label>
+                    <div class="section-guide">
+                        • <strong>Action Plan:</strong> 구체적인 프로젝트 및 수치 달성 목표 합의<br>
+                        • <strong>핵심 과제:</strong> 다음 평가 기간에 집중해야 할 최우선 순위 정의
+                    </div>
+                    <textarea class="qualitative-textarea" name="content4" 
+                              style="min-height: 180px;"
+                              placeholder="다음 기간에 집중할 구체적인 목표와 실행 계획을 입력하세요."
+                              th:text="${interview.content4}"
+                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee}"></textarea>
+                </div>
+
+                <!-- 버튼 영역 -->
+                <div th:if="${isEvaluator && interview.statusCode != 'COMPLETED'}" class="d-flex justify-content-end gap-3 pt-4 border-top border-secondary">
+                    <button type="button" class="btn ees-btn-glass px-4" onclick="submitWithStatus('DRAFT')">
+                        <i class="bi bi-save me-2"></i> 임시 저장
+                    </button>
+                    <button type="button" class="btn ees-btn-glass-primary px-4" onclick="confirmAndSubmit()">
+                        <i class="bi bi-check-circle me-2"></i> 최종 확정
+                    </button>
+                </div>
+                
+                <div th:if="${isEvaluatee}" class="d-flex justify-content-center pt-4 border-top border-secondary">
+                    <p class="text-info mb-0 small">
+                        <i class="bi bi-info-circle me-1"></i> 본 화면은 부서장이 작성한 면담 기록을 조회하는 화면입니다.
+                    </p>
+                </div>
+                
+                <div th:if="${isEvaluator && interview.statusCode == 'COMPLETED'}" class="d-flex justify-content-center pt-4 border-top border-secondary">
+                    <p class="text-success mb-0 small">
+                        <i class="bi bi-lock-fill me-1"></i> 면담 기록이 최종 확정되어 수정할 수 없습니다.
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        function submitWithStatus(status) {
+            document.getElementById('statusCode').value = status;
+            document.getElementById('interviewForm').submit();
+        }
+
+        function confirmAndSubmit() {
+            if (confirm('최종 확정 후에는 수정이 불가능합니다. 계속하시겠습니까?')) {
+                submitWithStatus('COMPLETED');
+            }
+        }
+    </script>
+</div>
+</body>
+</html>
