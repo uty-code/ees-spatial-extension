@@ -315,34 +315,43 @@
             </div>
         </th:block>
 
-        <!-- Create Modal -->
+        <!-- Create Modal (수동 매핑 추가) -->
         <div th:if="${selectedPeriod != null}" class="modal fade" id="createMappingModal" tabindex="-1"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-content bg-dark text-white border-secondary" style="overflow: visible;">
                     <form th:action="@{/eval/evaluators/create}" method="post">
                         <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
                         <input type="hidden" name="currentDeptId" th:value="${selectedDeptId}">
                         <input type="hidden" name="currentSearchName" th:value="${searchName}">
+                        <!-- 실제 전송되는 사번 hidden inputs -->
+                        <input type="hidden" name="evaluateeId" id="hiddenEvaluateeId">
+                        <input type="hidden" name="evaluatorId" id="hiddenEvaluatorId">
                         <div class="modal-header border-secondary">
                             <h5 class="modal-title">수동 매핑 추가</h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
                         </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label text-muted small">피평가자 사번 <span
+                        <div class="modal-body" style="overflow: visible;">
+                            <!-- 피평가자 검색 -->
+                            <div class="mb-3 position-relative" id="evaluatee-container">
+                                <label class="form-label text-muted small">피평가자 <span
                                         class="text-danger">*</span></label>
-                                <input type="number" name="evaluateeId"
-                                    class="form-control bg-dark text-white border-secondary" required
-                                    placeholder="예: 1001">
+                                <input type="text" id="evaluateeSearch"
+                                    class="form-control bg-dark text-white border-secondary"
+                                    placeholder="클릭하여 사원 검색" autocomplete="off" required>
+                                <div id="evaluateeDropdown" class="autocomplete-dropdown"></div>
+                                <div id="evaluateeSelected" class="selected-info"></div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted small">평가자 사번 <span
+                            <!-- 평가자 검색 -->
+                            <div class="mb-3 position-relative" id="evaluator-container">
+                                <label class="form-label text-muted small">평가자 <span
                                         class="text-danger">*</span></label>
-                                <input type="number" name="evaluatorId"
-                                    class="form-control bg-dark text-white border-secondary" required
-                                    placeholder="예: 1002">
+                                <input type="text" id="evaluatorSearch"
+                                    class="form-control bg-dark text-white border-secondary"
+                                    placeholder="클릭하여 사원 검색" autocomplete="off" required>
+                                <div id="evaluatorDropdown" class="autocomplete-dropdown"></div>
+                                <div id="evaluatorSelected" class="selected-info"></div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-muted small">관계 유형 <span
@@ -411,6 +420,176 @@
             </div>
         </div>
 
+        <!-- 사원 검색 드롭다운 스타일 -->
+        <style>
+            .autocomplete-dropdown {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                max-height: 200px;
+                overflow-y: auto;
+                background: #1e1e2e;
+                border: 1px solid #444;
+                border-top: none;
+                border-radius: 0 0 8px 8px;
+                z-index: 9999;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            }
+            .autocomplete-dropdown.show { display: block; }
+            .autocomplete-item {
+                padding: 10px 14px;
+                cursor: pointer;
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+                transition: background 0.15s ease;
+            }
+            .autocomplete-item:hover { background: rgba(99, 102, 241, 0.15); }
+            .autocomplete-item:last-child { border-bottom: none; }
+            .autocomplete-item .emp-name { font-weight: 600; color: #e2e8f0; }
+            .autocomplete-item .emp-dept { font-size: 0.8rem; color: #94a3b8; }
+            .autocomplete-item .emp-id { font-size: 0.75rem; color: #6366f1; float: right; margin-top: 2px; }
+            .selected-info {
+                margin-top: 4px;
+                font-size: 0.8rem;
+                color: #6ee7b7;
+            }
+            .autocomplete-dropdown::-webkit-scrollbar { width: 5px; }
+            .autocomplete-dropdown::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+        </style>
+
+        <!-- 사원 검색 자동완성 스크립트 -->
+        <script>
+        (function() {
+            let employeeCache = null;
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+            async function fetchEmployees() {
+                if (employeeCache) return employeeCache;
+                try {
+                    const headers = {};
+                    if (csrfHeader && csrfToken) headers[csrfHeader] = csrfToken;
+                    const res = await fetch('/api/employees/search', { headers });
+                    if (res.ok) {
+                        employeeCache = await res.json();
+                        return employeeCache;
+                    }
+                } catch (e) {
+                    console.error('사원 목록 조회 실패:', e);
+                }
+                return [];
+            }
+
+            function renderDropdown(dropdown, employees) {
+                dropdown.innerHTML = '';
+                if (employees.length === 0) {
+                    dropdown.innerHTML = '<div class="autocomplete-item text-muted text-center">검색 결과 없음</div>';
+                } else {
+                    employees.forEach(emp => {
+                        const item = document.createElement('div');
+                        item.className = 'autocomplete-item';
+                        item.dataset.empId = emp.empId;
+                        item.dataset.name = emp.name;
+                        item.dataset.deptName = emp.deptName || '미지정';
+                        item.innerHTML =
+                            '<span class="emp-id">' + emp.empId + '</span>' +
+                            '<span class="emp-name">' + emp.name + '</span><br>' +
+                            '<span class="emp-dept">' + (emp.deptName || '미지정') + '</span>';
+                        dropdown.appendChild(item);
+                    });
+                }
+                dropdown.classList.add('show');
+            }
+
+            function initSearch(searchInput, dropdown, hiddenInput, selectedInfo) {
+                searchInput.addEventListener('focus', async function() {
+                    const employees = await fetchEmployees();
+                    const keyword = this.value.trim().toLowerCase();
+                    const filtered = keyword
+                        ? employees.filter(e =>
+                            e.name.toLowerCase().includes(keyword) ||
+                            String(e.empId).includes(keyword) ||
+                            (e.deptName && e.deptName.toLowerCase().includes(keyword)))
+                        : employees;
+                    renderDropdown(dropdown, filtered);
+                });
+
+                searchInput.addEventListener('input', async function() {
+                    const employees = await fetchEmployees();
+                    const keyword = this.value.trim().toLowerCase();
+                    const filtered = keyword
+                        ? employees.filter(e =>
+                            e.name.toLowerCase().includes(keyword) ||
+                            String(e.empId).includes(keyword) ||
+                            (e.deptName && e.deptName.toLowerCase().includes(keyword)))
+                        : employees;
+                    renderDropdown(dropdown, filtered);
+                    hiddenInput.value = '';
+                    selectedInfo.textContent = '';
+                });
+
+                dropdown.addEventListener('click', function(e) {
+                    const item = e.target.closest('.autocomplete-item');
+                    if (item && item.dataset.empId) {
+                        hiddenInput.value = item.dataset.empId;
+                        searchInput.value = item.dataset.name + ' (' + item.dataset.deptName + ')';
+                        selectedInfo.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>사번 ' + item.dataset.empId + ' 선택됨';
+                        dropdown.classList.remove('show');
+                    }
+                });
+            }
+
+            function setupAutocomplete() {
+                const ee = document.getElementById('evaluateeSearch');
+                const er = document.getElementById('evaluatorSearch');
+                if (ee && !ee.dataset.initialized) {
+                    ee.dataset.initialized = 'true';
+                    initSearch(ee,
+                        document.getElementById('evaluateeDropdown'),
+                        document.getElementById('hiddenEvaluateeId'),
+                        document.getElementById('evaluateeSelected'));
+                }
+                if (er && !er.dataset.initialized) {
+                    er.dataset.initialized = 'true';
+                    initSearch(er,
+                        document.getElementById('evaluatorDropdown'),
+                        document.getElementById('hiddenEvaluatorId'),
+                        document.getElementById('evaluatorSelected'));
+                }
+
+                document.addEventListener('click', function(e) {
+                    if (!e.target.closest('#evaluatee-container')) {
+                        document.getElementById('evaluateeDropdown')?.classList.remove('show');
+                    }
+                    if (!e.target.closest('#evaluator-container')) {
+                        document.getElementById('evaluatorDropdown')?.classList.remove('show');
+                    }
+                });
+
+                const modal = document.getElementById('createMappingModal');
+                if (modal) {
+                    modal.addEventListener('show.bs.modal', function() {
+                        ['evaluateeSearch', 'evaluatorSearch', 'hiddenEvaluateeId', 'hiddenEvaluatorId']
+                            .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+                        ['evaluateeSelected', 'evaluatorSelected']
+                            .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = ''; });
+                        document.getElementById('evaluateeDropdown')?.classList.remove('show');
+                        document.getElementById('evaluatorDropdown')?.classList.remove('show');
+                    });
+                }
+            }
+
+            // 일반 페이지 로드 + HTMX 내비게이션 모두 대응
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setupAutocomplete);
+            } else {
+                setupAutocomplete();
+            }
+            document.body.addEventListener('htmx:afterSettle', setupAutocomplete);
+        })();
+        </script>
 
     </div>
 </body>

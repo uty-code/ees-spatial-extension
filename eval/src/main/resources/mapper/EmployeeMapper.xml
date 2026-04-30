@@ -536,4 +536,17 @@
           and er.is_deleted = 'n'
     </select>
 
+    <!-- 사원 자동완성 검색용 단순 조회 (이름, 사번, 부서명) -->
+    <select id="searchForAutocomplete" resultType="com.ees.eval.domain.Employee">
+        select top (#{limit})
+            e.emp_id    as EMP_ID,
+            e.name      as NAME,
+            d.dept_name as DEPT_NAME
+        from employees_51 e
+        left join departments_51 d on e.dept_id = d.dept_id and d.is_deleted = 'n'
+        where e.is_deleted = 'n'
+          and e.status_code = 'EMPLOYED'
+        order by e.name asc
+    </select>
+
 </mapper>

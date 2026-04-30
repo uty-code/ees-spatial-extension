@@ -269,4 +269,14 @@ public interface EmployeeMapper {
      * @return 해당 권한을 가진 사원 리스트
      */
     List<Employee> findByDeptIdAndRoleName(@Param("deptId") Long deptId, @Param("roleName") String roleName);
+
+    /**
+     * 사원 자동완성 검색을 위한 단순 정보를 조회합니다.
+     * 재직(EMPLOYED) 상태 사원만 대상으로 이름순 정렬합니다.
+     *
+     * @param keyword 검색어 (null 허용 - null이면 전체 조회)
+     * @param limit   조회 결과 제한 수
+     * @return 사원 엔티티 리스트 (empId, name, deptName만 채워짐)
+     */
+    List<Employee> searchForAutocomplete(@Param("keyword") String keyword, @Param("limit") int limit);
 }

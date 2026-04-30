@@ -705,6 +705,22 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     /**
+     * {@inheritDoc}
+     * Mapper에서 재직 사원을 조회한 뒤 경량 DTO(empId, name, deptName)로 변환합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<EmployeeDTO> searchForAutocomplete(String keyword, int limit) {
+        return employeeMapper.searchForAutocomplete(keyword, limit).stream()
+                .map(emp -> EmployeeDTO.builder()
+                        .empId(emp.getEmpId())
+                        .name(emp.getName())
+                        .deptName(emp.getDeptName())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    /**
      * DTO(EmployeeDTO) 레코드를 도메인 엔티티(Employee)로 변환합니다.
      *
      * @param dto 변환할 사원 DTO

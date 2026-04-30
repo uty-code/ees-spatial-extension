@@ -200,4 +200,13 @@ public interface EmployeeService {
      * @return 잠긴 계정 사원 수
      */
     long countLockedEmployees();
+
+    /**
+     * 사원 자동완성 검색을 위한 간략 정보를 조회합니다.
+     *
+     * @param keyword 검색어 (null 허용)
+     * @param limit   조회 결과 제한 수
+     * @return 이름, 부서명, 사번이 포함된 사원 DTO 리스트
+     */
+    List<EmployeeDTO> searchForAutocomplete(String keyword, int limit);
 }
