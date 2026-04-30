@@ -49,14 +49,9 @@ public class MyEvaluationController {
      * 부서 전용 설정이 없으면 전사 공통(dept_id IS NULL)으로 폴백합니다.
      */
     private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
-        // 1차: 부서 전용 항목 조회
         if (deptId != null) {
-            List<EvaluationElementDTO> deptElements = elementService.getElementsByPeriodId(periodId, deptId);
-            if (!deptElements.isEmpty()) {
-                return deptElements;
-            }
+            return elementService.getElementsByPeriodId(periodId, deptId);
         }
-        // 2차: 전사 공통 항목으로 폴백
         return elementService.getElementsByPeriodId(periodId, null);
     }
 

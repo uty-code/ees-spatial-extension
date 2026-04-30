@@ -184,14 +184,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
     private void validateAllWeightsConfigured(Long periodId) {
         List<String> invalidScopes = new ArrayList<>();
 
-        // 전사 공통 가중치 필수 검증 추가
-        boolean isCommonStaffValid = typeWeightService.isWeightSumValid(periodId, null, "STAFF");
-        boolean isCommonLeaderValid = typeWeightService.isWeightSumValid(periodId, null, "LEADER");
-        if (!isCommonStaffValid || !isCommonLeaderValid) {
-            invalidScopes.add("전사 공통");
-        }
-
-        // 모든 부서별 가중치 검증 (부서 자체 설정이 100%이거나, 전사 공통을 폴백받아 100%여야 함)
+        // 모든 부서별 가중치 검증 (부서 자체 설정이 100%여야 함)
         List<DepartmentDTO> allDepts = departmentService.getSimpleAllDepartments();
         for (DepartmentDTO dept : allDepts) {
             // 비활성 부서는 검증에서 제외
@@ -212,7 +205,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
             throw new IllegalStateException(
                     "가중치 설정이 완료되지 않은 대상이 있습니다: [" +
                             String.join(", ", invalidScopes) + "]. " +
-                            "전사 공통 또는 해당 부서의 평가요소 관리에서 유형별 가중치 및 항목별 가중치 합계가 100%가 되도록 설정해 주세요.");
+                            "해당 부서의 평가요소 관리에서 유형별 가중치 및 항목별 가중치 합계가 100%가 되도록 설정해 주세요.");
         }
     }
 

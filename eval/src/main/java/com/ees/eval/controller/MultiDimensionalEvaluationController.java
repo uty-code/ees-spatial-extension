@@ -47,10 +47,7 @@ public class MultiDimensionalEvaluationController {
      */
     private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
         if (deptId != null) {
-            List<EvaluationElementDTO> deptElements = elementService.getElementsByPeriodId(periodId, deptId);
-            if (!deptElements.isEmpty()) {
-                return deptElements;
-            }
+            return elementService.getElementsByPeriodId(periodId, deptId);
         }
         return elementService.getElementsByPeriodId(periodId, null);
     }
