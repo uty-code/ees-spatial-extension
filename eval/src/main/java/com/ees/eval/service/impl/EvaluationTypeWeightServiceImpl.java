@@ -90,10 +90,6 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
     @Override
     @Transactional(readOnly = true)
     public boolean isWeightSumValid(Long periodId, Long deptId, String targetRoleCode) {
-        if (deptId == null) {
-            // 전사공통은 100% 검증을 통과한 것으로 취급 (사용자 요청)
-            return true;
-        }
 
         // 1) 유형별 가중치(PERFORMANCE/COMPETENCY 비율) 합계 = 100% 검증
         // UI에서 보여지는 기본값(50/50)을 그대로 검증에 사용하기 위해 getTypeWeights 호출
@@ -112,10 +108,13 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
         }
 
         // 2) 각 유형별 평가 항목(element) 가중치 합계 = 100% 검증
-        //    명시적으로 해당 부서(deptId)에 등록된 항목만 인정 (전사 공통 자동 폴백 제거)
         List<EvaluationElementDTO> elements;
         if (deptId != null) {
             elements = elementService.getElementsByPeriodId(periodId, deptId);
+            // 부서 전용 항목이 설정되지 않은 경우, 전사 공통 항목 설정으로 자동 폴백
+            if (elements.isEmpty()) {
+                elements = elementService.getElementsByPeriodId(periodId, null);
+            }
         } else {
             elements = elementService.getElementsByPeriodId(periodId, null);
         }

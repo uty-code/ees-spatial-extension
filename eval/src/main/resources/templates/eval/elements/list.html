@@ -163,7 +163,7 @@
                                     <td>
                                         <span th:if="${el.elementTypeCode() == 'PERFORMANCE'}" class="ees-badge ees-badge-performance">성과</span>
                                         <span th:if="${el.elementTypeCode() == 'COMPETENCY'}" class="ees-badge ees-badge-competency">역량</span>
-                                        <span th:if="${el.elementTypeCode() == 'PEER' || el.elementTypeCode() == 'MULTI_DIMENSIONAL'}" class="ees-badge ees-badge-multi">다면</span>
+                                        <span th:if="${el.elementTypeCode() == 'MULTI_DIMENSIONAL'}" class="ees-badge ees-badge-multi">다면</span>
                                     </td>
                                     <td>
                                         <div class="fw-bold text-white" th:text="${el.elementName()}">요소명</div>

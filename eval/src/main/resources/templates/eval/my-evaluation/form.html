@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'my-evaluation', ~{::style}, ~{})}">
 <head>
-    <title th:text="${evalType == 'COMPETENCY'} ? '역량 자가평가 작성 - EES' : (${evalType == 'PEER' or evalType == 'MULTI_DIMENSIONAL'} ? '다면 자가평가 작성 - EES' : '성과 자가평가 작성 - EES')">자가평가 작성 - EES</title>
+    <title th:text="${evalType == 'COMPETENCY'} ? '역량 자가평가 작성 - EES' : (${evalType == 'MULTI_DIMENSIONAL'} ? '다면 자가평가 작성 - EES' : '성과 자가평가 작성 - EES')">자가평가 작성 - EES</title>
     <style></style>
 </head>
 <body>
@@ -242,21 +242,21 @@
     <div class="eval-form-container">
 
         <!-- 폼 헤더 -->
-        <div class="form-header" th:classappend="${evalType == 'COMPETENCY' ? 'comp' : ((evalType == 'PEER' or evalType == 'MULTI_DIMENSIONAL') ? 'peer' : 'perf')}">
+        <div class="form-header" th:classappend="${evalType == 'COMPETENCY' ? 'comp' : (evalType == 'MULTI_DIMENSIONAL' ? 'peer' : 'perf')}">
             <div class="row align-items-center">
                 <div class="col">
                     <div class="d-flex align-items-center gap-3">
                         <div class="header-icon">
                             <i th:if="${evalType == 'PERFORMANCE'}" class="bi bi-rocket-takeoff fs-3 text-indigo-400"></i>
                             <i th:if="${evalType == 'COMPETENCY'}" class="bi bi-lightning-charge fs-3 text-emerald-400"></i>
-                            <i th:if="${evalType == 'PEER' or evalType == 'MULTI_DIMENSIONAL'}" class="bi bi-people fs-3 text-pink-400"></i>
+                            <i th:if="${evalType == 'MULTI_DIMENSIONAL'}" class="bi bi-people fs-3 text-pink-400"></i>
                         </div>
                         <div>
-                            <h1 th:text="${evalType == 'COMPETENCY' ? '역량 자가평가' : ((evalType == 'PEER' or evalType == 'MULTI_DIMENSIONAL') ? '다면 자가평가' : '성과 자가평가')}">평가 작성</h1>
+                            <h1 th:text="${evalType == 'COMPETENCY' ? '역량 자가평가' : (evalType == 'MULTI_DIMENSIONAL' ? '다면 자가평가' : '성과 자가평가')}">평가 작성</h1>
                             <div class="subtitle">
                                 <span th:if="${evalType == 'PERFORMANCE'}">목표 달성도 및 성과 기여도를 평가합니다.</span>
                                 <span th:if="${evalType == 'COMPETENCY'}">직무 수행 역량 및 태도를 평가합니다.</span>
-                                <span th:if="${evalType == 'PEER' or evalType == 'MULTI_DIMENSIONAL'}">동료/부서원과의 협업 및 리더십을 평가합니다.</span>
+                                <span th:if="${evalType == 'MULTI_DIMENSIONAL'}">동료/부서원과의 협업 및 리더십을 평가합니다.</span>
                             </div>
                         </div>
                     </div>
@@ -303,11 +303,11 @@
 
             <div th:each="element, iterStat : ${elements}"
                  class="eval-card"
-                 th:classappend="${savedMap.containsKey(element.elementId()) and savedMap.get(element.elementId()).confirmStatusCode == 'SUBMITTED' ? 'submitted' : (evalType == 'COMPETENCY' ? 'comp-card' : (evalType == 'PEER' ? 'peer-card' : 'perf-card'))}">
+                 th:classappend="${savedMap.containsKey(element.elementId()) and savedMap.get(element.elementId()).confirmStatusCode == 'SUBMITTED' ? 'submitted' : (evalType == 'COMPETENCY' ? 'comp-card' : (evalType == 'MULTI_DIMENSIONAL' ? 'peer-card' : 'perf-card'))}">
 
                 <div class="eval-card-header">
                     <div class="eval-title">
-                        <span class="element-index" th:classappend="${evalType == 'COMPETENCY'} ? 'index-comp' : ((${evalType == 'PEER' or evalType == 'MULTI_DIMENSIONAL'}) ? 'index-peer' : 'index-perf')"
+                        <span class="element-index" th:classappend="${evalType == 'COMPETENCY'} ? 'index-comp' : (evalType == 'MULTI_DIMENSIONAL' ? 'index-peer' : 'index-perf')"
                               th:text="${iterStat.count}">1</span>
                         <span th:text="${element.elementName()}">평가 항목</span>
                     </div>

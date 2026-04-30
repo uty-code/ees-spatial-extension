@@ -136,7 +136,7 @@ public class MyEvaluationController {
                             .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
                             .anyMatch(el -> submittedElementIds.contains(el.elementId()));
                     selfPeerSubmitted = allElements.stream()
-                            .filter(el -> "PEER".equals(el.elementTypeCode()) || "MULTI_DIMENSIONAL".equals(el.elementTypeCode()))
+                            .filter(el -> "MULTI_DIMENSIONAL".equals(el.elementTypeCode()))
                             .anyMatch(el -> submittedElementIds.contains(el.elementId()));
                 }
             }
@@ -165,7 +165,7 @@ public class MyEvaluationController {
                     .filter(e -> "COMPETENCY".equals(e.elementTypeCode()))
                     .toList();
             List<EvaluationElementDTO> peerElements = allElements.stream()
-                    .filter(e -> "PEER".equals(e.elementTypeCode()))
+                    .filter(e -> "MULTI_DIMENSIONAL".equals(e.elementTypeCode()))
                     .toList();
             
             model.addAttribute("perfElements", perfElements);
@@ -193,7 +193,7 @@ public class MyEvaluationController {
             RedirectAttributes redirectAttributes) {
 
         if (!"PERFORMANCE".equals(evalType) && !"COMPETENCY".equals(evalType) && 
-            !"PEER".equals(evalType) && !"MULTI_DIMENSIONAL".equals(evalType)) {
+            !"MULTI_DIMENSIONAL".equals(evalType)) {
             evalType = "PERFORMANCE";
         }
 

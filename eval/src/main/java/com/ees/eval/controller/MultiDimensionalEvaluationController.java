@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 다면평가(Peer/Upward Evaluation) 컨트롤러
+ * 다면평가(Multi-dimensional Evaluation) 컨트롤러
  * 부서원(Subordinate)이 부서장(Leader)을 평가하는 기능을 담당합니다.
  */
 @Slf4j
@@ -84,15 +84,15 @@ public class MultiDimensionalEvaluationController {
 
             // 내가 평가해야 할 매핑 중 'SUBORDINATE' 관계인 것만 필터링 (다면평가)
             List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(selectedPeriod.periodId(), empId);
-            List<EvaluatorMappingDTO> peerTasks = myTasks.stream()
+            List<EvaluatorMappingDTO> multiTasks = myTasks.stream()
                     .filter(m -> "SUBORDINATE".equals(m.relationTypeCode()))
                     .collect(Collectors.toList());
 
-            model.addAttribute("tasks", peerTasks);
+            model.addAttribute("tasks", multiTasks);
 
             // 제출 여부 확인 Map
             java.util.Map<Long, Boolean> submittedMap = new java.util.HashMap<>();
-            for (EvaluatorMappingDTO task : peerTasks) {
+            for (EvaluatorMappingDTO task : multiTasks) {
                 List<Evaluation> evals = evaluationMapper.findByMappingId(task.mappingId());
                 boolean isSubmitted = evals.stream()
                         .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
@@ -142,10 +142,10 @@ public class MultiDimensionalEvaluationController {
 
         model.addAttribute("mapping", mapping);
 
-        // 다면평가 요소(PEER 또는 MULTI_DIMENSIONAL)만 필터링
+        // 다면평가 요소(MULTI_DIMENSIONAL)만 필터링
         List<EvaluationElementDTO> allElements = getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
         List<EvaluationElementDTO> elements = allElements.stream()
-                .filter(e -> "PEER".equals(e.elementTypeCode()) || "MULTI_DIMENSIONAL".equals(e.elementTypeCode()))
+                .filter(e -> "MULTI_DIMENSIONAL".equals(e.elementTypeCode()))
                 .collect(Collectors.toList());
 
         model.addAttribute("elements", elements);

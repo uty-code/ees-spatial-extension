@@ -79,7 +79,7 @@ public class EvaluationElementController {
                     .map(EvaluationElementDTO::weight)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             BigDecimal leaderTotal = elements.stream()
-                    .filter(e -> "PEER".equals(e.elementTypeCode()))
+                    .filter(e -> "MULTI_DIMENSIONAL".equals(e.elementTypeCode()))
                     .map(EvaluationElementDTO::weight)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 

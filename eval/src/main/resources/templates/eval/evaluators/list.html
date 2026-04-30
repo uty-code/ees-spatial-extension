@@ -111,8 +111,9 @@
                         </button>
 
                         <!-- 2. 정합성 검사 -->
-                        <button type="button" class="btn ees-btn-glass ees-btn-glass-lg" 
-                                onclick="checkIntegrity()" title="누락되거나 부적절한 매핑 관계를 검사합니다.">
+                        <button type="button" class="btn ees-btn-glass ees-btn-glass-lg btn-check-integrity" 
+                                title="누락되거나 부적절한 매핑 관계를 검사합니다."
+                                th:data-period-id="${selectedPeriod.periodId()}">
                             <i class="bi bi-shield-check me-1 text-warning"></i> 정합성 검사
                         </button>
 
@@ -409,55 +410,6 @@
             </div>
         </div>
 
-        <script th:inline="javascript">
-            function checkIntegrity() {
-                const periodId = /*[[${selectedPeriod?.periodId()}]]*/ null;
-                if (!periodId) return;
-
-                const modalElement = document.getElementById('integrityCheckModal');
-                const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
-                modal.show();
-
-                document.getElementById('integrityLoading').classList.remove('d-none');
-                document.getElementById('integrityResults').classList.add('d-none');
-
-                fetch(`/eval/evaluators/validate?periodId=${periodId}&t=${new Date().getTime()}`)
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
-                    .then(data => {
-                        document.getElementById('integrityLoading').classList.add('d-none');
-                        document.getElementById('integrityResults').classList.remove('d-none');
-
-                        const summary = document.getElementById('integritySummary');
-                        const tbody = document.getElementById('integrityTableBody');
-                        tbody.innerHTML = '';
-
-                        if (data.length === 0) {
-                            summary.innerHTML = '<i class="bi bi-check-circle-fill me-2 text-success"></i>모든 평가 매핑이 정상입니다. 오류가 발견되지 않았습니다.';
-                            summary.className = 'alert bg-success bg-opacity-10 border-success border-opacity-25 text-success mb-4';
-                            const tr = document.createElement('tr');
-                            tr.innerHTML = '<td colspan="5" class="text-center py-4 text-muted">발견된 이상 데이터가 없습니다.</td>';
-                            tbody.appendChild(tr);
-                        } else {
-                            const errorCount = data.filter(d => d.severity === 'ERROR').length;
-                            const warningCount = data.filter(d => d.severity === 'WARNING').length;
-                            
-                            summary.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>총 <strong>${data.length}</strong>건의 이상 항목이 발견되었습니다. (오류: ${errorCount}건, 경고: ${warningCount}건)`;
-                            summary.className = 'alert bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4';
-
-                            data.forEach(item => {
-                                const tr = document.createElement('tr');
-                                const severityBadge = item.severity === 'ERROR' 
-                                    ? '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">ERROR</span>'
-                                    : '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">WARNING</span>';
-                                
-                                tr.innerHTML = `
-                                    <td>${severityBadge}</td>
-                                    <td>
-                                        <div class="fw-bold">${item.evaluateeName}</div>
-                                        <div class="small text-muted">${item.evaluateeId}</div>
                                     </td>
                                     <td class="text-muted">${item.deptName}</td>
                                     <td><span class="badge bg-secondary bg-opacity-25 text-light">${item.anomalyType}</span></td>

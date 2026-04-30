@@ -46,7 +46,7 @@ class EmployeeControllerIntegrationTest extends AbstractMssqlTest {
     static class TestConfig {
         @Bean
         @Primary
-        public Executor virtualThreadExecutor() {
+        public Executor testVirtualThreadExecutor() {
             // 호출 스레드에서 즉시 실행 → 별도 스레드/커넥션 불필요
             return Runnable::run;
         }

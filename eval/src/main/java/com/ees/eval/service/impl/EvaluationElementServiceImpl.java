@@ -59,7 +59,7 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
     @Transactional
     public EvaluationElementDTO createElement(EvaluationElementDTO elementDto) {
         // 1. 가중치 그룹별 합계 검증
-        // 성과(PERFORMANCE)/역량(COMPETENCY)은 합쳐서 100%, 다면평가(PEER)는 단독으로 100%
+        // 성과(PERFORMANCE)/역량(COMPETENCY)/다면평가(MULTI_DIMENSIONAL)는 각각 독립적으로 100% 가중치를 가짐
         List<EvaluationElement> existing = elementMapper.findByPeriodId(elementDto.periodId(), elementDto.deptId());
         List<String> targetGroup = getEvaluationGroup(elementDto.elementTypeCode());
         BigDecimal currentGroupSum = existing.stream()
@@ -150,7 +150,7 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
                 
         BigDecimal multiSum = elements.stream()
-                .filter(e -> "PEER".equals(e.getElementTypeCode()) || "MULTI_DIMENSIONAL".equals(e.getElementTypeCode()))
+                .filter(e -> "MULTI_DIMENSIONAL".equals(e.getElementTypeCode()))
                 .map(EvaluationElement::getWeight)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 

@@ -143,6 +143,8 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom Integrity Check JS (HTMX Compatible) -->
+    <script th:src="@{/js/eval-integrity.js}"></script>
     <!-- Page Specific Scripts -->
     <th:block th:replace="${extraScripts} ?: ~{}"></th:block>
 

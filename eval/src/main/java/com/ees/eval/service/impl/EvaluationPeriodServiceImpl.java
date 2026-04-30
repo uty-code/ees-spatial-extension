@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
 
     private final EvaluationPeriodMapper periodMapper;
@@ -110,6 +111,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
         // 2. Java 21 Pattern Matching for switch: 상태 전이 규칙 검증
         String validatedNewStatus = switch (currentStatus) {
             case String s when s.equals(STATUS_PLANNED) && newStatusCode.equals(STATUS_IN_PROGRESS) -> {
+                log.info("차수 상태 전이 시작 [PLANNED -> IN_PROGRESS] - periodId: {}", periodId);
                 // PLANNED → IN_PROGRESS: 진행 중 중복 체크 수행
                 List<EvaluationPeriod> inProgressList = periodMapper.findByStatusCode(STATUS_IN_PROGRESS);
                 if (!inProgressList.isEmpty()) {
@@ -120,17 +122,25 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
                 }
 
                 // 가중치 설정 완료 여부 검증 (전사 공통 + 모든 부서)
+                log.info("가중치 설정 검증 시작 - periodId: {}", periodId);
                 validateAllWeightsConfigured(periodId);
+                log.info("가중치 설정 검증 완료 - periodId: {}", periodId);
 
                 // 평가자 매핑 정합성 검증 (ERROR 등급만 차단)
+                log.info("평가자 매핑 정합성 검증 시작 - periodId: {}", periodId);
                 validateEvaluatorMappings(periodId);
+                log.info("평가자 매핑 정합성 검증 완료 - periodId: {}", periodId);
 
                 yield STATUS_IN_PROGRESS;
             }
-            case String s when s.equals(STATUS_IN_PROGRESS) && newStatusCode.equals(STATUS_COMPLETED) ->
-                STATUS_COMPLETED;
-            case String s when s.equals(STATUS_COMPLETED) && newStatusCode.equals(STATUS_CLOSED) ->
-                STATUS_CLOSED;
+            case String s when s.equals(STATUS_IN_PROGRESS) && newStatusCode.equals(STATUS_COMPLETED) -> {
+                log.info("차수 상태 전이 [IN_PROGRESS -> COMPLETED] - periodId: {}", periodId);
+                yield STATUS_COMPLETED;
+            }
+            case String s when s.equals(STATUS_COMPLETED) && newStatusCode.equals(STATUS_CLOSED) -> {
+                log.info("차수 상태 전이 [COMPLETED -> CLOSED] - periodId: {}", periodId);
+                yield STATUS_CLOSED;
+            }
             default ->
                 throw new IllegalStateException(
                         "유효하지 않은 상태 전이입니다: [" + currentStatus + "] → [" + newStatusCode + "]. " +
@@ -141,10 +151,13 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
         period.setStatusCode(validatedNewStatus);
         period.preUpdate();
 
+        log.info("상태 업데이트 DB 반영 시작 - periodId: {}, status: {}", periodId, validatedNewStatus);
         int updatedRows = periodMapper.update(period);
         if (updatedRows == 0) {
+            log.error("상태 업데이트 실패 (Optimistic Lock) - periodId: {}", periodId);
             throw new EesOptimisticLockException("차수 상태 전이 중 충돌이 발생했습니다.");
         }
+        log.info("상태 업데이트 DB 반영 완료 - periodId: {}", periodId);
         return getPeriodById(periodId);
     }
 
@@ -171,12 +184,21 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
     private void validateAllWeightsConfigured(Long periodId) {
         List<String> invalidScopes = new ArrayList<>();
 
-        // 전사 공통은 가중치가 100%가 아니어도 평가 시작을 막지 않음 (사용자 요청)
-        // 따라서 "전사 공통"을 invalidScopes에 추가하는 로직 제거
+        // 전사 공통 가중치 필수 검증 추가
+        boolean isCommonStaffValid = typeWeightService.isWeightSumValid(periodId, null, "STAFF");
+        boolean isCommonLeaderValid = typeWeightService.isWeightSumValid(periodId, null, "LEADER");
+        if (!isCommonStaffValid || !isCommonLeaderValid) {
+            invalidScopes.add("전사 공통");
+        }
 
         // 모든 부서별 가중치 검증 (부서 자체 설정이 100%이거나, 전사 공통을 폴백받아 100%여야 함)
         List<DepartmentDTO> allDepts = departmentService.getSimpleAllDepartments();
         for (DepartmentDTO dept : allDepts) {
+            // 비활성 부서는 검증에서 제외
+            if ("n".equalsIgnoreCase(dept.isActive())) {
+                continue;
+            }
+
             boolean isStaffValid = typeWeightService.isWeightSumValid(periodId, dept.deptId(), "STAFF");
             boolean isLeaderValid = typeWeightService.isWeightSumValid(periodId, dept.deptId(), "LEADER");
             
@@ -188,10 +210,9 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
 
         if (!invalidScopes.isEmpty()) {
             throw new IllegalStateException(
-                    "가중치 설정이 완료되지 않은 부서가 있습니다: [" +
+                    "가중치 설정이 완료되지 않은 대상이 있습니다: [" +
                             String.join(", ", invalidScopes) + "]. " +
-                            "평가요소 관리에서 각 부서의 유형별 가중치(합계 100%)와 " +
-                            "항목별 가중치(유형별 합계 100%)를 모두 설정한 후 다시 시도해 주세요.");
+                            "전사 공통 또는 해당 부서의 평가요소 관리에서 유형별 가중치 및 항목별 가중치 합계가 100%가 되도록 설정해 주세요.");
         }
     }
 
