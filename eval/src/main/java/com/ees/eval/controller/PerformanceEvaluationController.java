@@ -271,7 +271,7 @@ public class PerformanceEvaluationController {
                     .stream()
                     .collect(java.util.stream.Collectors.toMap(
                         com.ees.eval.domain.Evaluation::getElementId,
-                        e -> e.getReason() != null ? e.getReason() : "", // 통합 reason 컬럼 사용
+                        e -> e.getScore() != null ? String.valueOf(e.getScore()) : "", // 본인 점수(self_score) 표시
                         (a, b) -> a
                     )))
                 .orElse(java.util.Collections.emptyMap());
