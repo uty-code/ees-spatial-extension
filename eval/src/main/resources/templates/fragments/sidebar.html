@@ -96,9 +96,12 @@
                 <i class="bi bi-people"></i>
                 <span>다면 평가</span>
             </a>
-            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+            <a class="nav-link" th:href="@{/eval/interview}" hx-get="/eval/interview" hx-target="#page-content"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                th:classappend="${activeMenu == 'interview-mgmt' ? 'active' : ''}">
                 <i class="bi bi-chat-left-text-fill"></i>
-                <span>면담 관리</span>
+                <span sec:authorize="hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')">면담 관리</span>
+                <span sec:authorize="!hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')">나의 면담 결과</span>
             </a>
             <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
                 <i class="bi bi-check-all"></i>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'interview-mgmt', ~{::style}, ~{})}">
+<head>
+    <title>면담 관리 - EES</title>
+</head>
+<body>
+<div id="page-content" class="container-fluid py-4" th:fragment="content">
+    <style>
+        .interview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .member-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            padding: 24px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .member-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--info);
+            box-shadow: 0 12px 40px rgba(0, 188, 212, 0.15);
+        }
+        .status-indicator {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-bottom-left-radius: 12px;
+            text-transform: uppercase;
+        }
+        .status-not-started { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+        .status-draft { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .status-completed { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+
+        .member-info { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .avatar-placeholder {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--info), var(--primary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.2rem;
+        }
+        .member-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+        .member-role { font-size: 0.8rem; color: var(--text-muted); }
+
+        .content-snippet {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            min-height: 40px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .btn-enter {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="text-white fw-bold fs-3 mb-1">면담 관리 <span class="text-info">(정성평가)</span></h1>
+            <p class="text-muted small mb-0">부서원들의 성과와 역량에 대한 심층적인 정성평가를 기록하고 관리합니다.</p>
+        </div>
+        
+        <!-- 차수 선택 -->
+        <div class="dropdown">
+            <button class="btn ees-btn-glass dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-calendar-event me-2"></i>
+                <span th:text="${selectedPeriod != null ? selectedPeriod.periodName() : '차수 선택'}"></span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-0">
+                <li th:each="p : ${periods}">
+                    <a class="dropdown-item py-2" href="#"
+                       th:hx-get="'/eval/interview?periodId=' + ${p.periodId()}"
+                       hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span th:text="${p.periodName()}"></span>
+                            <span th:if="${p.statusCode() == 'ACTIVE'}" class="badge bg-info text-dark ms-2 small">진행중</span>
+                        </div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 1. 내가 작성해야 할 목록 (평가자용) -->
+    <div th:if="${tasks != null && !tasks.isEmpty()}" class="mb-5">
+        <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-pencil-square text-info"></i> 면담 대상자 목록
+        </h5>
+        <div class="interview-grid">
+            <div th:each="task : ${tasks}" class="member-card">
+                <div class="status-indicator" 
+                     th:classappend="${task.statusCode() == 'COMPLETED' ? 'status-completed' : (task.statusCode() == 'DRAFT' ? 'status-draft' : 'status-not-started')}"
+                     th:text="${task.statusCode() == 'COMPLETED' ? '확정' : (task.statusCode() == 'DRAFT' ? '작성 중' : '미작성')}">
+                </div>
+
+                <div class="member-info">
+                    <div class="avatar-placeholder" th:text="${#strings.substring(task.evaluateeName(), 0, 1)}"></div>
+                    <div>
+                        <div class="member-name" th:text="${task.evaluateeName()}">홍길동</div>
+                        <div class="member-role" th:text="${task.relationTypeCode() == 'MANAGER' ? '팀원' : '본부원'}">팀원</div>
+                    </div>
+                </div>
+
+                <div class="content-snippet" th:text="${task.contentSnippet() ?: '아직 작성된 내용이 없습니다.'}"></div>
+
+                <a th:href="@{/eval/interview/form(mappingId=${task.mappingId()})}"
+                   hx-get th:attr="hx-get=@{/eval/interview/form(mappingId=${task.mappingId()})}"
+                   hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                   class="btn btn-enter"
+                   th:classappend="${task.statusCode() == 'COMPLETED' ? 'ees-btn-glass' : 'ees-btn-glass-primary'}">
+                    <i class="bi" th:classappend="${task.statusCode() == 'COMPLETED' ? 'bi-search' : 'bi-pencil-fill'}"></i>
+                    <span th:text="${task.statusCode() == 'COMPLETED' ? '내용 보기' : '작성하기'}">작성하기</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 나의 면담 결과 (피평가자용) -->
+    <div th:if="${myResults != null && !myResults.isEmpty()}">
+        <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-file-earmark-person text-success"></i> 나의 면담 결과
+        </h5>
+        <div class="interview-grid">
+            <div th:each="result : ${myResults}" class="member-card">
+                <div class="status-indicator" 
+                     th:classappend="${result.statusCode() == 'COMPLETED' ? 'status-completed' : (result.statusCode() == 'DRAFT' ? 'status-draft' : 'status-not-started')}"
+                     th:text="${result.statusCode() == 'COMPLETED' ? '확정' : (result.statusCode() == 'DRAFT' ? '작성 중' : '미확인')}">
+                </div>
+
+                <div class="member-info">
+                    <div class="avatar-placeholder" style="background: linear-gradient(135deg, #22c55e, #16a34a);" th:text="${#strings.substring(result.evaluateeName(), 0, 1)}"></div>
+                    <div>
+                        <div class="member-name" th:text="${result.evaluateeName()}">이팀장</div>
+                        <div class="member-role" th:text="${result.relationTypeCode() == 'MANAGER' ? '팀장' : '본부장'}">팀장</div>
+                    </div>
+                </div>
+
+                <div class="content-snippet" th:text="${result.contentSnippet() ?: '작성된 면담 내용이 아직 없습니다.'}"></div>
+
+                <a th:if="${result.statusCode() != 'NOT_STARTED'}"
+                   th:href="@{/eval/interview/form(mappingId=${result.mappingId()})}"
+                   hx-get th:attr="hx-get=@{/eval/interview/form(mappingId=${result.mappingId()})}"
+                   hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                   class="btn btn-enter ees-btn-glass-primary">
+                    <i class="bi bi-search"></i> 결과 조회하기
+                </a>
+                <button th:if="${result.statusCode() == 'NOT_STARTED'}" class="btn btn-enter ees-btn-glass" disabled>
+                    <i class="bi bi-clock"></i> 작성 대기 중
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 데이터 없을 때 -->
+    <div th:if="${(tasks == null || tasks.isEmpty()) && (myResults == null || myResults.isEmpty())}" class="ees-card text-center py-5">
+        <i class="bi bi-person-x fs-1 text-muted mb-3 d-block"></i>
+        <h5 class="text-white fw-bold">표시할 면담 데이터가 없습니다.</h5>
+        <p class="text-muted small">평가 차수 설정 및 평가자 매핑을 확인해 주세요.</p>
+    </div>
+</div>
+</body>
+</html>

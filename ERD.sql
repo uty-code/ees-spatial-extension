@@ -206,7 +206,10 @@ create table interviews_51
 (
     interview_id bigint identity(1,1) primary key,
     mapping_id bigint not null,
-    content nvarchar(max),
+    content1 nvarchar(max),
+    content2 nvarchar(max),
+    content3 nvarchar(max),
+    content4 nvarchar(max),
     status_code varchar(50),
     is_deleted char(1) default 'n',
     version int default 0,
