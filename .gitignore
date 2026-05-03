@@ -41,3 +41,19 @@ bin/
 /.nb-gradle/
 
 # 5. Config & Secrets
+
+# AI-Ready Agent Metadata & Reports
+ai_ready_report/
+ai_ready_scorer/
+fix_backticks.py
+smart_sanitize.py
+make_root_relative.py
+verify_docs.py
+score.json
+# ALL AI AGENT RELATED FILES (HIDDEN FROM REMOTE)
+.github/workflows/ai-ready-lint.yml
+*.py
+
+# Exclude all README files
+README.md
+**/README.md
