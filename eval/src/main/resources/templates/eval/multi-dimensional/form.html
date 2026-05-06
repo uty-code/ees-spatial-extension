@@ -161,6 +161,9 @@
                         <input type="number" class="eval-textarea score-input"
                                th:name="'score_' + ${element.elementId()}"
                                th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                               th:data-weight="${element.weight()}"
+                               th:data-max="${element.maxScore()}"
+                               oninput="calculateTotalConvertedScore()"
                                min="0" th:max="${element.maxScore()}" step="1" 
                                required>
                     </div>
@@ -182,7 +185,10 @@
             </div>
 
             <!-- 하단 버튼 -->
-            <div class="d-flex justify-content-end mt-4 mb-5">
+            <div class="d-flex justify-content-end align-items-center mt-4 mb-5 gap-3">
+                <div class="total-score-display text-info fw-bold fs-5 px-4 py-2" style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
+                    총 환산점수: <span id="totalConvertedScore">0.0</span>점
+                </div>
                 <button type="submit" class="btn btn-info btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg text-white"
                         style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border: none;">
                     <i class="bi bi-check2-circle me-2"></i> 다면평가 제출하기
@@ -192,5 +198,28 @@
         </form>
     </div>
 </div>
+
+<script>
+    function calculateTotalConvertedScore() {
+        let total = 0;
+        document.querySelectorAll('.score-input').forEach(function(input) {
+            let score = parseFloat(input.value) || 0;
+            let weight = parseFloat(input.getAttribute('data-weight')) || 0;
+            let maxScore = parseFloat(input.getAttribute('data-max')) || 100;
+            
+            if (score > maxScore) score = maxScore;
+            
+            total += (score / maxScore) * weight;
+        });
+        const displayEl = document.getElementById('totalConvertedScore');
+        if (displayEl) {
+            displayEl.innerText = total.toFixed(1);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        calculateTotalConvertedScore();
+    });
+</script>
 </body>
 </html>
