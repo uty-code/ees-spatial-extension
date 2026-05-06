@@ -497,7 +497,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                     if (!hasManager) {
                         anomalies.add(MappingAnomalyDTO.builder()
                                 .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
-                                .anomalyType("MISSING_MANAGER").description("부서가 미배정 상태이며, 1차 평가자(부서장) 매핑이 누락되었습니다.").severity("ERROR").build());
+                                .anomalyType("MISSING_MANAGER").description("부서가 미배정 상태이며, 1차 평가자(부서장) 매핑이 누락되었습니다.").severity("WARNING").build());
                     }
                 } else {
                     // 부서장 판별: leader_id가 재직 중인 사원인지도 함께 검증
@@ -524,7 +524,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                                     : "1차 평가자(부서장) 매핑이 누락되었습니다.";
                             anomalies.add(MappingAnomalyDTO.builder()
                                     .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
-                                    .anomalyType("MISSING_MANAGER").description(desc).severity("ERROR").build());
+                                    .anomalyType("MISSING_MANAGER").description(desc).severity("WARNING").build());
                         }
                     } else {
                         long subordinateCount = myMappings.stream().filter(m -> "SUBORDINATE".equals(m.getRelationTypeCode())).count();

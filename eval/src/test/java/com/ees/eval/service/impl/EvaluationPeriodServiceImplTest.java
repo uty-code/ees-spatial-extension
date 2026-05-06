@@ -95,8 +95,8 @@ class EvaluationPeriodServiceImplTest {
                         .evaluateeId(101L)
                         .evaluateeName("김철수")
                         .deptName("개발팀")
-                        .anomalyType("MISSING_MANAGER")
-                        .description("1차 평가자(부서장) 매핑이 누락되었습니다.")
+                        .anomalyType("MISSING_EXECUTIVE")
+                        .description("최종 평가자(임원) 매핑이 누락되었습니다.")
                         .severity("ERROR")
                         .build()
         );
