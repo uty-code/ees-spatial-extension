@@ -78,6 +78,16 @@
             </div>
         </div>
 
+        <!-- 평가 진행 상태 잠금 안내 -->
+        <div th:if="${selectedPeriod != null && !isModifiable}"
+            class="alert border-0 shadow-sm d-flex align-items-center mb-4 bg-warning bg-opacity-10 text-warning">
+            <i class="bi bi-lock-fill fs-5 me-3"></i>
+            <div>
+                <strong>수정 불가:</strong> 현재 평가 차수가 <span class="fw-bold" th:text="${selectedPeriod.statusCode()}">상태</span> 상태이므로 평가자 매핑을 변경할 수 없습니다.
+                준비(PLANNED) 상태에서만 추가/수정/삭제가 가능합니다.
+            </div>
+        </div>
+
         <!-- Stats & Actions -->
         <div th:if="${selectedPeriod != null}" class="row g-4 mb-4">
             <div class="col-md-3">
@@ -103,8 +113,12 @@
                     <!-- Glassmorphism Button Group -->
                     <div class="ees-glass-group shadow-lg me-5">
                         <!-- 1. 수동 추가 -->
-                        <button type="button" class="btn ees-btn-glass ees-btn-glass-lg" data-bs-toggle="modal"
-                            data-bs-target="#createMappingModal" title="개별 평가자를 직접 지정하여 추가합니다.">
+                        <button type="button" class="btn ees-btn-glass ees-btn-glass-lg"
+                            th:data-bs-toggle="${isModifiable} ? 'modal' : null"
+                            th:data-bs-target="${isModifiable} ? '#createMappingModal' : null"
+                            th:disabled="${!isModifiable}"
+                            th:classappend="${!isModifiable} ? 'disabled opacity-50' : ''"
+                            title="개별 평가자를 직접 지정하여 추가합니다.">
                             <i class="bi bi-plus-circle me-1 text-info"></i> 수동 추가
                         </button>
 
@@ -116,14 +130,18 @@
 
                         <!-- 3. 자동 생성 -->
                         <button type="button" class="btn ees-btn-glass ees-btn-glass-lg"
-                            onclick="if(confirm('조직 정보를 기반으로 평가자를 자동 생성하시겠습니까?')) { this.innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span> 처리 중...'; this.classList.add('disabled'); document.getElementById('autoGenerateForm').submit(); }"
+                            th:onclick="${isModifiable} ? 'if(confirm(\'조직 정보를 기반으로 평가자를 자동 생성하시겠습니까?\')) { this.innerHTML=\'<span class=spinner-border.spinner-border-sm.me-1></span> 처리 중...\'; this.classList.add(\'disabled\'); document.getElementById(\'autoGenerateForm\').submit(); }' : null"
+                            th:disabled="${!isModifiable}"
+                            th:classappend="${!isModifiable} ? 'disabled opacity-50' : ''"
                             title="조직도를 분석하여 표준 평가 관계를 자동으로 구성합니다.">
                             <i class="bi bi-magic me-1 text-primary"></i> 자동 생성
                         </button>
 
                         <!-- 4. 일괄 초기화 -->
                         <button type="button" class="btn ees-btn-glass ees-btn-glass-lg"
-                            onclick="if(confirm('선택된 대상의 모든 평가 매핑을 정말 삭제하시겠습니까?')) { this.innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span> 처리 중...'; this.classList.add('disabled'); document.getElementById('initializeForm').submit(); }"
+                            th:onclick="${isModifiable} ? 'if(confirm(\'선택된 대상의 모든 평가 매핑을 정말 삭제하시겠습니까?\')) { this.innerHTML=\'<span class=spinner-border.spinner-border-sm.me-1></span> 처리 중...\'; this.classList.add(\'disabled\'); document.getElementById(\'initializeForm\').submit(); }' : null"
+                            th:disabled="${!isModifiable}"
+                            th:classappend="${!isModifiable} ? 'disabled opacity-50' : ''"
                             title="현재 조회된 모든 매핑 데이터를 삭제합니다.">
                             <i class="bi bi-trash3 me-1 text-danger"></i> 일괄 초기화
                         </button>
@@ -303,7 +321,9 @@
                                                         th:value="${selectedPeriod.periodId()}">
                                                     <input type="hidden" name="deptId" th:value="${selectedDeptId}">
                                                     <input type="hidden" name="searchName" th:value="${searchName}">
-                                                    <button type="submit" class="btn ees-btn-glass-danger btn-sm px-2">
+                                                    <button type="submit" class="btn ees-btn-glass-danger btn-sm px-2"
+                                                        th:disabled="${!isModifiable}"
+                                                        th:classappend="${!isModifiable} ? 'disabled opacity-50' : ''">
                                                         <i class="bi bi-x-circle me-1"></i> 삭제
                                                     </button>
                                                 </form>

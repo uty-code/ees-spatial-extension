@@ -5,6 +5,7 @@ import com.ees.eval.domain.EvaluatorMapping;
 import com.ees.eval.dto.EvaluatorMappingDTO;
 import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
+import com.ees.eval.mapper.EvaluationPeriodMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
 import com.ees.eval.service.EvaluatorMappingService;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,10 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     private final EvaluatorMappingMapper mappingMapper;
     private final EmployeeMapper employeeMapper;
     private final DepartmentMapper departmentMapper;
+    private final EvaluationPeriodMapper periodMapper;
+
+    /** 평가자 매핑 수정이 허용되는 유일한 상태 */
+    private static final String STATUS_PLANNED = "PLANNED";
 
     /** 자기 자신을 매핑할 수 없는 관계 유형 목록 */
     private static final String RELATION_MANAGER = "MANAGER";
@@ -88,6 +93,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional
     public EvaluatorMappingDTO createMapping(EvaluatorMappingDTO mappingDto) {
+        // 평가 진행 상태 검증 (PLANNED 상태에서만 수정 가능)
+        validatePeriodModifiable(mappingDto.periodId());
         validateSelfMapping(mappingDto.evaluateeId(), mappingDto.evaluatorId(), mappingDto.relationTypeCode());
         
         if (RELATION_MANAGER.equals(mappingDto.relationTypeCode())) {
@@ -119,6 +126,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Transactional
     public List<EvaluatorMappingDTO> createBulkMappings(Long periodId, Long evaluateeId,
             List<Long> evaluatorIds, String relationTypeCode) {
+        // 평가 진행 상태 검증 (PLANNED 상태에서만 수정 가능)
+        validatePeriodModifiable(periodId);
         
         // [Optimization] 피평가자 부서 및 부서장 정보를 루프 밖에서 1회 조회하여 성능 최적화
         Employee evaluatee = employeeMapper.findById(evaluateeId)
@@ -174,6 +183,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional
     public int autoGenerateMappings(Long periodId, Long deptId, Long excludeEmpId) {
+        // 평가 진행 상태 검증 (PLANNED 상태에서만 수정 가능)
+        validatePeriodModifiable(periodId);
         log.info("평가자 자동 매핑 시작 - periodId: {}, deptId: {}", periodId, deptId);
 
         // 1. 기초 데이터 로드 (All-in-one Select)
@@ -318,6 +329,10 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional
     public void deleteMapping(Long mappingId) {
+        // 매핑 조회 후 해당 차수의 진행 상태 검증
+        EvaluatorMapping target = mappingMapper.findById(mappingId)
+                .orElseThrow(() -> new IllegalArgumentException("삭제 대상 매핑을 찾을 수 없습니다. mappingId: " + mappingId));
+        validatePeriodModifiable(target.getPeriodId());
         Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         int updatedRows = mappingMapper.softDelete(mappingId, currentUserId, LocalDateTime.now());
         if (updatedRows == 0) {
@@ -330,6 +345,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     public EvaluatorMappingDTO updateMapping(Long mappingId, Long evaluatorId) {
         EvaluatorMapping mapping = mappingMapper.findById(mappingId)
                 .orElseThrow(() -> new IllegalArgumentException("매핑을 찾을 수 없습니다. mappingId: " + mappingId));
+        // 평가 진행 상태 검증 (PLANNED 상태에서만 수정 가능)
+        validatePeriodModifiable(mapping.getPeriodId());
 
         validateSelfMapping(mapping.getEvaluateeId(), evaluatorId, mapping.getRelationTypeCode());
         
@@ -363,6 +380,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional
     public void initializeMappingsByDept(Long periodId, Long deptId) {
+        // 평가 진행 상태 검증 (PLANNED 상태에서만 수정 가능)
+        validatePeriodModifiable(periodId);
         mappingMapper.deleteByPeriodAndDept(periodId, deptId, com.ees.eval.util.SecurityUtil.getCurrentEmployeeId(),
                 LocalDateTime.now());
     }
@@ -597,6 +616,24 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         int count = mappingMapper.countDuplicate(periodId, evaluateeId, evaluatorId, relationTypeCode);
         if (count > 0) {
             throw new IllegalStateException("동일한 평가 관계가 이미 존재합니다.");
+        }
+    }
+
+    /**
+     * 평가 차수의 상태가 수정 가능한 상태(PLANNED)인지 검증합니다.
+     * 평가가 시작(IN_PROGRESS)되면 평가자 매핑의 생성/수정/삭제를 차단합니다.
+     *
+     * @param periodId 검증할 평가 차수 ID
+     * @throws IllegalStateException 수정 불가능한 상태일 경우
+     */
+    private void validatePeriodModifiable(Long periodId) {
+        com.ees.eval.domain.EvaluationPeriod period = periodMapper.findById(periodId)
+                .orElseThrow(() -> new IllegalArgumentException("평가 차수를 찾을 수 없습니다. periodId: " + periodId));
+
+        if (!STATUS_PLANNED.equals(period.getStatusCode())) {
+            throw new IllegalStateException(
+                    String.format("평가가 '%s' 상태이므로 평가자 매핑을 변경할 수 없습니다. 준비(PLANNED) 상태에서만 수정이 가능합니다.",
+                            period.getStatusCode()));
         }
     }
 
