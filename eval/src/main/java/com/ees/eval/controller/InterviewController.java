@@ -63,8 +63,22 @@ public class InterviewController {
                     .filter(m -> "MANAGER".equals(m.relationTypeCode()) || "EXECUTIVE".equals(m.relationTypeCode()))
                     .toList();
 
+            // 2. 피평가자로서의 결과 목록
+            List<EvaluatorMappingDTO> receivedTasks = mappingService.getMyEvaluators(selectedPeriod.periodId(), empId).stream()
+                    .filter(m -> "MANAGER".equals(m.relationTypeCode()))
+                    .toList();
+
+            // 모든 관련 Mapping ID 수집 (N+1 방지)
+            List<Long> allMappingIds = new ArrayList<>();
+            teamTasks.forEach(m -> allMappingIds.add(m.mappingId()));
+            receivedTasks.forEach(m -> allMappingIds.add(m.mappingId()));
+
+            // Batch 조회 실행
+            java.util.Map<Long, InterviewDTO> interviewMap = interviewService.getInterviewsByMappingIds(allMappingIds);
+
+            // 3. 팀 평가 목록 DTO 변환
             List<InterviewTaskDTO> tasks = teamTasks.stream().map(m -> {
-                InterviewDTO interview = interviewService.getInterviewByMappingId(m.mappingId()).orElse(null);
+                InterviewDTO interview = interviewMap.get(m.mappingId());
                 String combinedContent = getCombinedContent(interview);
                 return InterviewTaskDTO.builder()
                         .mappingId(m.mappingId())
@@ -77,26 +91,18 @@ public class InterviewController {
 
             model.addAttribute("tasks", tasks);
 
-            // 피평가자로서의 결과 조회 (부서장급 이상은 본인 결과 조회 섹션 제외)
-            // 관계 유형이 EXECUTIVE인 경우(즉, 피평가자가 부서장급인 경우) 목록에서 제외
-            List<EvaluatorMappingDTO> receivedTasks = mappingService.getMyEvaluators(selectedPeriod.periodId(), empId).stream()
-                    .filter(m -> "MANAGER".equals(m.relationTypeCode()))
-                    .toList();
-
-            // 부서장급(EXECUTIVE) 이상은 본인 결과 조회 섹션 제외 (권한 체크 보강)
+            // 4. 본인 결과 목록 DTO 변환 (부서장급 이상 제외 로직 유지)
             java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> authorities = userDetails.getAuthorities();
-            log.info("User {} authorities: {}", empId, authorities);
-            
             boolean isHighRank = authorities.stream()
                     .map(a -> a.getAuthority().toUpperCase())
                     .anyMatch(auth -> auth.contains("EXECUTIVE") || auth.contains("ADMIN"));
 
             List<InterviewTaskDTO> myResults = isHighRank ? java.util.Collections.emptyList() : receivedTasks.stream().map(m -> {
-                InterviewDTO interview = interviewService.getInterviewByMappingId(m.mappingId()).orElse(null);
+                InterviewDTO interview = interviewMap.get(m.mappingId());
                 String combinedContent = getCombinedContent(interview);
                 return InterviewTaskDTO.builder()
                         .mappingId(m.mappingId())
-                        .evaluateeName(m.evaluatorName()) // 피평가자 입장에서는 평가자(부서장)의 이름을 보여줌
+                        .evaluateeName(m.evaluatorName())
                         .relationTypeCode(m.relationTypeCode())
                         .statusCode(interview != null ? interview.statusCode() : "NOT_STARTED")
                         .contentSnippet(combinedContent.length() > 50 ? combinedContent.substring(0, 50) + "..." : combinedContent.trim())

@@ -5,6 +5,7 @@ import com.ees.eval.dto.InterviewDTO;
 import com.ees.eval.mapper.InterviewMapper;
 import com.ees.eval.service.InterviewService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,27 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
+    public java.util.Map<Long, InterviewDTO> getInterviewsByMappingIds(java.util.List<Long> mappingIds) {
+        if (mappingIds == null || mappingIds.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+
+        // MSSQL 파라미터 제한(2100개)을 고려하여 1000개 단위로 Chunking
+        java.util.List<com.ees.eval.domain.Interview> allInterviews = new java.util.ArrayList<>();
+        int chunkSize = 1000;
+        for (int i = 0; i < mappingIds.size(); i += chunkSize) {
+            java.util.List<Long> chunk = mappingIds.subList(i, Math.min(i + chunkSize, mappingIds.size()));
+            allInterviews.addAll(interviewMapper.findByMappingIds(chunk));
+        }
+
+        return allInterviews.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        com.ees.eval.domain.Interview::getMappingId,
+                        this::convertToDTO
+                ));
+    }
+
+    @Override
     @Transactional
     public void saveInterview(Long mappingId, String content1, String content2, String content3, String content4, String statusCode, Long empId) {
         interviewMapper.findByMappingId(mappingId)
@@ -36,7 +58,11 @@ public class InterviewServiceImpl implements InterviewService {
                         existing.setStatusCode(statusCode);
                         existing.preUpdate();
                         existing.setUpdatedBy(empId);
-                        interviewMapper.update(existing);
+                        
+                        int updated = interviewMapper.update(existing);
+                        if (updated == 0) {
+                            throw new OptimisticLockingFailureException("면담 기록이 다른 사용자에 의해 이미 수정되었습니다. (mappingId: " + mappingId + ")");
+                        }
                     },
                     () -> {
                         Interview interview = Interview.builder()

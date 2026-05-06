@@ -1,7 +1,8 @@
 package com.ees.eval.service;
 
-import com.ees.eval.domain.Interview;
 import com.ees.eval.dto.InterviewDTO;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -14,5 +15,13 @@ public interface InterviewService {
      */
     Optional<InterviewDTO> getInterviewByMappingId(Long mappingId);
 
+    /**
+     * 매핑 ID 리스트로 면담 기록들을 조회합니다.
+     */
+    Map<Long, InterviewDTO> getInterviewsByMappingIds(List<Long> mappingIds);
+
+    /**
+     * 면담 기록을 저장하거나 업데이트합니다.
+     */
     void saveInterview(Long mappingId, String content1, String content2, String content3, String content4, String statusCode, Long empId);
 }
