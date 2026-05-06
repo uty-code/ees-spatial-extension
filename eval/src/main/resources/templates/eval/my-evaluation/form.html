@@ -330,7 +330,8 @@
                     <i class="bi bi-award-fill"></i>
                     <span th:text="${evalType == 'COMPETENCY'} ? '본인 역량 평가 점수 (0~100점)' : '본인 성과 평가 점수 (0~100점)'">점수</span>
                 </div>
-                <input type="number" th:classappend="${evalType == 'COMPETENCY'} ? 'eval-textarea comp-focus text-center fs-4 fw-bold score-input' : 'eval-textarea text-center fs-4 fw-bold score-input'"
+                <input type="number" class="eval-textarea text-center fs-4 fw-bold score-input"
+                       th:classappend="${evalType == 'COMPETENCY'} ? 'comp-focus' : ''"
                        style="min-height: 80px;"
                        th:name="'score_' + ${element.elementId()}"
                        th:placeholder="'점수를 입력하세요 (최대 ' + ${element.maxScore()} + '점)'"
