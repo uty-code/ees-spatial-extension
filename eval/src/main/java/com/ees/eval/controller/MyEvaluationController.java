@@ -173,13 +173,15 @@ public class MyEvaluationController {
             if ("PLANNED".equals(selectedPeriod.statusCode())) {
                 model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
             }
-        }
 
-        // 6. 역순 진행 방지 (상위 평가자가 제출했는지 확인)
-        if (selfTask != null) {
-            java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(selfTask.mappingId());
-            model.addAttribute("isLocked", lockInfo.get("isLocked"));
-            model.addAttribute("lockedBy", lockInfo.get("lockedBy"));
+            // 6. 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+            if (selfTask != null) {
+                java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(selfTask.mappingId());
+                model.addAttribute("isLocked", lockInfo.get("isLocked"));
+                model.addAttribute("lockedBy", lockInfo.get("lockedBy"));
+            } else {
+                model.addAttribute("isLocked", false);
+            }
         } else {
             model.addAttribute("isLocked", false);
         }
