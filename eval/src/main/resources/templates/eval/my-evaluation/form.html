@@ -330,8 +330,7 @@
                     <i class="bi bi-award-fill"></i>
                     <span th:text="${evalType == 'COMPETENCY'} ? '본인 역량 평가 점수 (0~100점)' : '본인 성과 평가 점수 (0~100점)'">점수</span>
                 </div>
-                <input type="number" class="eval-textarea text-center fs-4 fw-bold score-input"
-                       th:classappend="${evalType == 'COMPETENCY'} ? 'comp-focus' : ''"
+                <input type="number" th:classappend="${evalType == 'COMPETENCY'} ? 'eval-textarea comp-focus text-center fs-4 fw-bold score-input' : 'eval-textarea text-center fs-4 fw-bold score-input'"
                        style="min-height: 80px;"
                        th:name="'score_' + ${element.elementId()}"
                        th:placeholder="'점수를 입력하세요 (최대 ' + ${element.maxScore()} + '점)'"
@@ -368,30 +367,29 @@
             </div>
             </fieldset>
         </form>
+
+        <script>
+            function calculateTotalConvertedScore() {
+                let total = 0;
+                document.querySelectorAll('.score-input').forEach(function(input) {
+                    let score = parseFloat(input.value) || 0;
+                    let weight = parseFloat(input.getAttribute('data-weight')) || 0;
+                    let maxScore = parseFloat(input.getAttribute('data-max')) || 100;
+                    
+                    if (score > maxScore) score = maxScore;
+                    
+                    total += (score / maxScore) * weight;
+                });
+                const displayEl = document.getElementById('totalConvertedScore');
+                if (displayEl) {
+                    displayEl.innerText = total.toFixed(1);
+                }
+            }
+
+            calculateTotalConvertedScore();
+        </script>
     </div>
 </div>
 
-<script>
-    function calculateTotalConvertedScore() {
-        let total = 0;
-        document.querySelectorAll('.score-input').forEach(function(input) {
-            let score = parseFloat(input.value) || 0;
-            let weight = parseFloat(input.getAttribute('data-weight')) || 0;
-            let maxScore = parseFloat(input.getAttribute('data-max')) || 100;
-            
-            if (score > maxScore) score = maxScore;
-            
-            total += (score / maxScore) * weight;
-        });
-        const displayEl = document.getElementById('totalConvertedScore');
-        if (displayEl) {
-            displayEl.innerText = total.toFixed(1);
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        calculateTotalConvertedScore();
-    });
-</script>
 </body>
 </html>

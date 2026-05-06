@@ -216,30 +216,29 @@
             </div>
             </fieldset>
         </form>
+
+        <script>
+            function calculateTotalConvertedScore() {
+                let total = 0;
+                document.querySelectorAll('.score-input').forEach(function(input) {
+                    let score = parseFloat(input.value) || 0;
+                    let weight = parseFloat(input.getAttribute('data-weight')) || 0;
+                    let maxScore = parseFloat(input.getAttribute('data-max')) || 100;
+                    
+                    if (score > maxScore) score = maxScore;
+                    
+                    total += (score / maxScore) * weight;
+                });
+                const displayEl = document.getElementById('totalConvertedScore');
+                if (displayEl) {
+                    displayEl.innerText = total.toFixed(1);
+                }
+            }
+
+            calculateTotalConvertedScore();
+        </script>
     </div>
 </div>
 
-<script>
-    function calculateTotalConvertedScore() {
-        let total = 0;
-        document.querySelectorAll('.score-input').forEach(function(input) {
-            let score = parseFloat(input.value) || 0;
-            let weight = parseFloat(input.getAttribute('data-weight')) || 0;
-            let maxScore = parseFloat(input.getAttribute('data-max')) || 100;
-            
-            if (score > maxScore) score = maxScore;
-            
-            total += (score / maxScore) * weight;
-        });
-        const displayEl = document.getElementById('totalConvertedScore');
-        if (displayEl) {
-            displayEl.innerText = total.toFixed(1);
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        calculateTotalConvertedScore();
-    });
-</script>
 </body>
 </html>
