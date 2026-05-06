@@ -373,8 +373,7 @@ public class MyEvaluationController {
                             });
         }
 
-        String evalType = params.getOrDefault("evalType", "PERFORMANCE");
         redirectAttributes.addFlashAttribute("successMessage", "자가평가가 성공적으로 제출되었습니다.");
-        return "redirect:/eval/my-evaluation/form?mappingId=" + mappingId + "&evalType=" + evalType;
+        return "redirect:/eval/my-evaluation?periodId=" + submitMapping.periodId();
     }
 }
