@@ -278,7 +278,8 @@ public class MultiDimensionalEvaluationController {
                 );
         }
 
+        EvaluatorMappingDTO submitMapping = mappingService.getMappingById(mappingId);
         redirectAttributes.addFlashAttribute("successMessage", "다면평가가 제출되었습니다.");
-        return "redirect:/eval/multi-dimensional/form?mappingId=" + mappingId;
+        return "redirect:/eval/multi-dimensional?periodId=" + submitMapping.periodId();
     }
 }

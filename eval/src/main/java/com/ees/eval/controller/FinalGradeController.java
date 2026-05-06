@@ -275,6 +275,6 @@ public class FinalGradeController {
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "평가가 성공적으로 제출되었습니다.");
-        return "redirect:/eval/final-grade/form?mappingId=" + mappingId;
+        return "redirect:/eval/final-grade?periodId=" + submitMapping.periodId();
     }
 }

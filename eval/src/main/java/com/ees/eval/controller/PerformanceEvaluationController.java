@@ -382,9 +382,8 @@ public class PerformanceEvaluationController {
                             });
         }
 
-        // evalType도 함께 넘겨서 제출 후 같은 타입 폼으로 돌아오게 처리
-        String evalType = params.getOrDefault("evalType", "PERFORMANCE");
+        // 제출 후 목록 페이지로 이동
         redirectAttributes.addFlashAttribute("successMessage", "평가가 성공적으로 제출되었습니다.");
-        return "redirect:/eval/performance/form?mappingId=" + mappingId + "&evalType=" + evalType;
+        return "redirect:/eval/performance?periodId=" + submitMapping.periodId();
     }
 }
