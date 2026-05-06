@@ -1,106 +1,89 @@
 package com.ees.eval.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/**
- * 애플리케이션 전역에서 발생하는 예외를 통합 처리하는 핸들러입니다.
- * 컨트롤러 계층에서 발생한 예외를 잡아 사용자에게 적절한 에러 메시지를 전달합니다.
- *
- * <p>
- * 주요 처리 대상:
- * </p>
- * <ul>
- * <li>{@link EesOptimisticLockException} - 낙관적 락 충돌 (409 Conflict)</li>
- * <li>{@link IllegalStateException} - 비즈니스 규칙 위반 (400 Bad Request)</li>
- * <li>{@link IllegalArgumentException} - 잘못된 파라미터 (400 Bad Request)</li>
- * <li>{@link Exception} - 기타 예상치 못한 오류 (500 Internal Server Error)</li>
- * </ul>
- */
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger clientErrorLogger = LoggerFactory.getLogger("CLIENT_ERROR");
+
     /**
-     * 낙관적 락 충돌 예외를 처리합니다.
-     * 동시에 같은 데이터를 수정하려 할 때 발생하며, 사용자에게 재시도를 안내합니다.
-     *
-     * @param ex                 발생한 예외 객체
-     * @param redirectAttributes 리다이렉트 시 전달할 플래시 속성
-     * @return 이전 페이지로 리다이렉트
+     * 클라이언트 에러를 단일 라인으로 로깅하는 공통 메서드
      */
+    private void logClientError(HttpServletRequest request, String errorMessage) {
+        String method = request.getMethod();
+        String uri = request.getRequestURI();
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty()) {
+            ip = request.getRemoteAddr();
+        }
+        
+        clientErrorLogger.warn("[{} {}] IP: {} - {}", method, uri, ip, errorMessage);
+    }
+
     @ExceptionHandler(EesOptimisticLockException.class)
-    public String handleOptimisticLockException(EesOptimisticLockException ex,
-            RedirectAttributes redirectAttributes) {
-        log.warn("낙관적 락 충돌 발생: {}", ex.getMessage());
-        redirectAttributes.addFlashAttribute("errorMessage",
-                "다른 관리자가 동일한 데이터를 수정 중입니다. 페이지를 새로고침하고 다시 시도해 주세요.");
+    public String handleOptimisticLockException(EesOptimisticLockException ex, HttpServletRequest request, RedirectAttributes redirectAttributes) {
+        logClientError(request, "낙관적 락 충돌: " + ex.getMessage());
+        redirectAttributes.addFlashAttribute("errorMessage", "다른 관리자가 동일한 데이터를 수정 중입니다. 페이지를 새로고침하고 다시 시도해 주세요.");
         return "redirect:/eval/periods";
     }
 
-    /**
-     * 비즈니스 규칙 위반 예외를 처리합니다.
-     * 유효하지 않은 상태 전이 등 도메인 로직 위반 시 발생합니다.
-     *
-     * @param ex                 발생한 예외 객체
-     * @param redirectAttributes 리다이렉트 시 전달할 플래시 속성
-     * @return 이전 페이지로 리다이렉트
-     */
     @ExceptionHandler(IllegalStateException.class)
-    public String handleIllegalStateException(IllegalStateException ex,
-            RedirectAttributes redirectAttributes) {
-        log.warn("비즈니스 규칙 위반: {}", ex.getMessage());
+    public String handleIllegalStateException(IllegalStateException ex, HttpServletRequest request, RedirectAttributes redirectAttributes) {
+        logClientError(request, "비즈니스 규칙 위반: " + ex.getMessage());
         redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         return "redirect:/eval/periods";
     }
 
-    /**
-     * DTO 유효성 검사 실패 시 발생하는 예외를 처리합니다.
-     * (BindingResult가 명시되지 않은 경우나 기타 API 호출 시 발생)
-     *
-     * @param ex    발생한 예외 객체
-     * @param model Thymeleaf 모델 객체
-     * @return 에러 안내 페이지
-     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public String handleValidationException(MethodArgumentNotValidException ex, Model model) {
+    public String handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request, Model model) {
         String firstErrorMessage = ex.getBindingResult().getAllErrors().get(0).getDefaultMessage();
-        log.warn("입력값 유효성 검사 실패: {}", firstErrorMessage);
-
+        logClientError(request, "유효성 검사 실패: " + firstErrorMessage);
         model.addAttribute("errorMessage", firstErrorMessage);
         model.addAttribute("statusCode", HttpStatus.BAD_REQUEST.value());
         return "error/custom-error";
     }
 
-    /**
-     * 잘못된 인자 예외를 처리합니다.
-     * 존재하지 않는 리소스 조회 시 발생합니다.
-     *
-     * @param ex    발생한 예외 객체
-     * @param model Thymeleaf 모델 객체
-     * @return 에러 안내 페이지
-     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public String handleHttpMessageNotReadableException(HttpMessageNotReadableException ex, HttpServletRequest request, Model model) {
+        logClientError(request, "잘못된 요청 형식 (JSON 파싱/타입 오류): " + ex.getMessage());
+        model.addAttribute("errorMessage", "잘못된 요청 형식입니다.");
+        model.addAttribute("statusCode", HttpStatus.BAD_REQUEST.value());
+        return "error/custom-error";
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
-    public String handleIllegalArgumentException(IllegalArgumentException ex, Model model) {
-        log.warn("잘못된 요청 파라미터: {}", ex.getMessage());
+    public String handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request, Model model) {
+        logClientError(request, "잘못된 요청 파라미터: " + ex.getMessage());
         model.addAttribute("errorMessage", ex.getMessage());
         model.addAttribute("statusCode", HttpStatus.BAD_REQUEST.value());
         return "error/custom-error";
     }
 
-    /**
-     * 예상하지 못한 모든 예외를 최종적으로 처리합니다.
-     * 개발 로그에 상세 스택 트레이스를 기록하고, 사용자에게는 일반적인 안내 메시지를 보여줍니다.
-     *
-     * @param ex    발생한 예외 객체
-     * @param model Thymeleaf 모델 객체
-     * @return 에러 안내 페이지
-     */
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public String handleNoHandlerFoundException(NoHandlerFoundException ex, HttpServletRequest request, Model model) {
+        String uri = request.getRequestURI();
+        // 파비콘 및 기타 무의미한 정적 리소스 요청은 로깅 무시
+        if (!uri.endsWith(".ico") && !uri.endsWith(".map")) {
+            logClientError(request, "존재하지 않는 API 주소 요청: " + uri);
+        }
+        model.addAttribute("errorMessage", "요청하신 페이지를 찾을 수 없습니다.");
+        model.addAttribute("statusCode", HttpStatus.NOT_FOUND.value());
+        return "error/custom-error";
+    }
+
     @ExceptionHandler(Exception.class)
     public String handleGeneralException(Exception ex, Model model) {
         log.error("예기치 않은 서버 오류 발생: ", ex);

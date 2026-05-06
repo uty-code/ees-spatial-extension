@@ -81,10 +81,14 @@
         <!-- 평가 진행 상태 잠금 안내 -->
         <div th:if="${selectedPeriod != null && !isModifiable}"
             class="alert border-0 shadow-sm d-flex align-items-center mb-4 bg-warning bg-opacity-10 text-warning">
-            <i class="bi bi-lock-fill fs-5 me-3"></i>
+            <i class="bi bi-lock-fill fs-5 me-2"></i>
             <div>
-                <strong>수정 불가:</strong> 현재 평가 차수가 <span class="fw-bold" th:text="${selectedPeriod.statusCode()}">상태</span> 상태이므로 평가자 매핑을 변경할 수 없습니다.
+                <strong>수정 불가:</strong> 현재 평가 차수가 
+                <span class="fw-bold" 
+                      th:text="${#strings.containsIgnoreCase(selectedPeriod.statusCode(), 'PROGRESS') ? '진행 중(IN_PROGRESS)' : selectedPeriod.statusCode()}">상태</span> 
+                상태이므로 평가자 매핑을 변경할 수 없습니다.
                 준비(PLANNED) 상태에서만 추가/수정/삭제가 가능합니다.
+
             </div>
         </div>
 

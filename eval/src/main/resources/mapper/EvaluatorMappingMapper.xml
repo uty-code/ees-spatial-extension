@@ -84,7 +84,10 @@
         where m.period_id = #{periodId}
           and m.evaluator_id = #{evaluatorId}
           and m.is_deleted = 'n'
+          and e1.status_code = 'EMPLOYED'
         order by m.relation_type_code asc, m.evaluatee_id asc
+
+
     </select>
 
     <!-- 나를 평가하는 사람 목록 (evaluatee_id = 나) -->
@@ -109,7 +112,10 @@
         where m.period_id = #{periodId}
           and m.evaluatee_id = #{evaluateeId}
           and m.is_deleted = 'n'
+          and e1.status_code = 'EMPLOYED'
         order by m.relation_type_code asc, m.evaluator_id asc
+
+
     </select>
 
     <!-- 동일 관계 중복 존재 여부 확인 (차수+피평가자+평가자+관계유형) -->
