@@ -7,6 +7,8 @@ import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationPeriodMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
+import com.ees.eval.mapper.EvaluationMapper;
+import com.ees.eval.domain.Evaluation;
 import com.ees.eval.service.EvaluatorMappingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     private final EmployeeMapper employeeMapper;
     private final DepartmentMapper departmentMapper;
     private final EvaluationPeriodMapper periodMapper;
+    private final EvaluationMapper evaluationMapper;
 
     /** 평가자 매핑 수정이 허용되는 유일한 상태 */
     private static final String STATUS_PLANNED = "PLANNED";
@@ -748,5 +751,74 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         mapping.setUpdatedAt(dto.updatedAt());
         mapping.setUpdatedBy(dto.updatedBy());
         return mapping;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> checkEvaluationLock(Long mappingId) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("isLocked", false);
+        result.put("lockedBy", "");
+
+        EvaluatorMapping current = mappingMapper.findById(mappingId)
+                .orElseThrow(() -> new IllegalArgumentException("매핑을 찾을 수 없습니다."));
+
+        String type = current.getRelationTypeCode();
+        Long periodId = current.getPeriodId();
+        Long evaluateeId = current.getEvaluateeId();
+
+        // 잠금 대상 관계 설정 (내 뒤 단계들)
+        List<String> downstreamTypes = new ArrayList<>();
+        if (RELATION_SELF.equals(type) || RELATION_SUBORDINATE.equals(type)) {
+            downstreamTypes.add(RELATION_MANAGER);
+            downstreamTypes.add(RELATION_EXECUTIVE);
+        } else if (RELATION_MANAGER.equals(type)) {
+            downstreamTypes.add(RELATION_EXECUTIVE);
+        }
+
+        if (downstreamTypes.isEmpty()) {
+            return result;
+        }
+
+        // 해당 피평가자의 모든 매핑 조회
+        List<EvaluatorMapping> allMappings = mappingMapper.findByEvaluateeId(periodId, evaluateeId);
+        List<Long> mappingIds = allMappings.stream()
+                .filter(m -> downstreamTypes.contains(m.getRelationTypeCode()))
+                .map(EvaluatorMapping::getMappingId)
+                .toList();
+
+        if (mappingIds.isEmpty()) {
+            return result;
+        }
+
+        // 해당 매핑들의 제출 여부 확인
+        List<Evaluation> evaluations = evaluationMapper.findByMappingIds(mappingIds);
+        boolean isSubmittedByDownstream = evaluations.stream()
+                .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
+
+        if (isSubmittedByDownstream) {
+            result.put("isLocked", true);
+            
+            // 누구 때문에 잠겼는지 정보 추가
+            String lockedBy = evaluations.stream()
+                    .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
+                    .findFirst()
+                    .map(e -> {
+                        EvaluatorMapping m = allMappings.stream()
+                                .filter(am -> am.getMappingId().equals(e.getMappingId()))
+                                .findFirst().orElse(null);
+                        if (m == null) return "상위 평가자";
+                        if (RELATION_MANAGER.equals(m.getRelationTypeCode())) return "1차 평가자(부서장)";
+                        if (RELATION_EXECUTIVE.equals(m.getRelationTypeCode())) return "최종 평가자(임원)";
+                        return "상위 평가자";
+                    }).orElse("상위 평가자");
+            
+            result.put("lockedBy", lockedBy);
+        }
+
+        return result;
     }
 }

@@ -1,7 +1,6 @@
 package com.ees.eval.controller;
 
 import org.springframework.security.access.prepost.PreAuthorize;
-import com.ees.eval.aop.ApiLoggable;
 import com.ees.eval.domain.Employee;
 import com.ees.eval.domain.Evaluation;
 import com.ees.eval.dto.EvaluationElementDTO;
@@ -58,9 +57,9 @@ public class PerformanceEvaluationController {
 
     @GetMapping
     public String list(Model model,
-                       @RequestParam(required = false) Long periodId,
-                       @RequestParam(defaultValue = "PERFORMANCE") String evalType,
-                       @AuthenticationPrincipal UserDetails userDetails) {
+            @RequestParam(required = false) Long periodId,
+            @RequestParam(defaultValue = "PERFORMANCE") String evalType,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         // evalType 검증
         if (!"PERFORMANCE".equals(evalType) && !"COMPETENCY".equals(evalType)) {
@@ -71,7 +70,7 @@ public class PerformanceEvaluationController {
 
         Long empId = Long.parseLong(userDetails.getUsername());
 
-        List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
+        List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
         model.addAttribute("periods", periods);
 
         EvaluationPeriodDTO selectedPeriod = null;
@@ -79,9 +78,9 @@ public class PerformanceEvaluationController {
             selectedPeriod = periodService.getPeriodById(periodId);
         } else if (!periods.isEmpty()) {
             selectedPeriod = periods.stream()
-                .filter(p -> "ACTIVE".equals(p.statusCode()))
-                .findFirst()
-                .orElse(periods.get(0));
+                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
+                    .findFirst()
+                    .orElse(periods.isEmpty() ? null : periods.get(0));
         }
 
         if (selectedPeriod != null) {
@@ -90,13 +89,13 @@ public class PerformanceEvaluationController {
             List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(selectedPeriod.periodId(), empId);
 
             EvaluatorMappingDTO selfTask = myTasks.stream()
-                .filter(m -> "SELF".equals(m.relationTypeCode()))
-                .findFirst()
-                .orElse(null);
+                    .filter(m -> "SELF".equals(m.relationTypeCode()))
+                    .findFirst()
+                    .orElse(null);
 
             List<EvaluatorMappingDTO> teamTasks = myTasks.stream()
-                .filter(m -> "MANAGER".equals(m.relationTypeCode()))
-                .toList();
+                    .filter(m -> "MANAGER".equals(m.relationTypeCode()) || "EXECUTIVE".equals(m.relationTypeCode()))
+                    .toList();
 
             model.addAttribute("selfTask", selfTask);
             model.addAttribute("tasks", teamTasks);
@@ -108,20 +107,20 @@ public class PerformanceEvaluationController {
                 List<Evaluation> selfEvals = evaluationMapper.findByMappingId(selfTask.mappingId());
                 // 제출된 항목들 중 elementType이 PERFORMANCE인 항목이 있으면 성과 제출 완료로 간주
                 List<Long> submittedElementIds = selfEvals.stream()
-                    .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
-                    .map(Evaluation::getElementId)
-                    .toList();
+                        .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
+                        .map(Evaluation::getElementId)
+                        .toList();
                 if (!submittedElementIds.isEmpty()) {
                     Employee selfEmpInfo = employeeMapper.findById(empId).orElse(null);
                     Long selfDeptId = (selfEmpInfo != null) ? selfEmpInfo.getDeptId() : null;
-                    List<EvaluationElementDTO> allElements =
-                        getElementsWithFallback(selectedPeriod.periodId(), selfDeptId);
+                    List<EvaluationElementDTO> allElements = getElementsWithFallback(selectedPeriod.periodId(),
+                            selfDeptId);
                     selfPerfSubmitted = allElements.stream()
-                        .filter(el -> "PERFORMANCE".equals(el.elementTypeCode()))
-                        .anyMatch(el -> submittedElementIds.contains(el.elementId()));
+                            .filter(el -> "PERFORMANCE".equals(el.elementTypeCode()))
+                            .anyMatch(el -> submittedElementIds.contains(el.elementId()));
                     selfCompSubmitted = allElements.stream()
-                        .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
-                        .anyMatch(el -> submittedElementIds.contains(el.elementId()));
+                            .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
+                            .anyMatch(el -> submittedElementIds.contains(el.elementId()));
                 }
             }
             model.addAttribute("selfPerfSubmitted", selfPerfSubmitted);
@@ -136,39 +135,48 @@ public class PerformanceEvaluationController {
             for (EvaluatorMappingDTO task : teamTasks) {
                 Employee evaluatee = employeeMapper.findById(task.evaluateeId()).orElse(null);
                 Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
-                List<EvaluationElementDTO> elementsForTask = getElementsWithFallback(selectedPeriod.periodId(), evaluateeDeptId);
+                List<EvaluationElementDTO> elementsForTask = getElementsWithFallback(selectedPeriod.periodId(),
+                        evaluateeDeptId);
 
                 List<Evaluation> evals = evaluationMapper.findByMappingId(task.mappingId());
                 List<Long> submittedIds = evals.stream()
-                    .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
-                    .map(Evaluation::getElementId)
-                    .toList();
+                        .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
+                        .map(Evaluation::getElementId)
+                        .toList();
 
                 boolean perfSubmitted = elementsForTask.stream()
-                    .filter(el -> "PERFORMANCE".equals(el.elementTypeCode()))
-                    .anyMatch(el -> submittedIds.contains(el.elementId()));
+                        .filter(el -> "PERFORMANCE".equals(el.elementTypeCode()))
+                        .anyMatch(el -> submittedIds.contains(el.elementId()));
                 boolean compSubmitted = elementsForTask.stream()
-                    .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
-                    .anyMatch(el -> submittedIds.contains(el.elementId()));
+                        .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
+                        .anyMatch(el -> submittedIds.contains(el.elementId()));
 
                 teamPerfSubmittedMap.put(task.mappingId(), perfSubmitted);
                 teamCompSubmittedMap.put(task.mappingId(), compSubmitted);
 
                 // 피평가자의 SELF 매핑에서 제출 여부 확인
                 boolean selfSubmittedForTask = evaluatorMappingMapper
-                    .findByEvaluateeId(selectedPeriod.periodId(), task.evaluateeId())
-                    .stream()
-                    .filter(m -> "SELF".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted()))
-                    .findFirst()
-                    .map(selfMapping -> evaluationMapper.findByMappingId(selfMapping.getMappingId())
+                        .findByEvaluateeId(selectedPeriod.periodId(), task.evaluateeId())
                         .stream()
-                        .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode())))
-                    .orElse(false);
+                        .filter(m -> "SELF".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted()))
+                        .findFirst()
+                        .map(selfMapping -> evaluationMapper.findByMappingId(selfMapping.getMappingId())
+                                .stream()
+                                .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode())))
+                        .orElse(false);
                 evaluateeSelfSubmittedMap.put(task.mappingId(), selfSubmittedForTask);
             }
             model.addAttribute("teamPerfSubmittedMap", teamPerfSubmittedMap);
             model.addAttribute("teamCompSubmittedMap", teamCompSubmittedMap);
             model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
+
+            // 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+            java.util.Map<Long, Boolean> teamLockMap = new java.util.HashMap<>();
+            for (EvaluatorMappingDTO task : teamTasks) {
+                java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(task.mappingId());
+                teamLockMap.put(task.mappingId(), (Boolean) lockInfo.get("isLocked"));
+            }
+            model.addAttribute("teamLockMap", teamLockMap);
 
             // 부서별 유형별 가중치 합계 100 검증
             // 로그인 사용자의 부서 가중치가 유효한지 확인 (자가평가용)
@@ -182,7 +190,8 @@ public class PerformanceEvaluationController {
             for (EvaluatorMappingDTO task : teamTasks) {
                 Employee evaluatee = employeeMapper.findById(task.evaluateeId()).orElse(null);
                 Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
-                boolean weightValid = typeWeightService.isWeightSumValid(selectedPeriod.periodId(), evaluateeDeptId, "STAFF");
+                boolean weightValid = typeWeightService.isWeightSumValid(selectedPeriod.periodId(), evaluateeDeptId,
+                        "STAFF");
                 teamWeightValidMap.put(task.mappingId(), weightValid);
             }
             model.addAttribute("teamWeightValidMap", teamWeightValidMap);
@@ -199,10 +208,10 @@ public class PerformanceEvaluationController {
 
     @GetMapping("/form")
     public String getForm(@RequestParam Long mappingId,
-                          @RequestParam(defaultValue = "PERFORMANCE") String evalType,
-                          Model model,
-                          @AuthenticationPrincipal UserDetails userDetails,
-                          RedirectAttributes redirectAttributes) {
+            @RequestParam(defaultValue = "PERFORMANCE") String evalType,
+            Model model,
+            @AuthenticationPrincipal UserDetails userDetails,
+            RedirectAttributes redirectAttributes) {
 
         // evalType 검증 (PERFORMANCE 또는 COMPETENCY만 허용)
         if (!"PERFORMANCE".equals(evalType) && !"COMPETENCY".equals(evalType)) {
@@ -224,7 +233,7 @@ public class PerformanceEvaluationController {
         Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
         if (!typeWeightService.isWeightSumValid(mapping.periodId(), evaluateeDeptId, "STAFF")) {
             redirectAttributes.addFlashAttribute("errorMessage",
-                "유형별 가중치 합계가 100%가 아닙니다. 관리자에게 가중치 설정을 요청하세요.");
+                    "유형별 가중치 합계가 100%가 아닙니다. 관리자에게 가중치 설정을 요청하세요.");
             return "redirect:/eval/performance?periodId=" + mapping.periodId();
         }
 
@@ -235,72 +244,52 @@ public class PerformanceEvaluationController {
         List<EvaluationElementDTO> allElements = getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
         final String finalEvalType = evalType;
         List<EvaluationElementDTO> elements = allElements.stream()
-            .filter(e -> finalEvalType.equals(e.elementTypeCode()))
-            .toList();
+                .filter(e -> finalEvalType.equals(e.elementTypeCode()))
+                .toList();
 
         model.addAttribute("elements", elements);
         model.addAttribute("mappingId", mappingId);
 
         // 기존에 제출된 평가 내용 조회 → elementId 기준 Map으로 변환
         java.util.Map<Long, com.ees.eval.domain.Evaluation> savedMap = evaluationMapper
-            .findByMappingId(mappingId)
-            .stream()
-            .collect(java.util.stream.Collectors.toMap(
-                com.ees.eval.domain.Evaluation::getElementId,
-                e -> e,
-                (a, b) -> a  // 중복 키 충돌 방지
-            ));
+                .findByMappingId(mappingId)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        com.ees.eval.domain.Evaluation::getElementId,
+                        e -> e,
+                        (a, b) -> a // 중복 키 충돌 방지
+                ));
         model.addAttribute("savedMap", savedMap);
 
         // 현재 evalType 항목 중 하나라도 SUBMITTED면 제출 완료로 판단
         java.util.Set<Long> currentTypeElementIds = elements.stream()
-            .map(EvaluationElementDTO::elementId)
-            .collect(java.util.stream.Collectors.toSet());
+                .map(EvaluationElementDTO::elementId)
+                .collect(java.util.stream.Collectors.toSet());
         boolean submitted = savedMap.entrySet().stream()
-            .filter(entry -> currentTypeElementIds.contains(entry.getKey()))
-            .anyMatch(entry -> "SUBMITTED".equals(entry.getValue().getConfirmStatusCode()));
+                .filter(entry -> currentTypeElementIds.contains(entry.getKey()))
+                .anyMatch(entry -> "SUBMITTED".equals(entry.getValue().getConfirmStatusCode()));
         model.addAttribute("submitted", submitted);
+
+        // 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+        java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
+        model.addAttribute("isLocked", lockInfo.get("isLocked"));
+        model.addAttribute("lockedBy", lockInfo.get("lockedBy"));
 
         // MANAGER/EXECUTIVE 평가인 경우: 피평가자의 자가평가 내용을 참고용으로 조회
         if ("MANAGER".equals(mapping.relationTypeCode()) || "EXECUTIVE".equals(mapping.relationTypeCode())) {
             java.util.Map<Long, com.ees.eval.domain.Evaluation> selfEvalMap = evaluatorMappingMapper
-                .findByEvaluateeId(mapping.periodId(), mapping.evaluateeId())
-                .stream()
-                .filter(m -> "SELF".equals(m.getRelationTypeCode()))
-                .findFirst()
-                .map(selfMapping -> evaluationMapper.findByMappingId(selfMapping.getMappingId())
+                    .findByEvaluateeId(mapping.periodId(), mapping.evaluateeId())
                     .stream()
-                    .collect(java.util.stream.Collectors.toMap(
-                        com.ees.eval.domain.Evaluation::getElementId,
-                        e -> e,
-                        (a, b) -> a
-                    )))
-                .orElse(java.util.Collections.emptyMap());
+                    .filter(m -> "SELF".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted()))
+                    .findFirst()
+                    .map(selfMapping -> evaluationMapper.findByMappingId(selfMapping.getMappingId())
+                            .stream()
+                            .collect(java.util.stream.Collectors.toMap(
+                                    com.ees.eval.domain.Evaluation::getElementId,
+                                    e -> e,
+                                    (a, b) -> a)))
+                    .orElse(java.util.Collections.emptyMap());
             model.addAttribute("selfEvalMap", selfEvalMap);
-        }
-
-        // 2차 평가자(EXECUTIVE)인 경우: 1차 평가자(MANAGER)의 평가 내용을 조회 (참고 및 기본값 세팅용)
-        if ("EXECUTIVE".equals(mapping.relationTypeCode())) {
-            java.util.Map<Long, com.ees.eval.domain.Evaluation> managerEvalMap = evaluatorMappingMapper
-                .findByEvaluateeId(mapping.periodId(), mapping.evaluateeId())
-                .stream()
-                .filter(m -> "MANAGER".equals(m.getRelationTypeCode()))
-                .findFirst()
-                .map(managerMapping -> evaluationMapper.findByMappingId(managerMapping.getMappingId())
-                    .stream()
-                    .collect(java.util.stream.Collectors.toMap(
-                        com.ees.eval.domain.Evaluation::getElementId,
-                        e -> e,
-                        (a, b) -> a
-                    )))
-                .orElse(java.util.Collections.emptyMap());
-            model.addAttribute("managerEvalMap", managerEvalMap);
-            
-            // EXECUTIVE 본인의 평가 기록이 아직 없는 경우(최초 진입), 
-            // 1차 평가자의 데이터를 인풋 기본값으로 제공하여 "수정 후 제출"할 수 있도록 savedMap에 복사
-            if (savedMap.isEmpty() && !managerEvalMap.isEmpty()) {
-                savedMap.putAll(managerEvalMap);
-            }
         }
 
         return "eval/performance/form";
@@ -310,15 +299,22 @@ public class PerformanceEvaluationController {
      * 평가 폼 제출 처리 - 각 평가요소에 대한 서술형 코멘트를 저장합니다.
      * 이미 저장된 데이터가 있으면 UPDATE, 없으면 INSERT(Upsert) 방식으로 처리합니다.
      */
-    @ApiLoggable
     @PostMapping("/submit")
     public String submitForm(@RequestParam Long mappingId,
-                             @RequestParam java.util.Map<String, String> params,
-                             @AuthenticationPrincipal UserDetails userDetails,
-                             RedirectAttributes redirectAttributes) {
+            @RequestParam java.util.Map<String, String> params,
+            @AuthenticationPrincipal UserDetails userDetails,
+            RedirectAttributes redirectAttributes) {
 
         Long empId = Long.parseLong(userDetails.getUsername());
         log.info("[평가제출] empId={}, mappingId={}", empId, mappingId);
+
+        // 역순 진행 방지 검증
+        java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
+        if ((Boolean) lockInfo.get("isLocked")) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                lockInfo.get("lockedBy") + "가 평가를 완료하여 더 이상 수정할 수 없습니다.");
+            return "redirect:/eval/performance/form?mappingId=" + mappingId;
+        }
 
         // 부서별 유형별 가중치 합계 100 검증
         EvaluatorMappingDTO submitMapping = mappingService.getMappingById(mappingId);
@@ -327,7 +323,7 @@ public class PerformanceEvaluationController {
         if (!typeWeightService.isWeightSumValid(submitMapping.periodId(), submitDeptId, "STAFF")) {
             String currentEvalType = params.getOrDefault("evalType", "PERFORMANCE");
             redirectAttributes.addFlashAttribute("errorMessage",
-                "유형별 가중치 합계가 100%가 아니어서 평가를 제출할 수 없습니다.");
+                    "유형별 가중치 합계가 100%가 아니어서 평가를 제출할 수 없습니다.");
             return "redirect:/eval/performance/form?mappingId=" + mappingId + "&evalType=" + currentEvalType;
         }
 
@@ -337,7 +333,8 @@ public class PerformanceEvaluationController {
             if (key.startsWith("comment_") || key.startsWith("score_")) {
                 try {
                     elementIds.add(Long.parseLong(key.substring(key.indexOf("_") + 1)));
-                } catch (Exception ignore) {}
+                } catch (Exception ignore) {
+                }
             }
         });
 
@@ -362,33 +359,31 @@ public class PerformanceEvaluationController {
 
             // 이미 저장된 레코드가 있으면 UPDATE, 없으면 INSERT
             evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
-                .ifPresentOrElse(
-                    existing -> {
-                        existing.setReason(finalComment);
-                        existing.setScore(finalScore);
-                        existing.setConfirmStatusCode("SUBMITTED");
-                        existing.preUpdate();
-                        evaluationMapper.update(existing);
-                    },
-                    () -> {
-                        Evaluation eval = Evaluation.builder()
-                            .mappingId(mappingId)
-                            .elementId(elementId)
-                            .confirmStatusCode("SUBMITTED")
-                            .build();
-                        eval.setReason(finalComment);
-                        eval.setScore(finalScore);
-                        eval.prePersist();
-                        eval.setCreatedBy(empId);
-                        eval.setUpdatedBy(empId);
-                        evaluationMapper.insert(eval);
-                    }
-                );
+                    .ifPresentOrElse(
+                            existing -> {
+                                existing.setReason(finalComment);
+                                existing.setScore(finalScore);
+                                existing.setConfirmStatusCode("SUBMITTED");
+                                existing.preUpdate();
+                                evaluationMapper.update(existing);
+                            },
+                            () -> {
+                                Evaluation eval = Evaluation.builder()
+                                        .mappingId(mappingId)
+                                        .elementId(elementId)
+                                        .confirmStatusCode("SUBMITTED")
+                                        .build();
+                                eval.setReason(finalComment);
+                                eval.setScore(finalScore);
+                                eval.prePersist();
+                                eval.setCreatedBy(empId);
+                                eval.setUpdatedBy(empId);
+                                evaluationMapper.insert(eval);
+                            });
         }
 
-        // evalType도 함께 넘겨서 제출 후 같은 타입 폼으로 돌아오게 처리
-        String evalType = params.getOrDefault("evalType", "PERFORMANCE");
+        // 제출 후 목록 페이지로 이동
         redirectAttributes.addFlashAttribute("successMessage", "평가가 성공적으로 제출되었습니다.");
-        return "redirect:/eval/performance/form?mappingId=" + mappingId + "&evalType=" + evalType;
+        return "redirect:/eval/performance?periodId=" + submitMapping.periodId();
     }
 }

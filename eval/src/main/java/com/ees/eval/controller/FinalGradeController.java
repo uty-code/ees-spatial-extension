@@ -63,8 +63,8 @@ public class FinalGradeController {
         model.addAttribute("activeMenu", "final-grade");
         Long executiveEmpId = Long.parseLong(userDetails.getUsername());
         
-        // 1. 차수 목록 및 현재 선택된 차수 정보
-        List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
+        // 1. 차수 목록 및 현재 선택된 차수 정보 (진행 중인 차수만 표시)
+        List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
         model.addAttribute("periods", periods);
 
         EvaluationPeriodDTO selectedPeriod;
@@ -72,7 +72,7 @@ public class FinalGradeController {
             selectedPeriod = periodService.getPeriodById(periodId);
         } else {
             selectedPeriod = periods.stream()
-                .filter(p -> "ACTIVE".equals(p.statusCode()))
+                .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
                 .findFirst()
                 .orElse(periods.isEmpty() ? null : periods.get(0));
         }
@@ -275,6 +275,6 @@ public class FinalGradeController {
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "평가가 성공적으로 제출되었습니다.");
-        return "redirect:/eval/final-grade/form?mappingId=" + mappingId;
+        return "redirect:/eval/final-grade?periodId=" + submitMapping.periodId();
     }
 }

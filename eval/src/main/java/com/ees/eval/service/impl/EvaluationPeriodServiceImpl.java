@@ -68,6 +68,17 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
      * {@inheritDoc}
      */
     @Override
+    @Transactional(readOnly = true)
+    public List<EvaluationPeriodDTO> getInProgressPeriods() {
+        return periodMapper.findByStatusCode(STATUS_IN_PROGRESS).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     @Transactional
     public EvaluationPeriodDTO createPeriod(EvaluationPeriodDTO periodDto) {
         // 엔티티 변환 후 초기 상태를 PLANNED로 강제 설정

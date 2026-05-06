@@ -108,9 +108,17 @@
         </div>
 
         <!-- 제출 완료 배너 -->
-        <div th:if="${submitted}" class="alert alert-success bg-opacity-10 border-success border-opacity-25 text-success mb-4 d-flex align-items-center gap-3 py-3">
+        <div th:if="${submitted and not isLocked}" class="alert alert-success bg-opacity-10 border-success border-opacity-25 text-success mb-4 d-flex align-items-center gap-3 py-3">
             <i class="bi bi-patch-check-fill fs-4"></i>
             <span class="fw-bold">평가가 제출된 상태입니다. 내용을 수정하여 재제출할 수 있습니다.</span>
+        </div>
+
+        <!-- 평가 잠금 배너 -->
+        <div th:if="${isLocked}" class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4 d-flex align-items-center gap-3 py-3">
+            <i class="bi bi-lock-fill fs-4"></i>
+            <div>
+                <strong th:text="${lockedBy}">상위 평가자</strong>가 평가를 완료하여 더 이상 내용을 수정할 수 없습니다.
+            </div>
         </div>
 
         <!-- 평가요소 없을 때 -->
@@ -122,6 +130,7 @@
         <!-- 평가 폼 -->
         <form th:if="${elements != null && !elements.isEmpty()}" id="evaluationForm"
               th:action="@{/eval/performance/submit}" method="post">
+            <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
             <input type="hidden" name="mappingId" th:value="${mappingId}">
             <input type="hidden" name="evalType" th:value="${evalType}">
 
@@ -171,6 +180,9 @@
                         <input type="number" class="eval-textarea score-input"
                                th:name="'score_' + ${element.elementId()}"
                                th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                               th:data-weight="${element.weight()}"
+                               th:data-max="${element.maxScore()}"
+                               oninput="calculateTotalConvertedScore()"
                                min="0" th:max="${element.maxScore()}" step="1" 
                                required>
                     </div>
@@ -192,15 +204,41 @@
             </div>
 
             <!-- 하단 플로팅 버튼 영역 -->
-            <div class="d-flex justify-content-end mt-4 mb-5">
+            <div class="d-flex justify-content-end align-items-center mt-4 mb-5 gap-3">
+                <div class="total-score-display text-info fw-bold fs-5 px-4 py-2" style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
+                    총 환산점수: <span id="totalConvertedScore">0.0</span>점
+                </div>
                 <button type="submit" form="evaluationForm" class="btn btn-primary btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg" 
                         style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none;">
                     <i class="bi bi-check2-circle me-2"></i>
                     평가 저장 및 제출
                 </button>
             </div>
+            </fieldset>
         </form>
+
+        <script>
+            function calculateTotalConvertedScore() {
+                let total = 0;
+                document.querySelectorAll('.score-input').forEach(function(input) {
+                    let score = parseFloat(input.value) || 0;
+                    let weight = parseFloat(input.getAttribute('data-weight')) || 0;
+                    let maxScore = parseFloat(input.getAttribute('data-max')) || 100;
+                    
+                    if (score > maxScore) score = maxScore;
+                    
+                    total += (score / maxScore) * weight;
+                });
+                const displayEl = document.getElementById('totalConvertedScore');
+                if (displayEl) {
+                    displayEl.innerText = total.toFixed(1);
+                }
+            }
+
+            calculateTotalConvertedScore();
+        </script>
     </div>
 </div>
+
 </body>
 </html>
