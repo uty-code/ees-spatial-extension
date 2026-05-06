@@ -142,9 +142,21 @@
                         <i class="bi bi-person-badge"></i> 대상자의 자가 평가 (제출된 실적 기록)
                     </div>
                     <div class="eval-textarea" readonly 
-                         th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and selfEvalMap.get(element.elementId()).getScore() != null}"
-                         th:text="${hasSelfEval ? selfEvalMap.get(element.elementId()).getScore() : '작성된 자가 평가 점수가 없습니다.'}"
+                         th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and (selfEvalMap.get(element.elementId()).getScore() != null or selfEvalMap.get(element.elementId()).getReason() != null)}"
+                         th:text="${hasSelfEval ? (selfEvalMap.get(element.elementId()).getScore() != null ? selfEvalMap.get(element.elementId()).getScore() + '점' : '') + (selfEvalMap.get(element.elementId()).getScore() != null and selfEvalMap.get(element.elementId()).getReason() != null ? ' - ' : '') + (selfEvalMap.get(element.elementId()).getReason() != null ? selfEvalMap.get(element.elementId()).getReason() : '') : '작성된 자가 평가 내용이 없습니다.'}"
                          th:style="${!hasSelfEval ? 'color: #64748b; font-style: italic;' : ''}">
+                    </div>
+                </div>
+
+                <!-- 1차 평가자(MANAGER) 평가 내용 (2차 평가자 시점) -->
+                <div th:if="${mapping.relationTypeCode() == 'EXECUTIVE'}" class="mb-4">
+                    <div class="field-label">
+                        <i class="bi bi-person-check"></i> 1차 평가자 코멘트 및 점수
+                    </div>
+                    <div class="eval-textarea" readonly 
+                         th:with="hasManagerEval=${managerEvalMap != null and managerEvalMap.containsKey(element.elementId()) and (managerEvalMap.get(element.elementId()).getScore() != null or managerEvalMap.get(element.elementId()).getReason() != null)}"
+                         th:text="${hasManagerEval ? (managerEvalMap.get(element.elementId()).getScore() != null ? managerEvalMap.get(element.elementId()).getScore() + '점' : '') + (managerEvalMap.get(element.elementId()).getScore() != null and managerEvalMap.get(element.elementId()).getReason() != null ? ' - ' : '') + (managerEvalMap.get(element.elementId()).getReason() != null ? managerEvalMap.get(element.elementId()).getReason() : '') : '작성된 1차 평가 내용이 없습니다.'}"
+                         th:style="${!hasManagerEval ? 'color: #64748b; font-style: italic;' : ''}">
                     </div>
                 </div>
 
