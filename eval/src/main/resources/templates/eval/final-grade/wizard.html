@@ -337,39 +337,49 @@
                 </div>
 
             </form>
+            <script>
+                function nextStep() {
+                    let step1 = document.getElementById('step-1');
+                    if (step1) {
+                        let inputs = step1.querySelectorAll('input[required], textarea[required]');
+                        let valid = true;
+                        for (let i of inputs) {
+                            if (!i.checkValidity()) {
+                                i.reportValidity();
+                                valid = false;
+                                break;
+                            }
+                        }
+
+                        if (valid) {
+                            document.getElementById('step-1').classList.remove('active');
+                            document.getElementById('step-2').classList.add('active');
+                            document.getElementById('indicator-step-1').classList.remove('active');
+                            document.getElementById('indicator-step-2').classList.add('active');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                    } else {
+                        // If step-1 doesn't exist (isLeader), just focus on step-2.
+                        document.getElementById('step-2').classList.add('active');
+                        document.getElementById('indicator-step-2').classList.add('active');
+                    }
+                }
+
+                function prevStep() {
+                    let step2 = document.getElementById('step-2');
+                    if (step2) step2.classList.remove('active');
+                    let step1 = document.getElementById('step-1');
+                    if (step1) step1.classList.add('active');
+                    
+                    let ind2 = document.getElementById('indicator-step-2');
+                    if (ind2) ind2.classList.remove('active');
+                    let ind1 = document.getElementById('indicator-step-1');
+                    if (ind1) ind1.classList.add('active');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            </script>
         </div>
     </div>
-    <script th:fragment="script">
-        function nextStep() {
-            // Step 1 유효성 검사 (required 필드)
-            let step1 = document.getElementById('step-1');
-            let inputs = step1.querySelectorAll('input[required], textarea[required]');
-            let valid = true;
-            for (let i of inputs) {
-                if (!i.checkValidity()) {
-                    i.reportValidity();
-                    valid = false;
-                    break;
-                }
-            }
-
-            if (valid) {
-                document.getElementById('step-1').classList.remove('active');
-                document.getElementById('step-2').classList.add('active');
-                document.getElementById('indicator-step-1').classList.remove('active');
-                document.getElementById('indicator-step-2').classList.add('active');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }
-
-        function prevStep() {
-            document.getElementById('step-2').classList.remove('active');
-            document.getElementById('step-1').classList.add('active');
-            document.getElementById('indicator-step-2').classList.remove('active');
-            document.getElementById('indicator-step-1').classList.add('active');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    </script>
 </body>
 
 </html>
