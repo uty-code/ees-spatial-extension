@@ -1,5 +1,6 @@
 package com.ees.eval.controller;
 
+import com.ees.eval.aop.ApiLoggable;
 import com.ees.eval.domain.Employee;
 import com.ees.eval.domain.Evaluation;
 import com.ees.eval.dto.EvaluationElementDTO;
@@ -264,6 +265,7 @@ public class MyEvaluationController {
     /**
      * 자가평가 제출
      */
+    @ApiLoggable
     @PostMapping("/submit")
     public String submitForm(@RequestParam Long mappingId,
             @RequestParam java.util.Map<String, String> params,
