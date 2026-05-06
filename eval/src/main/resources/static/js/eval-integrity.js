@@ -47,27 +47,44 @@ document.addEventListener('DOMContentLoaded', function () {
                         } else {
                             const errorCount = data.filter(d => d.severity === 'ERROR').length;
                             const warningCount = data.filter(d => d.severity === 'WARNING').length;
+                            const infoCount = data.filter(d => d.severity === 'INFO').length;
 
-                            if (errorCount > 0) {
+
+                             if (errorCount > 0) {
                                 summary.innerHTML = `<i class="bi bi-x-octagon-fill me-2"></i>중대한 오류 <strong>${errorCount}건</strong>이 발견되어 평가를 시작할 수 없습니다.` +
-                                    (warningCount > 0 ? ` (경고: ${warningCount}건)` : '');
+                                    (warningCount + infoCount > 0 ? ` (경고/정보: ${warningCount + infoCount}건)` : '');
                                 summary.className = 'alert bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4';
                                 confirmBtn.classList.add('d-none');
                                 blockedMsg.classList.remove('d-none');
-                            } else {
-                                summary.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>경고 사항이 <strong>${warningCount}건</strong> 있지만 평가를 시작할 수 있습니다.`;
-                                summary.className = 'alert bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4';
+                             } else {
+                                const totalNonError = warningCount + infoCount;
+                                if (warningCount > 0) {
+                                    summary.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>주의 사항이 <strong>${warningCount}건</strong> 발견되었습니다 (정보: ${infoCount}건). 확인 후 평가를 시작할 수 있습니다.`;
+                                    summary.className = 'alert bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4';
+                                    confirmBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>주의 사항 무시하고 시작';
+                                } else {
+                                    summary.innerHTML = `<i class="bi bi-info-circle-fill me-2"></i>참고 사항이 <strong>${infoCount}건</strong> 있습니다. 평가 시작에 지장이 없습니다.`;
+                                    summary.className = 'alert bg-info bg-opacity-10 border-info border-opacity-25 text-info mb-4';
+                                    confirmBtn.innerHTML = '<i class="bi bi-play-fill me-2"></i>평가 시작하기';
+                                }
                                 confirmBtn.classList.remove('d-none', 'btn-success');
                                 confirmBtn.classList.add('btn-warning');
-                                confirmBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>경고 무시하고 시작';
                                 blockedMsg.classList.add('d-none');
                             }
 
+
+
                             data.forEach(item => {
                                 const tr = document.createElement('tr');
-                                const severityBadge = item.severity === 'ERROR'
-                                    ? '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">ERROR</span>'
-                                    : '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">WARNING</span>';
+                                 let severityBadge = '';
+                                if (item.severity === 'ERROR') {
+                                    severityBadge = '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">ERROR</span>';
+                                } else if (item.severity === 'INFO') {
+                                    severityBadge = '<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">INFO</span>';
+                                } else {
+                                    severityBadge = '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">WARNING</span>';
+                                }
+
                                 tr.innerHTML = `
                                     <td>${severityBadge}</td>
                                     <td>
@@ -128,15 +145,30 @@ document.addEventListener('DOMContentLoaded', function () {
                         } else {
                             const errorCount = data.filter(d => d.severity === 'ERROR').length;
                             const warningCount = data.filter(d => d.severity === 'WARNING').length;
+                            const infoCount = data.filter(d => d.severity === 'INFO').length;
 
-                            summary.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>총 <strong>${data.length}</strong>건의 이상 항목이 발견되었습니다. (오류: ${errorCount}건, 경고: ${warningCount}건)`;
-                            summary.className = 'alert bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4';
+                            summary.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>총 <strong>${data.length}</strong>건의 이상 항목이 발견되었습니다. (오류: ${errorCount}건, 경고: ${warningCount}건, 정보: ${infoCount}건)`;
+                            
+                            if (errorCount > 0) {
+                                summary.className = 'alert bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4';
+                            } else if (warningCount > 0) {
+                                summary.className = 'alert bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4';
+                            } else {
+                                summary.className = 'alert bg-info bg-opacity-10 border-info border-opacity-25 text-info mb-4';
+                            }
+
 
                             data.forEach(item => {
                                 const tr = document.createElement('tr');
-                                const severityBadge = item.severity === 'ERROR'
-                                    ? '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">ERROR</span>'
-                                    : '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">WARNING</span>';
+                                 let severityBadge = '';
+                                if (item.severity === 'ERROR') {
+                                    severityBadge = '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">ERROR</span>';
+                                } else if (item.severity === 'INFO') {
+                                    severityBadge = '<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">INFO</span>';
+                                } else {
+                                    severityBadge = '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">WARNING</span>';
+                                }
+
 
                                 tr.innerHTML = `
                                     <td>${severityBadge}</td>

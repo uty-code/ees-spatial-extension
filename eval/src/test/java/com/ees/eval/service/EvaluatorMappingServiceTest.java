@@ -418,4 +418,108 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("소속 부서가 일치하지 않습니다");
     }
+
+    /**
+     * [퇴사 시나리오 1] 부서장이 매핑 전 퇴사한 경우, 자동 매핑 시 MANAGER 관계가 생성되지 않아야 합니다.
+     */
+    @Test
+    @DisplayName("자동 매핑 - 부서장 퇴사 시 1차 평가(MANAGER) 매핑 스킵")
+    void autoGenerateMappings_skipsRetiredManager_Test() {
+        // given: 김팀장(empIdA)을 퇴사 처리
+        EmployeeDTO leaderA = employeeService.getEmployeeById(empIdA);
+        employeeService.updateEmployee(EmployeeDTO.builder()
+                .empId(leaderA.empId())
+                .deptId(leaderA.deptId())
+                .positionId(leaderA.positionId())
+                .name(leaderA.name())
+                .hireDate(leaderA.hireDate())
+                .statusCode("RETIRED")
+                .version(leaderA.version())
+                .build());
+
+        // when: 자동 매핑 실행
+
+        mappingService.autoGenerateMappings(testPeriodId, testDeptId, null);
+
+        // then: 이팀원(empIdB)의 평가자 목록에 MANAGER(empIdA)가 없어야 함
+        List<EvaluatorMappingDTO> bEvaluators = mappingService.getMyEvaluators(testPeriodId, empIdB);
+        boolean hasManager = bEvaluators.stream()
+                .anyMatch(m -> "MANAGER".equals(m.relationTypeCode()));
+        assertThat(hasManager).as("퇴사한 부서장은 1차 평가자로 매핑되지 않아야 합니다").isFalse();
+        
+        // then: 퇴사한 부서장 본인(empIdA)은 다면 평가(SUBORDINATE) 대상에서 제외되어야 함
+        List<EvaluatorMappingDTO> aEvaluators = mappingService.getMyEvaluators(testPeriodId, empIdA);
+        boolean hasSubordinate = aEvaluators.stream()
+                .anyMatch(m -> "SUBORDINATE".equals(m.relationTypeCode()));
+        assertThat(hasSubordinate).as("퇴사한 부서장은 다면 평가 대상에서 제외되어야 합니다").isFalse();
+    }
+
+    /**
+     * [퇴사 시나리오 2] 매핑 후 부서장이 퇴사한 경우, 정합성 검사 결과가 ERROR가 아닌 INFO여야 합니다.
+     */
+    @Test
+    @DisplayName("정합성 검사 - 매핑 후 부서장 퇴사 시 INFO 등급 반환")
+    void checkMappingIntegrity_retiredManager_returnsInfo_Test() {
+        // given: 정상 매핑 생성 (A가 B를 평가)
+        mappingService.createMapping(EvaluatorMappingDTO.builder()
+                .periodId(testPeriodId).evaluateeId(empIdB)
+                .evaluatorId(empIdA).relationTypeCode("MANAGER").build());
+
+        // given: 매핑 후 부서장(empIdA) 퇴사
+        EmployeeDTO leaderA = employeeService.getEmployeeById(empIdA);
+        employeeService.updateEmployee(EmployeeDTO.builder()
+                .empId(leaderA.empId())
+                .deptId(leaderA.deptId())
+                .positionId(leaderA.positionId())
+                .name(leaderA.name())
+                .hireDate(leaderA.hireDate())
+                .statusCode("RETIRED")
+                .version(leaderA.version())
+                .build());
+
+
+        // when: 정합성 검사 실행
+        List<com.ees.eval.dto.MappingAnomalyDTO> anomalies = mappingService.checkMappingIntegrity(testPeriodId);
+
+        // then: RETIRED_EVALUATOR 유형의 INFO 등급 이상치가 존재해야 함
+        boolean hasRetiredInfo = anomalies.stream()
+                .anyMatch(a -> "RETIRED_EVALUATOR".equals(a.anomalyType()) && "INFO".equals(a.severity()));
+
+
+        assertThat(hasRetiredInfo).as("퇴사한 평가자 이슈는 INFO 등급으로 보고되어야 합니다").isTrue();
+    }
+
+    /**
+     * [퇴사 시나리오 3] 평가자가 퇴사한 경우, '내가 해야 할 평가' 목록에서 제외되어야 합니다.
+     */
+    @Test
+    @DisplayName("평가 목록 필터링 - 상대방이 퇴사한 경우 태스크 목록에서 제외")
+    void getMyEvaluationTasks_filtersRetiredEvaluatee_Test() {
+        // given: 다면 평가 매핑 (B가 A를 평가)
+        mappingService.createMapping(EvaluatorMappingDTO.builder()
+                .periodId(testPeriodId).evaluateeId(empIdA)
+                .evaluatorId(empIdB).relationTypeCode("SUBORDINATE").build());
+
+        // given: 피평가자(부서장 A) 퇴사
+        EmployeeDTO leaderA = employeeService.getEmployeeById(empIdA);
+        employeeService.updateEmployee(EmployeeDTO.builder()
+                .empId(leaderA.empId())
+                .deptId(leaderA.deptId())
+                .positionId(leaderA.positionId())
+                .name(leaderA.name())
+                .hireDate(leaderA.hireDate())
+                .statusCode("RETIRED")
+                .version(leaderA.version())
+                .build());
+
+        // when: 평가자(B)의 태스크 목록 조회
+
+        List<EvaluatorMappingDTO> bTasks = mappingService.getMyEvaluationTasks(testPeriodId, empIdB);
+
+        // then: 퇴사한 A를 평가하는 태스크는 목록에 없어야 함
+        boolean hasTaskForA = bTasks.stream()
+                .anyMatch(t -> t.evaluateeId().equals(empIdA));
+        assertThat(hasTaskForA).as("퇴사한 대상자에 대한 평가 태스크는 노출되지 않아야 합니다").isFalse();
+    }
 }
+

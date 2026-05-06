@@ -1,5 +1,7 @@
 package com.ees.eval.config;
 
+import com.ees.eval.security.CustomAccessDeniedHandler;
+import com.ees.eval.security.CustomAuthenticationEntryPoint;
 import com.ees.eval.security.EesAuthenticationFailureHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +24,8 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final EesAuthenticationFailureHandler authenticationFailureHandler;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
     /**
      * 사원 패스워드 암호화를 위한 BCrypt 인코더를 빈으로 등록합니다.
@@ -52,6 +56,10 @@ public class SecurityConfig {
                 .requestMatchers("/login", "/register", "/error").permitAll()
                 // 그 외 모든 요청은 인증 필요
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(customAuthenticationEntryPoint)
+                .accessDeniedHandler(customAccessDeniedHandler)
             )
             .formLogin(form -> form
                 .loginPage("/login")             // 커스텀 로그인 페이지 경로

@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -17,15 +18,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * {@link ApiLoggable} 어노테이션이 부착된 컨트롤러 메소드의
- * API 호출 이력을 자동으로 기록하는 AOP Aspect입니다.
+ * {@link ApiLoggable} 어노테이션이 부착된 컨트롤러 메소드 혹은
+ * 에러가 발생한 모든 컨트롤러 메소드의 API 호출 이력을 자동으로 기록하는 AOP Aspect입니다.
  *
  * <p>실행 흐름:</p>
  * <ol>
- *   <li>{@code @ApiLoggable} 어노테이션 감지</li>
+ *   <li>컨트롤러 호출 감지</li>
  *   <li>{@code HttpServletRequest}에서 URL, HTTP Method, IP 추출</li>
  *   <li>메소드 파라미터를 JSON으로 직렬화하여 요청 내용 기록</li>
- *   <li>메소드 실행 후 결과(리다이렉트 URL 등)를 응답 내용으로 기록</li>
+ *   <li>메소드 실행 후, @ApiLoggable이 있거나 에러가 발생한 경우 결과(혹은 에러 메시지)를 응답 내용으로 기록</li>
  *   <li>{@link ApiLogService}를 통해 {@code api_logs_51} 테이블에 저장</li>
  * </ol>
  */
@@ -39,51 +40,69 @@ public class ApiLoggingAspect {
     private final ObjectMapper objectMapper;
 
     /**
-     * {@code @ApiLoggable} 어노테이션이 붙은 메소드 실행 전후로 API 호출 이력을 기록합니다.
+     * 컨트롤러 메소드 실행 전후로 API 호출 이력을 기록합니다.
+     * @ApiLoggable이 선언된 메소드거나 예외가 발생한 메소드의 경우 이력을 기록합니다.
      *
      * @param joinPoint AOP 조인 포인트
      * @return 원본 메소드의 반환값
      * @throws Throwable 원본 메소드에서 발생한 예외
      */
-    @Around("@annotation(com.ees.eval.aop.ApiLoggable)")
+    @Around("@annotation(com.ees.eval.aop.ApiLoggable) || execution(* com.ees.eval.controller..*(..))")
     public Object logApiCall(ProceedingJoinPoint joinPoint) throws Throwable {
-        // 1. HttpServletRequest에서 URL, Method, IP 추출
-        HttpServletRequest request = getCurrentRequest();
-        String apiUrl = (request != null) ? request.getRequestURI() : "UNKNOWN";
-        String httpMethod = (request != null) ? request.getMethod() : "UNKNOWN";
-        String ipAddress = extractClientIp(request);
-        Long empId = extractEmployeeId(joinPoint);
+        // @ApiLoggable 어노테이션 여부 미리 확인 (불필요한 연산 방지용)
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        boolean isLoggable = signature.getMethod().isAnnotationPresent(ApiLoggable.class);
 
-        // 2. HttpServletRequest에서 전체 파라미터를 직접 읽어 JSON으로 직렬화
-        String requestContent = serializeParameters(request);
-
-        // 3. 원본 메소드 실행
         String resultCode = "SUCCESS";
         Object result = null;
+        String errorMessage = null;
+        boolean hasError = false;
+        
         try {
             result = joinPoint.proceed();
-        } catch (Exception e) {
+        } catch (Throwable t) {
             resultCode = "ERROR";
-            throw e;
+            errorMessage = t.getMessage();
+            hasError = true;
+            throw t;
         } finally {
-            // 4. 로그 저장 (성공/실패 모두 기록)
-            String responseContent = (result != null) ? result.toString() : null;
-            // 응답 내용이 너무 길면 잘라내기
-            if (responseContent != null && responseContent.length() > 500) {
-                responseContent = responseContent.substring(0, 500);
+            // @ApiLoggable이 붙어 있거나, 에러가 발생한 경우에만 실제 데이터 추출 및 로깅 (성능 최적화)
+            if (isLoggable || hasError) {
+                // 1. HttpServletRequest에서 URL, Method, IP 추출
+                HttpServletRequest request = getCurrentRequest();
+                String apiUrl = (request != null) ? request.getRequestURI() : "UNKNOWN";
+                String httpMethod = (request != null) ? request.getMethod() : "UNKNOWN";
+                String ipAddress = extractClientIp(request);
+                Long empId = extractEmployeeId(joinPoint);
+
+                // 2. 파라미터 직렬화 (필요한 순간에만 수행하여 성능 저하 방지)
+                String requestContent = serializeParameters(request);
+                
+                // 3. 로그 저장 (성공/실패 모두 기록)
+                String responseContent = (result != null) ? result.toString() : null;
+                
+                // 에러 발생 시 예외 메시지를 응답 내용으로 기록
+                if (hasError) {
+                    responseContent = "ERROR: " + (errorMessage != null ? errorMessage : "Unknown Error");
+                }
+                
+                // 응답 내용이 너무 길면 잘라내기
+                if (responseContent != null && responseContent.length() > 500) {
+                    responseContent = responseContent.substring(0, 500);
+                }
+
+                ApiLog apiLog = ApiLog.builder()
+                        .apiUrl(apiUrl)
+                        .httpMethod(httpMethod)
+                        .requestContent(requestContent)
+                        .responseContent(responseContent)
+                        .resultCode(resultCode)
+                        .ipAddress(ipAddress)
+                        .createdBy(empId)
+                        .build();
+
+                apiLogService.saveLog(apiLog);
             }
-
-            ApiLog apiLog = ApiLog.builder()
-                    .apiUrl(apiUrl)
-                    .httpMethod(httpMethod)
-                    .requestContent(requestContent)
-                    .responseContent(responseContent)
-                    .resultCode(resultCode)
-                    .ipAddress(ipAddress)
-                    .createdBy(empId)
-                    .build();
-
-            apiLogService.saveLog(apiLog);
         }
 
         return result;
