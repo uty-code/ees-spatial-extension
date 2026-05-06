@@ -20,13 +20,31 @@
         <result property="updatedBy"    column="updated_by"/>
     </resultMap>
 
+    <sql id="InterviewColumns">
+        interview_id, mapping_id, content1, content2, content3, content4,
+        status_code, is_deleted, version, created_at, created_by, updated_at, updated_by
+    </sql>
+
+    <!-- 단건 조회 (일반) -->
     <select id="findByMappingId" resultMap="InterviewResultMap">
-        SELECT *
+        SELECT <include refid="InterviewColumns"/>
         FROM interviews_51
         WHERE mapping_id = #{mappingId}
           AND is_deleted = 'n'
     </select>
 
+    <!-- Batch 조회 (SARG 준수, IN 절 사용) -->
+    <select id="findByMappingIds" resultMap="InterviewResultMap">
+        SELECT <include refid="InterviewColumns"/>
+        FROM interviews_51
+        WHERE mapping_id IN
+        <foreach item="id" collection="mappingIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND is_deleted = 'n'
+    </select>
+
+    <!-- 신규 면담 기록 삽입 -->
     <insert id="insert" parameterType="com.ees.eval.domain.Interview">
         INSERT INTO interviews_51 (
             mapping_id, content1, content2, content3, content4, status_code,
