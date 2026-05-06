@@ -29,6 +29,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
     private final EvaluatorMappingMapper mappingMapper;
     private final EvaluationMapper evaluationMapper;
     private final EmployeeMapper employeeMapper;
+    private final com.ees.eval.mapper.DepartmentMapper departmentMapper;
     private final EvaluationElementService elementService;
     private final EvaluationTypeWeightService typeWeightService;
 
@@ -79,18 +80,31 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             Employee evaluatee = employeeMap.get(task.getEvaluateeId());
             Long deptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
 
+            boolean isLeader = departmentMapper.countDepartmentsByLeaderId(task.getEvaluateeId()) > 0;
+            String targetRole = isLeader ? "LEADER" : "STAFF";
+
             // 가중치 유효성 체크 (캐시 활용)
-            boolean weightValid = weightValidCache.computeIfAbsent(deptId, 
-                id -> typeWeightService.isWeightSumValid(periodId, id, "STAFF"));
+            boolean weightValid = weightValidCache.computeIfAbsent(deptId != null ? deptId * 31 + targetRole.hashCode() : targetRole.hashCode() * 31L, 
+                id -> typeWeightService.isWeightSumValid(periodId, deptId, targetRole));
+
+            // 해당 역할에 필요한 평가 항목 유형 필터링
+            List<String> requiredTypes = typeWeightService.getTypeWeights(periodId, deptId, targetRole).stream()
+                    .map(com.ees.eval.dto.EvaluationTypeWeightDTO::elementTypeCode)
+                    .collect(Collectors.toList());
+
+            List<EvaluationElementDTO> allElements = getElementsWithFallback(periodId, deptId, globalElements);
+            List<EvaluationElementDTO> requiredElements = allElements.stream()
+                    .filter(e -> requiredTypes.contains(e.elementTypeCode()))
+                    .collect(Collectors.toList());
 
             // 본인 평가(EXECUTIVE) 완료 여부
-            List<EvaluationElementDTO> elements = getElementsWithFallback(periodId, deptId, globalElements);
             List<Evaluation> myEvals = evalGroupMap.getOrDefault(task.getMappingId(), Collections.emptyList());
-            boolean allSubmitted = isAllSubmitted(elements, myEvals);
+            boolean allSubmitted = isAllSubmitted(requiredElements, myEvals);
 
             // 자가평가(SELF) 제출 여부
             Long selfMappingId = selfMappingIdMap.get(task.getEvaluateeId());
-            boolean selfSubmitted = selfMappingId != null && evalGroupMap.containsKey(selfMappingId);
+            List<Evaluation> selfEvals = selfMappingId != null ? evalGroupMap.getOrDefault(selfMappingId, Collections.emptyList()) : Collections.emptyList();
+            boolean selfSubmitted = selfMappingId != null && isAllSubmitted(requiredElements, selfEvals);
 
             return FinalGradeTaskDTO.builder()
                     .mappingId(task.getMappingId())
@@ -112,9 +126,10 @@ public class FinalGradeServiceImpl implements FinalGradeService {
 
     private boolean isAllSubmitted(List<EvaluationElementDTO> elements, List<Evaluation> evaluations) {
         if (elements.isEmpty()) return false;
-        Set<Long> evaluatedElementIds = evaluations.stream()
+        Set<Long> submittedElementIds = evaluations.stream()
+                .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
                 .map(Evaluation::getElementId)
                 .collect(Collectors.toSet());
-        return elements.stream().allMatch(e -> evaluatedElementIds.contains(e.elementId()));
+        return elements.stream().allMatch(e -> submittedElementIds.contains(e.elementId()));
     }
 }
