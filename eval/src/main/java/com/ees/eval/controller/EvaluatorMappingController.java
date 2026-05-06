@@ -100,7 +100,10 @@ public class EvaluatorMappingController {
             
             model.addAttribute("groupedMappings", groupedMap.values());
             model.addAttribute("mappings", mappings);
-            model.addAttribute("selectedPeriod", periodService.getPeriodById(selectedId));
+            EvaluationPeriodDTO selectedPeriod = periodService.getPeriodById(selectedId);
+            model.addAttribute("selectedPeriod", selectedPeriod);
+            // 평가 차수가 PLANNED 상태일 때만 매핑 수정 허용
+            model.addAttribute("isModifiable", "PLANNED".equals(selectedPeriod.statusCode()));
             model.addAttribute("isFiltered", effectiveDeptId != null || (searchName != null && !searchName.isEmpty()));
         }
 
