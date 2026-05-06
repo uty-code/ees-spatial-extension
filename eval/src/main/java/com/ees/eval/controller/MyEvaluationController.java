@@ -75,8 +75,8 @@ public class MyEvaluationController {
         log.info("[MyEvaluation] list - empId: {}, isLeader: {}", empId, isLeader);
         model.addAttribute("isLeader", isLeader);
 
-        // 차수 목록
-        List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
+        // 차수 목록 (진행 중인 차수만 표시)
+        List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
         model.addAttribute("periods", periods);
 
         EvaluationPeriodDTO selectedPeriod = null;
@@ -84,9 +84,9 @@ public class MyEvaluationController {
             selectedPeriod = periodService.getPeriodById(periodId);
         } else if (!periods.isEmpty()) {
             selectedPeriod = periods.stream()
-                    .filter(p -> "ACTIVE".equals(p.statusCode()))
+                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
                     .findFirst()
-                    .orElse(periods.get(0));
+                    .orElse(periods.isEmpty() ? null : periods.get(0));
         }
 
         if (selectedPeriod != null) {

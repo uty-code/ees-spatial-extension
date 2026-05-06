@@ -64,7 +64,7 @@ public class MultiDimensionalEvaluationController {
         Long empId = Long.parseLong(userDetails.getUsername());
         model.addAttribute("activeMenu", "multi-dimensional-eval");
 
-        List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
+        List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
         model.addAttribute("periods", periods);
 
         EvaluationPeriodDTO selectedPeriod = null;
@@ -72,9 +72,9 @@ public class MultiDimensionalEvaluationController {
             selectedPeriod = periodService.getPeriodById(periodId);
         } else if (!periods.isEmpty()) {
             selectedPeriod = periods.stream()
-                    .filter(p -> "ACTIVE".equals(p.statusCode()))
+                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
                     .findFirst()
-                    .orElse(periods.get(0));
+                    .orElse(periods.isEmpty() ? null : periods.get(0));
         }
 
         if (selectedPeriod != null) {

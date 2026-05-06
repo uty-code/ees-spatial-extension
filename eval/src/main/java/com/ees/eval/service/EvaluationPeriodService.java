@@ -27,6 +27,13 @@ public interface EvaluationPeriodService {
     List<EvaluationPeriodDTO> getAllPeriods();
 
     /**
+     * 진행 중(IN_PROGRESS)인 평가 차수 목록을 조회합니다.
+     *
+     * @return 진행 중인 차수 DTO 리스트
+     */
+    List<EvaluationPeriodDTO> getInProgressPeriods();
+
+    /**
      * 신규 평가 차수를 생성합니다. 초기 상태는 PLANNED입니다.
      *
      * @param periodDto 생성할 차수 정보
