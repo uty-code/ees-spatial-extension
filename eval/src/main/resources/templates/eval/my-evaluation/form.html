@@ -276,9 +276,18 @@
         </div>
 
         <!-- 제출 완료 배너 -->
-        <div th:if="${submitted}" class="submitted-banner">
+        <div th:if="${submitted and not isLocked}" class="submitted-banner">
             <i class="bi bi-patch-check-fill fs-5"></i>
             <span>평가가 제출된 상태입니다. 내용을 수정하여 재제출할 수 있습니다.</span>
+        </div>
+
+        <!-- 평가 잠금 배너 -->
+        <div th:if="${isLocked}" class="error-banner"
+             style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:0.75rem;padding:14px 22px;margin-bottom:24px;display:flex;align-items:center;gap:12px;color:#fca5a5;">
+            <i class="bi bi-lock-fill"></i>
+            <div>
+                <strong th:text="${lockedBy}">상위 평가자</strong>가 평가를 완료하여 더 이상 내용을 수정할 수 없습니다.
+            </div>
         </div>
 
         <!-- 에러 메시지 -->
@@ -295,9 +304,9 @@
             <p style="color:rgba(255,255,255,0.35);font-size:0.88rem;">관리자가 해당 차수의 평가요소를 먼저 등록해야 합니다.</p>
         </div>
 
-        <!-- 평가 폼 -->
         <form th:if="${elements != null && !elements.isEmpty()}" id="selfEvalForm"
               th:action="@{/eval/my-evaluation/submit}" method="post">
+            <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
             <input type="hidden" name="mappingId" th:value="${mappingId}">
             <input type="hidden" name="evalType" th:value="${evalType}">
 
@@ -348,6 +357,7 @@
                     </span>
                 </button>
             </div>
+            </fieldset>
         </form>
     </div>
 </div>

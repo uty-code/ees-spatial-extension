@@ -111,6 +111,14 @@ public class MultiDimensionalEvaluationController {
             model.addAttribute("submittedMap", submittedMap);
             model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
 
+            // 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+            java.util.Map<Long, Boolean> lockMap = new java.util.HashMap<>();
+            for (EvaluatorMappingDTO task : multiTasks) {
+                java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(task.mappingId());
+                lockMap.put(task.mappingId(), (Boolean) lockInfo.get("isLocked"));
+            }
+            model.addAttribute("lockMap", lockMap);
+
             if ("PLANNED".equals(selectedPeriod.statusCode())) {
                 model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
             }
@@ -168,10 +176,14 @@ public class MultiDimensionalEvaluationController {
                 .collect(Collectors.toMap(Evaluation::getElementId, e -> e, (a, b) -> a));
         model.addAttribute("savedMap", savedMap);
 
-        // 제출 여부
         boolean submitted = savedMap.values().stream()
                 .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
         model.addAttribute("submitted", submitted);
+
+        // 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+        java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
+        model.addAttribute("isLocked", lockInfo.get("isLocked"));
+        model.addAttribute("lockedBy", lockInfo.get("lockedBy"));
 
         // 피평가자(부서장)의 자가평가 데이터 조회 (다면평가 참고용)
         List<EvaluatorMappingDTO> evaluateeTasks = mappingService.getMyEvaluationTasks(mapping.periodId(), mapping.evaluateeId());
@@ -209,6 +221,14 @@ public class MultiDimensionalEvaluationController {
 
         Long empId = Long.parseLong(userDetails.getUsername());
         
+        // 역순 진행 방지 검증
+        java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
+        if ((Boolean) lockInfo.get("isLocked")) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                lockInfo.get("lockedBy") + "가 평가를 완료하여 더 이상 수정할 수 없습니다.");
+            return "redirect:/eval/multi-dimensional/form?mappingId=" + mappingId;
+        }
+
         // 데이터 저장 로직 (PerformanceEvaluationController와 유사)
         java.util.Set<Long> elementIds = new java.util.HashSet<>();
         params.keySet().forEach(key -> {

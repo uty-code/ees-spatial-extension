@@ -170,6 +170,14 @@ public class PerformanceEvaluationController {
             model.addAttribute("teamCompSubmittedMap", teamCompSubmittedMap);
             model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
 
+            // 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+            java.util.Map<Long, Boolean> teamLockMap = new java.util.HashMap<>();
+            for (EvaluatorMappingDTO task : teamTasks) {
+                java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(task.mappingId());
+                teamLockMap.put(task.mappingId(), (Boolean) lockInfo.get("isLocked"));
+            }
+            model.addAttribute("teamLockMap", teamLockMap);
+
             // 부서별 유형별 가중치 합계 100 검증
             // 로그인 사용자의 부서 가중치가 유효한지 확인 (자가평가용)
             Employee currentEmp = employeeMapper.findById(empId).orElse(null);
@@ -262,6 +270,11 @@ public class PerformanceEvaluationController {
                 .anyMatch(entry -> "SUBMITTED".equals(entry.getValue().getConfirmStatusCode()));
         model.addAttribute("submitted", submitted);
 
+        // 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+        java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
+        model.addAttribute("isLocked", lockInfo.get("isLocked"));
+        model.addAttribute("lockedBy", lockInfo.get("lockedBy"));
+
         // MANAGER/EXECUTIVE 평가인 경우: 피평가자의 자가평가 내용을 참고용으로 조회
         if ("MANAGER".equals(mapping.relationTypeCode()) || "EXECUTIVE".equals(mapping.relationTypeCode())) {
             java.util.Map<Long, com.ees.eval.domain.Evaluation> selfEvalMap = evaluatorMappingMapper
@@ -294,6 +307,14 @@ public class PerformanceEvaluationController {
 
         Long empId = Long.parseLong(userDetails.getUsername());
         log.info("[평가제출] empId={}, mappingId={}", empId, mappingId);
+
+        // 역순 진행 방지 검증
+        java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
+        if ((Boolean) lockInfo.get("isLocked")) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                lockInfo.get("lockedBy") + "가 평가를 완료하여 더 이상 수정할 수 없습니다.");
+            return "redirect:/eval/performance/form?mappingId=" + mappingId;
+        }
 
         // 부서별 유형별 가중치 합계 100 검증
         EvaluatorMappingDTO submitMapping = mappingService.getMappingById(mappingId);

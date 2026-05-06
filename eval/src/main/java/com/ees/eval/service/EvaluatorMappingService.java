@@ -129,4 +129,12 @@ public interface EvaluatorMappingService {
      * @return 예외 상황(MappingAnomalyDTO) 목록
      */
     List<MappingAnomalyDTO> checkMappingIntegrity(Long periodId);
+
+    /**
+     * 현재 평가 매핑이 하위 단계 평가 제출로 인해 잠겨 있는지 확인합니다.
+     * 
+     * @param mappingId 확인할 매핑 ID
+     * @return 잠금 여부 및 잠금 사유 정보를 담은 맵 (isLocked: boolean, lockedBy: String)
+     */
+    java.util.Map<String, Object> checkEvaluationLock(Long mappingId);
 }
