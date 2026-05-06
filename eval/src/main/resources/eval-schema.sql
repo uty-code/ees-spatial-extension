@@ -150,6 +150,24 @@ create table login_logs_51
     foreign key (emp_id) references employees_51(emp_id)
 );
 
+-- API 호출 이력 로그 (비즈니스 API 호출 추적용, login_logs_51과 역할 분리)
+create table api_logs_51
+(
+    log_id bigint identity(1,1) primary key,
+    api_url varchar(500) not null,
+    http_method varchar(10) not null,
+    request_content nvarchar(max),
+    response_content nvarchar(max),
+    result_code varchar(20),
+    ip_address varchar(45),
+    is_deleted char(1) default 'n',
+    version int default 0,
+    created_at datetime default getdate(),
+    created_by bigint,
+    updated_at datetime,
+    updated_by bigint
+);
+
 -- ==========================================
 -- 3. 평가 기준 및 매핑
 -- ==========================================

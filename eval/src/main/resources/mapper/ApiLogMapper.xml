@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.ApiLogMapper">
+
+    <!-- API 호출 이력 로그 삽입 -->
+    <insert id="insertApiLog" parameterType="com.ees.eval.domain.ApiLog">
+        insert into api_logs_51 (
+            api_url,
+            http_method,
+            request_content,
+            response_content,
+            result_code,
+            ip_address,
+            created_at,
+            created_by,
+            updated_at,
+            updated_by
+        ) values (
+            #{apiUrl},
+            #{httpMethod},
+            #{requestContent},
+            #{responseContent},
+            #{resultCode},
+            #{ipAddress},
+            getdate(),
+            #{createdBy},
+            getdate(),
+            #{createdBy}
+        )
+    </insert>
+
+    <!-- API 호출 이력 로그 전체 조회 (최신순) -->
+    <select id="selectAllApiLogs" resultType="com.ees.eval.domain.ApiLog">
+        select
+            log_id          as logId,
+            api_url         as apiUrl,
+            http_method     as httpMethod,
+            request_content as requestContent,
+            response_content as responseContent,
+            result_code     as resultCode,
+            ip_address      as ipAddress,
+            created_at      as createdAt,
+            created_by      as createdBy
+        from api_logs_51
+        where is_deleted = 'n'
+        order by created_at desc
+    </select>
+
+</mapper>

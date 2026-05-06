@@ -8,6 +8,14 @@ import java.util.List;
 /**
  * 평가자 매핑(EvaluatorMapping) 관리를 담당하는 서비스 인터페이스입니다.
  * 단건/일괄 매핑 생성, 중복 체크, 자기평가 검증, 평가 목록 조회 기능을 제공합니다.
+ *
+ * <p><strong>핵심 비즈니스 규칙:</strong></p>
+ * <ul>
+ *   <li>모든 매핑 변경(CUD) 작업은 해당 차수(period_id)의 상태가 {@code PLANNED}일 때만 가능합니다.</li>
+ *   <li>{@code IN_PROGRESS} 이상 상태에서 매핑 수정 시도 시 {@link IllegalStateException}이 발생합니다.</li>
+ *   <li>논리적 삭제: 데이터 무결성을 위해 삭제 및 수정 시 기존 데이터는 {@code is_deleted='y'} 처리됩니다.</li>
+ *   <li>자기 자신을 관리자나 동료로 매핑할 수 없습니다. (자기 평가는 SELF_EVAL 관계로 별도 관리)</li>
+ * </ul>
  */
 public interface EvaluatorMappingService {
 
@@ -52,10 +60,10 @@ public interface EvaluatorMappingService {
      * 단건 평가자 매핑을 생성합니다.
      * 자기 자신을 MANAGER/SUBORDINATE 등으로 매핑하는 것과 중복 매핑을 차단합니다.
      * 
-     * @param mappingDto 생성할 매핑 정보
+     * @param mappingDto 생성할 매핑 정보 (periodId 필수)
      * @return 생성된 매핑 DTO
      * @throws IllegalArgumentException 자기 자신을 MANAGER/SUBORDINATE 등으로 매핑할 경우
-     * @throws IllegalStateException 동일 관계가 이미 존재할 경우
+     * @throws IllegalStateException 동일 관계가 이미 존재하거나, 평가 차수가 PLANNED 상태가 아닐 경우
      */
     EvaluatorMappingDTO createMapping(EvaluatorMappingDTO mappingDto);
 
@@ -68,41 +76,49 @@ public interface EvaluatorMappingService {
      * @param evaluatorIds 매핑할 평가자 ID 목록
      * @param relationTypeCode 관계 유형 코드
      * @return 생성된 매핑 DTO 리스트
+     * @throws IllegalStateException 평가 차수가 PLANNED 상태가 아닐 경우
      */
     List<EvaluatorMappingDTO> createBulkMappings(Long periodId, Long evaluateeId,
                                                   List<Long> evaluatorIds, String relationTypeCode);
 
     /**
      * 특정 차수의 평가자 매핑을 자동 생성합니다. (본인 및 부서장 매핑)
+     * 기존 매핑이 있을 경우, 권한 충돌 방지를 위해 논리적 삭제(is_deleted='y') 후 새로 생성합니다.
      *
      * @param periodId     차수 식별자
      * @param deptId       부서 식별자 (null이면 전체 사원 대상)
      * @param excludeEmpId 제외할 사원 식별자 (null이면 제외 없음)
      * @return 생성된 매핑 수
+     * @throws IllegalStateException 평가 차수가 PLANNED 상태가 아닐 경우
      */
     int autoGenerateMappings(Long periodId, Long deptId, Long excludeEmpId);
 
     /**
-     * 매핑을 논리적으로 삭제합니다.
+     * 매핑을 논리적으로 삭제합니다. (실제 데이터는 보존되며 is_deleted 플래그만 'y'로 변경)
      *
      * @param mappingId 삭제할 매핑 ID
+     * @throws IllegalStateException 매핑이 속한 평가 차수가 PLANNED 상태가 아닐 경우
      */
     void deleteMapping(Long mappingId);
 
     /**
      * 기존 매핑의 평가자를 변경합니다.
+     * 데이터 무결성 및 이력 관리를 위해 기존 매핑은 논리 삭제 처리하고 새로운 매핑을 생성합니다.
      *
      * @param mappingId   매핑 ID
      * @param evaluatorId 새 평가자 ID
-     * @return 업데이트된 매핑 DTO
+     * @return 업데이트(새로 생성)된 매핑 DTO
+     * @throws IllegalStateException 평가 차수가 PLANNED 상태가 아닐 경우
      */
     EvaluatorMappingDTO updateMapping(Long mappingId, Long evaluatorId);
 
     /**
      * 특정 차수 및 부서의 모든 매핑을 일괄 삭제(초기화)합니다.
+     * 테스트 및 시스템 리셋 목적으로 주로 활용됩니다.
      *
      * @param periodId 차수 ID
      * @param deptId   부서 ID (null일 경우 전체 삭제)
+     * @throws IllegalStateException 평가 차수가 PLANNED 상태가 아닐 경우
      */
     void initializeMappingsByDept(Long periodId, Long deptId);
 
@@ -110,7 +126,7 @@ public interface EvaluatorMappingService {
      * 특정 차수의 평가 매핑 정합성을 검증하여 누락 및 오류를 반환합니다.
      *
      * @param periodId 검증할 평가 차수 ID
-     * @return 예외 상황 목록
+     * @return 예외 상황(MappingAnomalyDTO) 목록
      */
     List<MappingAnomalyDTO> checkMappingIntegrity(Long periodId);
 }

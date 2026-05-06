@@ -1,13 +1,25 @@
 # [EES Project] Root .gitignore
 
-# 1. Project Plans & Agent Data
+# 1. AI Agent Data & Plans (Local Only)
 project_plan.md
 notion_plan.md
 task.md
-Untitled.pdf
+implementation_plan.md
+walkthrough.md
+ai_ready_evaluation.md
+scoring_rubric.md
 .agents/
+ai_ready_report/
+ai_ready_scorer/
 
-# 2. Java/SpringBoot (eval project)
+# 2. Non-Project Assets
+portfolio/
+*.pdf
+Untitled.pdf
+ERD.pdf
+erd수정본.pdf
+
+# 3. Java/SpringBoot (eval project)
 eval/target/
 eval/HELP.md
 eval/.mvn/wrapper/maven-wrapper.jar

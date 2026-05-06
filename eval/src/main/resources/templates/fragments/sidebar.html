@@ -132,6 +132,11 @@
                 <i class="bi bi-clock-history"></i>
                 <span>로그인 이력</span>
             </a>
+            <a class="nav-link" th:href="@{/admin/api-logs}"
+                th:classappend="${activeMenu == 'admin-api-logs' ? 'active' : ''}">
+                <i class="bi bi-journal-text"></i>
+                <span>API 호출 이력</span>
+            </a>
         </nav>
     </div>
 
