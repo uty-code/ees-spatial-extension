@@ -13,6 +13,8 @@ import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.EvaluatorMappingService;
+import com.ees.eval.service.FinalGradeService;
+import com.ees.eval.dto.FinalGradeTaskDTO;
 import com.ees.eval.mapper.DepartmentMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +46,7 @@ public class FinalGradeController {
     private final EvaluatorMappingMapper evaluatorMappingMapper;
     private final EmployeeMapper employeeMapper;
     private final DepartmentMapper departmentMapper;
+    private final FinalGradeService finalGradeService;
 
     private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
         if (deptId != null) {
@@ -53,85 +56,50 @@ public class FinalGradeController {
     }
 
     @GetMapping
-    public String list(Model model,
-                       @RequestParam(required = false) Long periodId,
-                       @AuthenticationPrincipal UserDetails userDetails) {
+    public String list(@RequestParam(name = "periodId", required = false) Long periodId,
+                       @AuthenticationPrincipal UserDetails userDetails,
+                       Model model) {
         
         model.addAttribute("activeMenu", "final-grade");
-        Long empId = Long.parseLong(userDetails.getUsername());
-
+        Long executiveEmpId = Long.parseLong(userDetails.getUsername());
+        
+        // 1. 차수 목록 및 현재 선택된 차수 정보
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
         model.addAttribute("periods", periods);
 
-        EvaluationPeriodDTO selectedPeriod = null;
+        EvaluationPeriodDTO selectedPeriod;
         if (periodId != null) {
             selectedPeriod = periodService.getPeriodById(periodId);
-        } else if (!periods.isEmpty()) {
+        } else {
             selectedPeriod = periods.stream()
                 .filter(p -> "ACTIVE".equals(p.statusCode()))
                 .findFirst()
-                .orElse(periods.get(0));
+                .orElse(periods.isEmpty() ? null : periods.get(0));
         }
+        model.addAttribute("selectedPeriod", selectedPeriod);
 
         if (selectedPeriod != null) {
-            model.addAttribute("selectedPeriod", selectedPeriod);
-
-            List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(selectedPeriod.periodId(), empId);
-
-            // 최종 등급 확정은 2차 평가자(EXECUTIVE) 역할만 조회
-            List<EvaluatorMappingDTO> teamTasks = myTasks.stream()
-                .filter(m -> "EXECUTIVE".equals(m.relationTypeCode()))
-                .toList();
-
-            model.addAttribute("tasks", teamTasks);
-
-            Map<Long, Boolean> teamSubmittedMap = new HashMap<>();
-            Map<Long, Boolean> evaluateeSelfSubmittedMap = new HashMap<>();
-            Map<Long, Boolean> teamWeightValidMap = new HashMap<>();
-
-            for (EvaluatorMappingDTO task : teamTasks) {
-                Employee evaluatee = employeeMapper.findById(task.evaluateeId()).orElse(null);
-                Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
-                List<EvaluationElementDTO> elementsForTask = getElementsWithFallback(selectedPeriod.periodId(), evaluateeDeptId);
-
-                List<Evaluation> evals = evaluationMapper.findByMappingId(task.mappingId());
-                List<Long> submittedIds = evals.stream()
-                    .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
-                    .map(Evaluation::getElementId)
-                    .toList();
-
-                // 모든 요소(성과, 역량 모두)가 제출되었는지 확인 (단, 해당 부서/차수에 맞는 항목 기준)
-                // 다면평가 등 다른 항목이 섞여있을 수 있으므로 PERFORMANCE, COMPETENCY 항목만 체크
-                List<Long> targetElementIds = elementsForTask.stream()
-                    .filter(el -> "PERFORMANCE".equals(el.elementTypeCode()) || "COMPETENCY".equals(el.elementTypeCode()))
-                    .map(EvaluationElementDTO::elementId)
-                    .toList();
-                
-                boolean allSubmitted = !targetElementIds.isEmpty() && submittedIds.containsAll(targetElementIds);
-                teamSubmittedMap.put(task.mappingId(), allSubmitted);
-
-                // 피평가자의 SELF 매핑에서 제출 여부 확인
-                boolean selfSubmittedForTask = evaluatorMappingMapper
-                    .findByEvaluateeId(selectedPeriod.periodId(), task.evaluateeId())
-                    .stream()
-                    .filter(m -> "SELF".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted()))
-                    .findFirst()
-                    .map(selfMapping -> evaluationMapper.findByMappingId(selfMapping.getMappingId())
-                        .stream()
-                        .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode())))
-                    .orElse(false);
-                evaluateeSelfSubmittedMap.put(task.mappingId(), selfSubmittedForTask);
-
-                boolean weightValid = typeWeightService.isWeightSumValid(selectedPeriod.periodId(), evaluateeDeptId, "STAFF");
-                teamWeightValidMap.put(task.mappingId(), weightValid);
-            }
-
-            model.addAttribute("teamSubmittedMap", teamSubmittedMap);
-            model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
-            model.addAttribute("teamWeightValidMap", teamWeightValidMap);
-
             if ("PLANNED".equals(selectedPeriod.statusCode())) {
                 model.addAttribute("infoMessage", "현재 평가 시작 전입니다.");
+            } else {
+                // 2. [최적화] FinalGradeService를 통해 벌크 조회 및 상태 플래그 계산
+                List<FinalGradeTaskDTO> tasks = finalGradeService.getFinalGradeTasks(selectedPeriod.periodId(), executiveEmpId);
+                model.addAttribute("tasks", tasks);
+
+                // 3. 기존 뷰 템플릿과의 호환성을 위해 맵 구성
+                Map<Long, Boolean> teamSubmittedMap = new HashMap<>();
+                Map<Long, Boolean> selfSubmittedMap = new HashMap<>();
+                Map<Long, Boolean> weightValidMap = new HashMap<>();
+
+                for (FinalGradeTaskDTO task : tasks) {
+                    teamSubmittedMap.put(task.mappingId(), task.allSubmitted());
+                    selfSubmittedMap.put(task.mappingId(), task.selfSubmitted());
+                    weightValidMap.put(task.mappingId(), task.weightValid());
+                }
+
+                model.addAttribute("teamSubmittedMap", teamSubmittedMap);
+                model.addAttribute("evaluateeSelfSubmittedMap", selfSubmittedMap);
+                model.addAttribute("teamWeightValidMap", weightValidMap);
             }
         }
 

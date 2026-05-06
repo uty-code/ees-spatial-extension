@@ -64,6 +64,17 @@
           AND is_deleted = 'n'
     </select>
 
+    <!-- mappingIds 기준 벌크 조회 -->
+    <select id="findByMappingIds" resultMap="EvaluationResultMap">
+        SELECT *
+        FROM evaluations_51
+        WHERE mapping_id IN
+        <foreach collection="mappingIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND is_deleted = 'n'
+    </select>
+
     <!-- 특정 차수와 연결된 모든 평가 데이터 삭제 (초기화용) -->
     <delete id="deleteByPeriodId">
         DELETE FROM evaluations_51

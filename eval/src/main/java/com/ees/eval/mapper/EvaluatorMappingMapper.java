@@ -57,6 +57,15 @@ public interface EvaluatorMappingMapper {
                                               @Param("evaluateeId") Long evaluateeId);
 
     /**
+     * 다수의 피평가자에 대한 매핑 정보를 한 번에 조회합니다. (N+1 문제 해결용)
+     *
+     * @param periodId     평가 차수 ID
+     * @param evaluateeIds 피평가자 ID 목록
+     * @return 매핑 정보 리스트
+     */
+    List<EvaluatorMapping> findByEvaluateeIds(@Param("periodId") Long periodId, @Param("evaluateeIds") List<Long> evaluateeIds);
+
+    /**
      * 동일 차수에서 동일한 평가 관계(차수+피평가자+평가자+관계유형)가 이미 존재하는지 확인합니다.
      *
      * @param periodId 차수 ID

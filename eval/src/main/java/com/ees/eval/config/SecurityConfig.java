@@ -51,8 +51,9 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable()) // 초기 개발 단계에서는 CSRF 비활성화
             .authorizeHttpRequests(auth -> auth
-                // 정적 리소스 및 로그인 페이지는 누구나 접근 가능
-                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+                // 정적 리소스(favicon.ico, css, js 등)는 누구나 접근 가능
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/webjars/**").permitAll()
+                // 추가적인 공용 페이지 허용
                 .requestMatchers("/login", "/register", "/error").permitAll()
                 // 그 외 모든 요청은 인증 필요
                 .anyRequest().authenticated()

@@ -29,6 +29,18 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         }
 
         String userAgent = request.getHeader("User-Agent");
+        String uri = request.getRequestURI();
+
+        // AlwaysOn(상태 체크 봇) 및 파비콘 요청은 감사 로그 기록에서 제외
+        if ((userAgent != null && userAgent.contains("AlwaysOn")) || uri.endsWith(".ico")) {
+            if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
+            } else {
+                response.sendRedirect("/error/403");
+            }
+            return;
+        }
+
         String empId = null;
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -41,7 +53,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
                 this,
                 "FORBIDDEN",
                 request.getMethod(),
-                request.getRequestURI(),
+                uri,
                 ip,
                 empId,
                 userAgent
