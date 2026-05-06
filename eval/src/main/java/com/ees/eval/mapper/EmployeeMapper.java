@@ -31,6 +31,14 @@ public interface EmployeeMapper {
     Optional<Employee> findById(Long empId);
 
     /**
+     * 다수의 사원 ID를 기반으로 사원 정보를 한 번에 조회합니다. (N+1 문제 해결용)
+     *
+     * @param empIds 사원 식별자 목록
+     * @return 사원 리스트
+     */
+    List<Employee> findByIds(@Param("empIds") List<Long> empIds);
+
+    /**
      * 로그인 아이디(empId)로 사원 정보를 조회합니다.
      * Spring Security 인증 시 사용됩니다.
      *

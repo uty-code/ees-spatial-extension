@@ -16,6 +16,14 @@ public interface EvaluationMapper {
     /** 평가 레코드 단건 삽입 */
     void insert(Evaluation evaluation);
 
+    /**
+     * 다수의 매핑 ID에 대한 평가 데이터를 한 번에 조회합니다. (N+1 문제 해결용)
+     *
+     * @param mappingIds 매핑 ID 목록
+     * @return 평가 데이터 리스트
+     */
+    List<Evaluation> findByMappingIds(@Param("mappingIds") List<Long> mappingIds);
+
     /** mappingId + elementId 기준으로 기존 레코드 조회 (중복 저장 방지) */
     Optional<Evaluation> findByMappingIdAndElementId(@Param("mappingId") Long mappingId,
                                                      @Param("elementId") Long elementId);

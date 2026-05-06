@@ -3,6 +3,33 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ees.eval.mapper.EmployeeMapper">
 
+    <!-- 사원 ID 목록 기반 벌크 조회 (N+1 문제 해결용) -->
+    <select id="findByIds" resultType="com.ees.eval.domain.Employee">
+        select
+            e.emp_id       as EMP_ID,
+            e.dept_id      as DEPT_ID,
+            e.position_id  as POSITION_ID,
+            e.password     as PASSWORD,
+            e.name         as NAME,
+            e.email        as EMAIL,
+            e.phone        as PHONE,
+            e.status_code  as STATUS_CODE,
+            e.hire_date    as HIRE_DATE,
+            e.retire_date  as RETIRE_DATE,
+            e.is_deleted   as IS_DELETED,
+            e.version      as VERSION,
+            e.created_at   as CREATED_AT,
+            e.created_by   as CREATED_BY,
+            e.updated_at   as UPDATED_AT,
+            e.updated_by   as UPDATED_BY
+        from employees_51 e
+        where e.emp_id in
+        <foreach collection="empIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          and e.is_deleted = 'n'
+    </select>
+
     <!-- 사원 ID 기반 상세 조회 (positions 테이블 LEFT JOIN으로 직급명 포함) -->
     <select id="findById" resultType="com.ees.eval.domain.Employee">
         select
