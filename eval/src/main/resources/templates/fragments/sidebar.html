@@ -104,7 +104,10 @@
                 <span sec:authorize="hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')">면담 관리</span>
                 <span sec:authorize="!hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')">나의 면담 결과</span>
             </a>
-            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+            <a class="nav-link" th:href="@{/eval/final-grade}" hx-get="/eval/final-grade" hx-target="#page-content"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                sec:authorize="hasAnyRole('ADMIN', 'EXECUTIVE')"
+                th:classappend="${activeMenu == 'final-grade' ? 'active' : ''}">
                 <i class="bi bi-check-all"></i>
                 <span>최종 등급 확정</span>
             </a>

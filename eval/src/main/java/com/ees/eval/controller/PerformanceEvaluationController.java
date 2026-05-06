@@ -94,7 +94,7 @@ public class PerformanceEvaluationController {
                 .orElse(null);
 
             List<EvaluatorMappingDTO> teamTasks = myTasks.stream()
-                .filter(m -> "MANAGER".equals(m.relationTypeCode()) || "EXECUTIVE".equals(m.relationTypeCode()))
+                .filter(m -> "MANAGER".equals(m.relationTypeCode()))
                 .toList();
 
             model.addAttribute("selfTask", selfTask);
@@ -265,7 +265,7 @@ public class PerformanceEvaluationController {
             java.util.Map<Long, com.ees.eval.domain.Evaluation> selfEvalMap = evaluatorMappingMapper
                 .findByEvaluateeId(mapping.periodId(), mapping.evaluateeId())
                 .stream()
-                .filter(m -> "SELF".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted()))
+                .filter(m -> "SELF".equals(m.getRelationTypeCode()))
                 .findFirst()
                 .map(selfMapping -> evaluationMapper.findByMappingId(selfMapping.getMappingId())
                     .stream()
@@ -276,6 +276,30 @@ public class PerformanceEvaluationController {
                     )))
                 .orElse(java.util.Collections.emptyMap());
             model.addAttribute("selfEvalMap", selfEvalMap);
+        }
+
+        // 2차 평가자(EXECUTIVE)인 경우: 1차 평가자(MANAGER)의 평가 내용을 조회 (참고 및 기본값 세팅용)
+        if ("EXECUTIVE".equals(mapping.relationTypeCode())) {
+            java.util.Map<Long, com.ees.eval.domain.Evaluation> managerEvalMap = evaluatorMappingMapper
+                .findByEvaluateeId(mapping.periodId(), mapping.evaluateeId())
+                .stream()
+                .filter(m -> "MANAGER".equals(m.getRelationTypeCode()))
+                .findFirst()
+                .map(managerMapping -> evaluationMapper.findByMappingId(managerMapping.getMappingId())
+                    .stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                        com.ees.eval.domain.Evaluation::getElementId,
+                        e -> e,
+                        (a, b) -> a
+                    )))
+                .orElse(java.util.Collections.emptyMap());
+            model.addAttribute("managerEvalMap", managerEvalMap);
+            
+            // EXECUTIVE 본인의 평가 기록이 아직 없는 경우(최초 진입), 
+            // 1차 평가자의 데이터를 인풋 기본값으로 제공하여 "수정 후 제출"할 수 있도록 savedMap에 복사
+            if (savedMap.isEmpty() && !managerEvalMap.isEmpty()) {
+                savedMap.putAll(managerEvalMap);
+            }
         }
 
         return "eval/performance/form";
