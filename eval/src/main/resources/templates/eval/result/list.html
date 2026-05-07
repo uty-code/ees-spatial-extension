@@ -316,27 +316,20 @@
 
         <script th:inline="javascript">
             (function() {
-                let gradeChart = null;
-
                 function initGradeChart() {
                     const dist = [[${gradeDistribution}]];
                     const chartCanvas = document.getElementById('gradePieChart');
                     
                     if (!dist || Object.keys(dist).length === 0 || !chartCanvas) return;
 
-                    // 기존 차트가 있으면 파괴 (중복 생성 방지)
-                    if (gradeChart) {
-                        gradeChart.destroy();
-                        gradeChart = null;
-                    } else {
-                        const existingChart = Chart.getChart(chartCanvas);
-                        if (existingChart) {
-                            existingChart.destroy();
-                        }
+                    // 기존 차트 파괴 (Chart.js 공식 방식)
+                    const existingChart = Chart.getChart(chartCanvas);
+                    if (existingChart) {
+                        existingChart.destroy();
                     }
 
                     const ctx = chartCanvas.getContext('2d');
-                    gradeChart = new Chart(ctx, {
+                    new Chart(ctx, {
                         type: 'doughnut',
                         data: {
                             labels: ['S 탁월', 'A 우수', 'B 양호', 'C 보통', 'D 미흡'],
@@ -380,15 +373,8 @@
                     });
                 }
 
-                // 초기 로드 시 실행
-                document.addEventListener('DOMContentLoaded', initGradeChart);
-                
-                // HTMX 콘텐츠 교체 후 실행
-                document.addEventListener('htmx:afterSettle', function(evt) {
-                    if (evt.detail.target.id === 'page-content' || evt.detail.target.querySelector('#gradePieChart')) {
-                        initGradeChart();
-                    }
-                });
+                // 스크립트 로드 시 즉시 실행 (HTMX 교체 대응)
+                initGradeChart();
             })();
         </script>
     </div>
