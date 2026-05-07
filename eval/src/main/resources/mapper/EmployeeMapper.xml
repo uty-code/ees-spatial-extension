@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ees.eval.mapper.EmployeeMapper">
 
-    <!-- 사원 ID 목록 기반 벌크 조회 (N+1 문제 해결용) -->
+    <!-- 사원 ID 목록 기반 벌크 조회 (N+1 문제 해결용, 부서명/직급명 JOIN 포함) -->
     <select id="findByIds" resultType="com.ees.eval.domain.Employee">
         select
             e.emp_id       as EMP_ID,
@@ -21,8 +21,12 @@
             e.created_at   as CREATED_AT,
             e.created_by   as CREATED_BY,
             e.updated_at   as UPDATED_AT,
-            e.updated_by   as UPDATED_BY
+            e.updated_by   as UPDATED_BY,
+            d.dept_name    as DEPT_NAME,
+            p.position_name as POSITION_NAME
         from employees_51 e
+        left join departments_51 d on e.dept_id = d.dept_id and d.is_deleted = 'n'
+        left join positions_51   p on e.position_id = p.position_id and p.is_deleted = 'n'
         where e.emp_id in
         <foreach collection="empIds" item="id" open="(" separator="," close=")">
             #{id}

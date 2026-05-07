@@ -114,10 +114,13 @@
         </nav>
     </div>
 
-    <div class="px-3 mb-4">
+    <div class="px-3 mb-4" sec:authorize="hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')">
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">결과 및 현황</h6>
         <nav class="nav flex-column">
-            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+            <a class="nav-link" th:href="@{/eval/result}"
+                hx-get="/eval/result" hx-target="#page-content" hx-select="#page-content"
+                hx-swap="outerHTML" hx-push-url="true"
+                th:classappend="${activeMenu == 'eval-result' ? 'active' : ''}">
                 <i class="bi bi-bar-chart-line-fill"></i>
                 <span>평가 결과 현황</span>
             </a>

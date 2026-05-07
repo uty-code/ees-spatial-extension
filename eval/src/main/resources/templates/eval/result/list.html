@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, ${activeMenu ?: 'eval-result'}, ~{::style}, ~{::script})}">
+
+<head>
+    <title>평가 결과 현황 - EES</title>
+    <style></style>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <style>
+            .result-container {
+                background: var(--glass);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 1rem;
+                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+                border: 1px solid var(--glass-border);
+                overflow: hidden;
+                margin-top: 20px;
+            }
+
+            .result-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .result-table thead th {
+                background: rgba(255, 255, 255, 0.05);
+                color: var(--text-muted);
+                font-size: 0.85rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                padding: 14px 18px;
+                border-bottom: 1px solid var(--glass-border);
+                text-align: center;
+            }
+
+            .result-table tbody td {
+                padding: 14px 18px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+                color: var(--text-main);
+                text-align: center;
+                font-size: 0.95rem;
+            }
+
+            .result-table tbody tr:hover {
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+
+            .result-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+            .td-name {
+                font-weight: 700;
+                text-align: left !important;
+            }
+
+            .td-dept {
+                text-align: left !important;
+            }
+
+            /* 등급별 뱃지 색상 */
+            .grade-badge {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+                font-weight: 800;
+                font-size: 1.1rem;
+                letter-spacing: -0.5px;
+            }
+
+            .grade-S {
+                background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.15));
+                color: #fbbf24;
+                border: 1px solid rgba(251, 191, 36, 0.4);
+                box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+            }
+
+            .grade-A {
+                background: linear-gradient(135deg, rgba(167, 139, 250, 0.25), rgba(139, 92, 246, 0.15));
+                color: #a78bfa;
+                border: 1px solid rgba(167, 139, 250, 0.4);
+                box-shadow: 0 0 12px rgba(167, 139, 250, 0.15);
+            }
+
+            .grade-B {
+                background: linear-gradient(135deg, rgba(96, 165, 250, 0.25), rgba(59, 130, 246, 0.15));
+                color: #60a5fa;
+                border: 1px solid rgba(96, 165, 250, 0.4);
+                box-shadow: 0 0 12px rgba(96, 165, 250, 0.15);
+            }
+
+            .grade-C {
+                background: linear-gradient(135deg, rgba(251, 146, 60, 0.25), rgba(249, 115, 22, 0.15));
+                color: #fb923c;
+                border: 1px solid rgba(251, 146, 60, 0.4);
+            }
+
+            .grade-D {
+                background: linear-gradient(135deg, rgba(248, 113, 113, 0.25), rgba(239, 68, 68, 0.15));
+                color: #f87171;
+                border: 1px solid rgba(248, 113, 113, 0.4);
+            }
+
+            /* 점수 강조 */
+            .score-cell {
+                font-weight: 700;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .score-high {
+                color: #86efac;
+            }
+
+            .score-mid {
+                color: #93c5fd;
+            }
+
+            .score-low {
+                color: #fca5a5;
+            }
+
+            /* 등급 분포 바 */
+            .grade-dist-bar {
+                display: flex;
+                height: 32px;
+                border-radius: 8px;
+                overflow: hidden;
+                margin-top: 8px;
+            }
+
+            .grade-dist-segment {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.75rem;
+                font-weight: 700;
+                color: #fff;
+                min-width: 24px;
+                transition: flex 0.3s ease;
+            }
+
+            .dist-S { background: rgba(251, 191, 36, 0.6); }
+            .dist-A { background: rgba(167, 139, 250, 0.6); }
+            .dist-B { background: rgba(96, 165, 250, 0.6); }
+            .dist-C { background: rgba(251, 146, 60, 0.6); }
+            .dist-D { background: rgba(248, 113, 113, 0.6); }
+
+            .filter-bar {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+            }
+        </style>
+
+        <!-- 헤더 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="text-white fs-3 mb-1"><i class="bi bi-bar-chart-line-fill text-primary me-2"></i>평가 결과 현황</h1>
+                <p class="text-muted mb-0 small">최종 확정된 평가 결과를 조회합니다.</p>
+            </div>
+            <div class="filter-bar">
+                <form th:action="@{/eval/result}" method="get"
+                    class="d-inline-flex gap-2 align-items-center bg-dark p-2 rounded-pill shadow-sm"
+                    style="border: 1px solid var(--glass-border);">
+                    <select name="periodId"
+                        class="form-select form-select-sm bg-transparent text-white border-0 fw-bold"
+                        onchange="this.form.submit()" style="width: 200px; box-shadow: none;">
+                        <option class="bg-dark" th:each="p : ${periods}" th:value="${p.periodId()}"
+                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                            th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수 선택</option>
+                    </select>
+                    <select name="deptId"
+                        class="form-select form-select-sm bg-transparent text-white border-0 fw-bold"
+                        onchange="this.form.submit()" style="width: 160px; box-shadow: none;"
+                        th:if="${departments != null && departments.size() > 1}">
+                        <option class="bg-dark" value="">전체 부서</option>
+                        <option class="bg-dark" th:each="d : ${departments}" th:value="${d.deptId}"
+                            th:text="${d.deptName}"
+                            th:selected="${selectedDeptId != null && selectedDeptId == d.deptId}">부서</option>
+                    </select>
+                </form>
+            </div>
+        </div>
+
+        <!-- 알림 메시지 -->
+        <div th:if="${infoMessage}"
+            class="alert alert-info bg-info bg-opacity-10 border-info border-opacity-25 text-info alert-dismissible fade show mb-4"
+            role="alert" style="border-radius: 0.75rem;">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <span th:text="${infoMessage}"></span>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- 등급 분포 요약 -->
+        <div th:if="${results != null && !results.isEmpty()}" class="ees-card mb-4 p-4">
+            <div class="row align-items-center">
+                <div class="col-md-4 text-center">
+                    <div style="max-width: 220px; margin: 0 auto;">
+                        <canvas id="gradePieChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-white fw-bold mb-0"><i class="bi bi-pie-chart-fill text-info me-2"></i>등급 분포 요약</h6>
+                        <span class="text-muted small">총 <strong class="text-white" th:text="${totalCount}">0</strong>명</span>
+                    </div>
+
+                    <div class="grade-dist-bar mb-4">
+                        <div class="grade-dist-segment dist-S"
+                             th:if="${gradeDistribution != null && gradeDistribution.containsKey('S')}"
+                             th:style="'flex: ' + ${gradeDistribution.get('S')}"
+                             th:text="${'S ' + gradeDistribution.get('S')}">S</div>
+                        <div class="grade-dist-segment dist-A"
+                             th:if="${gradeDistribution != null && gradeDistribution.containsKey('A')}"
+                             th:style="'flex: ' + ${gradeDistribution.get('A')}"
+                             th:text="${'A ' + gradeDistribution.get('A')}">A</div>
+                        <div class="grade-dist-segment dist-B"
+                             th:if="${gradeDistribution != null && gradeDistribution.containsKey('B')}"
+                             th:style="'flex: ' + ${gradeDistribution.get('B')}"
+                             th:text="${'B ' + gradeDistribution.get('B')}">B</div>
+                        <div class="grade-dist-segment dist-C"
+                             th:if="${gradeDistribution != null && gradeDistribution.containsKey('C')}"
+                             th:style="'flex: ' + ${gradeDistribution.get('C')}"
+                             th:text="${'C ' + gradeDistribution.get('C')}">C</div>
+                        <div class="grade-dist-segment dist-D"
+                             th:if="${gradeDistribution != null && gradeDistribution.containsKey('D')}"
+                             th:style="'flex: ' + ${gradeDistribution.get('D')}"
+                             th:text="${'D ' + gradeDistribution.get('D')}">D</div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-3">
+                        <small class="text-muted"><span class="grade-badge grade-S" style="width:22px;height:22px;font-size:0.7rem;margin-right:5px;">S</span> 탁월 (95~100)</small>
+                        <small class="text-muted"><span class="grade-badge grade-A" style="width:22px;height:22px;font-size:0.7rem;margin-right:5px;">A</span> 우수 (85~94)</small>
+                        <small class="text-muted"><span class="grade-badge grade-B" style="width:22px;height:22px;font-size:0.7rem;margin-right:5px;">B</span> 양호 (75~84)</small>
+                        <small class="text-muted"><span class="grade-badge grade-C" style="width:22px;height:22px;font-size:0.7rem;margin-right:5px;">C</span> 보통 (60~74)</small>
+                        <small class="text-muted"><span class="grade-badge grade-D" style="width:22px;height:22px;font-size:0.7rem;margin-right:5px;">D</span> 미흡 (0~59)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 테이블 -->
+        <div th:if="${results != null && !results.isEmpty()}" class="result-container">
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding-left: 24px;">사원명</th>
+                        <th style="text-align:left;">부서</th>
+                        <th>직급</th>
+                        <th>성과 점수</th>
+                        <th>역량 점수</th>
+                        <th>다면 점수</th>
+                        <th>종합 점수</th>
+                        <th>등급</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="r : ${results}">
+                        <td class="td-name" style="padding-left: 24px;" th:text="${r.empName()}">이름</td>
+                        <td class="td-dept" th:text="${r.deptName()}">부서</td>
+                        <td th:text="${r.positionName()}">직급</td>
+                        <td class="score-cell">
+                            <span th:if="${r.performanceScore() != null}"
+                                  th:text="${r.performanceScore()}"
+                                  th:classappend="${r.performanceScore() >= 85 ? 'score-high' : (r.performanceScore() >= 60 ? 'score-mid' : 'score-low')}">-</span>
+                            <span th:if="${r.performanceScore() == null}" class="text-muted">-</span>
+                        </td>
+                        <td class="score-cell">
+                            <span th:if="${r.competencyScore() != null}"
+                                  th:text="${r.competencyScore()}"
+                                  th:classappend="${r.competencyScore() >= 85 ? 'score-high' : (r.competencyScore() >= 60 ? 'score-mid' : 'score-low')}">-</span>
+                            <span th:if="${r.competencyScore() == null}" class="text-muted">-</span>
+                        </td>
+                        <td class="score-cell">
+                            <span th:if="${r.multiDimensionalScore() != null}"
+                                  th:text="${r.multiDimensionalScore()}"
+                                  th:classappend="${r.multiDimensionalScore() >= 85 ? 'score-high' : (r.multiDimensionalScore() >= 60 ? 'score-mid' : 'score-low')}">-</span>
+                            <span th:if="${r.multiDimensionalScore() == null}" class="text-muted">-</span>
+                        </td>
+                        <td class="score-cell">
+                            <span th:if="${r.totalScore() != null}"
+                                  th:text="${r.totalScore()}"
+                                  th:classappend="${r.totalScore() >= 85 ? 'score-high' : (r.totalScore() >= 60 ? 'score-mid' : 'score-low')}"
+                                  style="font-size: 1.1rem;">-</span>
+                            <span th:if="${r.totalScore() == null}" class="text-muted">-</span>
+                        </td>
+                        <td>
+                            <span th:if="${r.gradeCode() != null}"
+                                  class="grade-badge"
+                                  th:classappend="${'grade-' + r.gradeCode()}"
+                                  th:text="${r.gradeCode()}">-</span>
+                            <span th:if="${r.gradeCode() == null}" class="text-muted">-</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${results == null || results.isEmpty()}" th:unless="${infoMessage}"
+            class="ees-card text-center py-5 border-0 shadow-sm rounded-3 mt-4">
+            <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+            <h5 class="fw-bold text-white">확정된 평가 결과가 없습니다.</h5>
+            <p class="text-muted mb-0 small">임원진이 최종 등급을 확정하면 여기에 표시됩니다.</p>
+        </div>
+
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                const dist = [[${gradeDistribution}]];
+                if (!dist || Object.keys(dist).length === 0) return;
+
+                const ctx = document.getElementById('gradePieChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['S 탁월', 'A 우수', 'B 양호', 'C 보통', 'D 미흡'],
+                        datasets: [{
+                            data: [
+                                dist['S'] || 0,
+                                dist['A'] || 0,
+                                dist['B'] || 0,
+                                dist['C'] || 0,
+                                dist['D'] || 0
+                            ],
+                            backgroundColor: [
+                                'rgba(251, 191, 36, 0.8)',
+                                'rgba(167, 139, 250, 0.8)',
+                                'rgba(96, 165, 250, 0.8)',
+                                'rgba(251, 146, 60, 0.8)',
+                                'rgba(248, 113, 113, 0.8)'
+                            ],
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) label += ': ';
+                                        label += context.raw + '명';
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>
