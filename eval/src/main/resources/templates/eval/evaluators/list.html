@@ -345,74 +345,113 @@
             </div>
         </th:block>
 
-        <!-- Create Modal (수동 매핑 추가) -->
-        <div th:if="${selectedPeriod != null}" class="modal fade" id="createMappingModal" tabindex="-1"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content bg-dark text-white border-secondary" style="overflow: visible;">
-                    <form th:action="@{/eval/evaluators/create}" method="post">
+        <!-- Create Modal (수동 매핑 추가) - Premium Dark 버전 -->
+        <div th:if="${selectedPeriod != null}" class="modal fade" id="createMappingModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content ees-modal-glass">
+                    <form th:action="@{/eval/evaluators/create}" method="post" id="createMappingForm">
                         <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
                         <input type="hidden" name="currentDeptId" th:value="${selectedDeptId}">
                         <input type="hidden" name="currentSearchName" th:value="${searchName}">
-                        <!-- 실제 전송되는 사번 hidden inputs -->
+                        
                         <input type="hidden" name="evaluateeId" id="hiddenEvaluateeId">
                         <input type="hidden" name="evaluatorId" id="hiddenEvaluatorId">
-                        <div class="modal-header border-secondary">
-                            <h5 class="modal-title">수동 매핑 추가</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
+
+                        <div class="modal-header ees-modal-header">
+                            <h5 class="modal-title ees-modal-title">수동 매핑 추가</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body" style="overflow: visible;">
-                            <!-- 피평가자 검색 -->
-                            <div class="mb-3 position-relative" id="evaluatee-container">
-                                <label class="form-label text-muted small">피평가자 <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" id="evaluateeSearch"
-                                    class="form-control bg-dark text-white border-secondary"
-                                    placeholder="클릭하여 사원 검색" autocomplete="off" required>
-                                <div id="evaluateeDropdown" class="autocomplete-dropdown"></div>
-                                <div id="evaluateeSelected" class="selected-info"></div>
+
+                        <div class="modal-body p-4">
+                            <div class="selection-display">
+                                <div class="selection-node">
+                                    <span class="label">피평가자</span>
+                                    <div id="evaluatee-display" class="placeholder" onclick="openSelector('evaluatee')">
+                                        <i class="bi bi-person-plus fs-3"></i>
+                                    </div>
+                                    <div id="evaluatee-info" class="d-none">
+                                        <div class="ees-avatar bg-avatar-1 mx-auto mb-2" id="evaluatee-avatar">?</div>
+                                        <div class="fw-bold text-white mb-1" id="evaluatee-name">성명</div>
+                                        <div class="small text-secondary" id="evaluatee-dept">부서명</div>
+                                    </div>
+                                </div>
+                                <div class="selection-arrow">
+                                    <i class="bi bi-arrow-right-left fs-2"></i>
+                                </div>
+                                <div class="selection-node">
+                                    <span class="label">평가자</span>
+                                    <div id="evaluator-display" class="placeholder" onclick="openSelector('evaluator')">
+                                        <i class="bi bi-person-plus fs-3"></i>
+                                    </div>
+                                    <div id="evaluator-info" class="d-none">
+                                        <div class="ees-avatar bg-avatar-2 mx-auto mb-2" id="evaluator-avatar">?</div>
+                                        <div class="fw-bold text-white mb-1" id="evaluator-name">성명</div>
+                                        <div class="small text-secondary" id="evaluator-dept">부서명</div>
+                                    </div>
+                                </div>
                             </div>
-                            <!-- 평가자 검색 -->
-                            <div class="mb-3 position-relative" id="evaluator-container">
-                                <label class="form-label text-muted small">평가자 <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" id="evaluatorSearch"
-                                    class="form-control bg-dark text-white border-secondary"
-                                    placeholder="클릭하여 사원 검색" autocomplete="off" required>
-                                <div id="evaluatorDropdown" class="autocomplete-dropdown"></div>
-                                <div id="evaluatorSelected" class="selected-info"></div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted small">관계 유형 <span
-                                        class="text-danger">*</span></label>
-                                <select name="relationTypeCode" class="form-select bg-dark text-white border-secondary"
-                                    required>
-                                    <option value="SELF">본인 (SELF)</option>
-                                    <option value="MANAGER">부서장 (MANAGER)</option>
-                                    <option value="SUBORDINATE">부서원 (SUBORDINATE)</option>
-                                    <option value="EXECUTIVE">임원 (EXECUTIVE)</option>
-                                </select>
+
+                            <div class="mb-0">
+                                <label class="form-label text-secondary small fw-bold mb-2">평가 관계 유형</label>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <div class="form-check ees-grid-item rounded-3 p-3 transition-base hover-primary">
+                                            <input class="form-check-input ms-0 me-2" type="radio" name="relationTypeCode" value="SELF" id="relSelf" checked>
+                                            <label class="form-check-label text-white" for="relSelf">
+                                                <span class="d-block fw-bold mb-1">본인 <small class="opacity-50 fw-normal ms-1" style="font-size: 0.85em;">(SELF)</small></span>
+                                                <span class="small text-secondary d-block">자기 자신을 평가하는 기본 관계</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check ees-grid-item rounded-3 p-3 transition-base hover-primary">
+                                            <input class="form-check-input ms-0 me-2" type="radio" name="relationTypeCode" value="MANAGER" id="relManager">
+                                            <label class="form-check-label text-white" for="relManager">
+                                                <span class="d-block fw-bold mb-1">부서장 <small class="opacity-50 fw-normal ms-1" style="font-size: 0.85em;">(MANAGER)</small></span>
+                                                <span class="small text-secondary d-block">직속 상급자가 수행하는 일반 평가</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mt-2">
+                                        <div class="form-check ees-grid-item rounded-3 p-3 transition-base hover-primary">
+                                            <input class="form-check-input ms-0 me-2" type="radio" name="relationTypeCode" value="SUBORDINATE" id="relSub">
+                                            <label class="form-check-label text-white" for="relSub">
+                                                <span class="d-block fw-bold mb-1">부서원 <small class="opacity-50 fw-normal ms-1" style="font-size: 0.85em;">(SUBORDINATE)</small></span>
+                                                <span class="small text-secondary d-block">동료 또는 하급자가 수행하는 다면 평가</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mt-2">
+                                        <div class="form-check ees-grid-item rounded-3 p-3 transition-base hover-primary">
+                                            <input class="form-check-input ms-0 me-2" type="radio" name="relationTypeCode" value="EXECUTIVE" id="relExec">
+                                            <label class="form-check-label text-white" for="relExec">
+                                                <span class="d-block fw-bold mb-1">임원 <small class="opacity-50 fw-normal ms-1" style="font-size: 0.85em;">(EXECUTIVE)</small></span>
+                                                <span class="small text-secondary d-block">상위 조직 책임자가 수행하는 최종 평가</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="modal-footer border-secondary">
-                            <button type="button" class="btn ees-btn-glass px-4" data-bs-dismiss="modal">취소</button>
-                            <button type="submit" class="btn ees-btn-glass-primary px-4">추가하기</button>
+
+                        <div class="modal-footer border-top border-secondary border-opacity-10 p-3">
+                            <button type="button" class="ees-btn-glass px-4" data-bs-dismiss="modal">취소</button>
+                            <button type="submit" class="ees-btn-glass-primary px-4">
+                                <i class="bi bi-check2-circle me-1"></i> 매핑 등록 완료
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
+
         <!-- Integrity Check Modal -->
-        <div th:if="${selectedPeriod != null}" class="modal fade" id="integrityCheckModal" tabindex="-1"
-            aria-hidden="true">
+        <div th:if="${selectedPeriod != null}" class="modal fade" id="integrityCheckModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-xl">
                 <div class="modal-content bg-dark text-white border-secondary">
                     <div class="modal-header border-secondary">
-                        <h5 class="modal-title text-warning fw-bold"><i class="bi bi-shield-exclamation me-2"></i>매핑 정합성
-                            검사 결과</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
+                        <h5 class="modal-title text-warning fw-bold"><i class="bi bi-shield-exclamation me-2"></i>매핑 정합성 검사 결과</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div id="integrityLoading" class="text-center py-5">
@@ -422,9 +461,7 @@
                             <p class="mt-3 text-muted">정합성 검사를 진행 중입니다. 잠시만 기다려주세요...</p>
                         </div>
                         <div id="integrityResults" class="d-none">
-                            <div class="alert bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4"
-                                id="integritySummary">
-                            </div>
+                            <div class="alert bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4" id="integritySummary"></div>
                             <div class="table-responsive">
                                 <table class="table table-dark table-hover align-middle mb-0">
                                     <thead>
@@ -436,9 +473,7 @@
                                             <th class="fw-normal" style="width: 40%">상세 내용</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="integrityTableBody">
-                                        <!-- AJAX 렌더링 -->
-                                    </tbody>
+                                    <tbody id="integrityTableBody"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -450,178 +485,117 @@
             </div>
         </div>
 
-        <!-- 사원 검색 드롭다운 스타일 -->
-        <style>
-            .autocomplete-dropdown {
-                display: none;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
-                max-height: 200px;
-                overflow-y: auto;
-                background: #1e1e2e;
-                border: 1px solid #444;
-                border-top: none;
-                border-radius: 0 0 8px 8px;
-                z-index: 9999;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            }
-            .autocomplete-dropdown.show { display: block; }
-            .autocomplete-item {
-                padding: 10px 14px;
-                cursor: pointer;
-                border-bottom: 1px solid rgba(255,255,255,0.05);
-                transition: background 0.15s ease;
-            }
-            .autocomplete-item:hover { background: rgba(99, 102, 241, 0.15); }
-            .autocomplete-item:last-child { border-bottom: none; }
-            .autocomplete-item .emp-name { font-weight: 600; color: #e2e8f0; }
-            .autocomplete-item .emp-dept { font-size: 0.8rem; color: #94a3b8; }
-            .autocomplete-item .emp-id { font-size: 0.75rem; color: #6366f1; float: right; margin-top: 2px; }
-            .selected-info {
-                margin-top: 4px;
-                font-size: 0.8rem;
-                color: #6ee7b7;
-            }
-            .autocomplete-dropdown::-webkit-scrollbar { width: 5px; }
-            .autocomplete-dropdown::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
-        </style>
-
-        <!-- 사원 검색 자동완성 스크립트 -->
+        <!-- 사원 선택기 로직 -->
         <script>
         (function() {
-            let employeeCache = null;
+            let activeSelectionTarget = null;
 
-            const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
-
-            async function fetchEmployees() {
-                if (employeeCache) return employeeCache;
-                try {
-                    const headers = {};
-                    if (csrfHeader && csrfToken) headers[csrfHeader] = csrfToken;
-                    const res = await fetch('/api/employees/search', { headers });
-                    if (res.ok) {
-                        employeeCache = await res.json();
-                        return employeeCache;
-                    }
-                } catch (e) {
-                    console.error('사원 목록 조회 실패:', e);
-                }
-                return [];
-            }
-
-            function renderDropdown(dropdown, employees) {
-                dropdown.innerHTML = '';
-                if (employees.length === 0) {
-                    dropdown.innerHTML = '<div class="autocomplete-item text-muted text-center">검색 결과 없음</div>';
-                } else {
-                    employees.forEach(emp => {
-                        const item = document.createElement('div');
-                        item.className = 'autocomplete-item';
-                        item.dataset.empId = emp.empId;
-                        item.dataset.name = emp.name;
-                        item.dataset.deptName = emp.deptName || '미지정';
-                        item.innerHTML =
-                            '<span class="emp-id">' + emp.empId + '</span>' +
-                            '<span class="emp-name">' + emp.name + '</span><br>' +
-                            '<span class="emp-dept">' + (emp.deptName || '미지정') + '</span>';
-                        dropdown.appendChild(item);
+            // 모달 초기화 로직: 닫힐 때 데이터 리셋
+            document.addEventListener('DOMContentLoaded', function() {
+                const createModalEl = document.getElementById('createMappingModal');
+                if (createModalEl) {
+                    createModalEl.addEventListener('hidden.bs.modal', function() {
+                        // 폼 리셋 (라디오 버튼 등)
+                        const form = document.getElementById('createMappingForm');
+                        if (form) form.reset();
+                        
+                        // 커스텀 선택 영역 리셋
+                        ['evaluatee', 'evaluator'].forEach(target => {
+                            const displayEl = document.getElementById(`${target}-display`);
+                            const infoEl = document.getElementById(`${target}-info`);
+                            const hiddenInput = document.getElementById(`hidden${target.charAt(0).toUpperCase() + target.slice(1)}Id`);
+                            
+                            if (displayEl) displayEl.classList.remove('d-none');
+                            if (infoEl) infoEl.classList.add('d-none');
+                            if (hiddenInput) hiddenInput.value = '';
+                        });
                     });
                 }
-                dropdown.classList.add('show');
-            }
+            });
 
-            function initSearch(searchInput, dropdown, hiddenInput, selectedInfo) {
-                searchInput.addEventListener('focus', async function() {
-                    const employees = await fetchEmployees();
-                    const keyword = this.value.trim().toLowerCase();
-                    const filtered = keyword
-                        ? employees.filter(e =>
-                            e.name.toLowerCase().includes(keyword) ||
-                            String(e.empId).includes(keyword) ||
-                            (e.deptName && e.deptName.toLowerCase().includes(keyword)))
-                        : employees;
-                    renderDropdown(dropdown, filtered);
-                });
+            window.openSelector = function(target) {
+                activeSelectionTarget = target;
+                
+                htmx.ajax('GET', '/employees/selector', {
+                    target: 'body',
+                    swap: 'beforeend'
+                }).then(() => {
+                    const modalEl = document.getElementById('employeeSelectorModal');
+                    if (modalEl) {
+                        const modal = new bootstrap.Modal(modalEl, {
+                            backdrop: 'static',
+                            focus: true,
+                            keyboard: false // 수동으로 제어하기 위해 끔
+                        });
+                        modal.show();
+                        
+                        // ESC 키 수동 제어 (이벤트 캡처링으로 첫 번째 모달의 간섭 차단)
+                        const handleEsc = (e) => {
+                            if (e.key === 'Escape') {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                modal.hide();
+                            }
+                        };
+                        
+                        window.addEventListener('keydown', handleEsc, { capture: true });
 
-                searchInput.addEventListener('input', async function() {
-                    const employees = await fetchEmployees();
-                    const keyword = this.value.trim().toLowerCase();
-                    const filtered = keyword
-                        ? employees.filter(e =>
-                            e.name.toLowerCase().includes(keyword) ||
-                            String(e.empId).includes(keyword) ||
-                            (e.deptName && e.deptName.toLowerCase().includes(keyword)))
-                        : employees;
-                    renderDropdown(dropdown, filtered);
-                    hiddenInput.value = '';
-                    selectedInfo.textContent = '';
-                });
+                        modalEl.addEventListener('shown.bs.modal', function() {
+                            const searchInput = modalEl.querySelector('#selector-search-input');
+                            if (searchInput) searchInput.focus();
+                        });
 
-                dropdown.addEventListener('click', function(e) {
-                    const item = e.target.closest('.autocomplete-item');
-                    if (item && item.dataset.empId) {
-                        hiddenInput.value = item.dataset.empId;
-                        searchInput.value = item.dataset.name + ' (' + item.dataset.deptName + ')';
-                        selectedInfo.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>사번 ' + item.dataset.empId + ' 선택됨';
-                        dropdown.classList.remove('show');
+                        modalEl.addEventListener('hidden.bs.modal', function() {
+                            window.removeEventListener('keydown', handleEsc, { capture: true });
+                            modalEl.remove();
+                            const firstModal = document.getElementById('createMappingModal');
+                            if (firstModal) firstModal.focus();
+                        });
                     }
                 });
-            }
+            };
 
-            function setupAutocomplete() {
-                const ee = document.getElementById('evaluateeSearch');
-                const er = document.getElementById('evaluatorSearch');
-                if (ee && !ee.dataset.initialized) {
-                    ee.dataset.initialized = 'true';
-                    initSearch(ee,
-                        document.getElementById('evaluateeDropdown'),
-                        document.getElementById('hiddenEvaluateeId'),
-                        document.getElementById('evaluateeSelected'));
-                }
-                if (er && !er.dataset.initialized) {
-                    er.dataset.initialized = 'true';
-                    initSearch(er,
-                        document.getElementById('evaluatorDropdown'),
-                        document.getElementById('hiddenEvaluatorId'),
-                        document.getElementById('evaluatorSelected'));
-                }
+            window.onEmployeeSelected = function(employee) {
+                if (!activeSelectionTarget) return;
 
-                document.addEventListener('click', function(e) {
-                    if (!e.target.closest('#evaluatee-container')) {
-                        document.getElementById('evaluateeDropdown')?.classList.remove('show');
+                const hiddenInput = document.getElementById(`hidden${activeSelectionTarget.charAt(0).toUpperCase() + activeSelectionTarget.slice(1)}Id`);
+                const displayEl = document.getElementById(`${activeSelectionTarget}-display`);
+                const infoEl = document.getElementById(`${activeSelectionTarget}-info`);
+                const avatarEl = document.getElementById(`${activeSelectionTarget}-avatar`);
+                const nameEl = document.getElementById(`${activeSelectionTarget}-name`);
+                const deptEl = document.getElementById(`${activeSelectionTarget}-dept`);
+
+                if (hiddenInput) hiddenInput.value = employee.id;
+                if (displayEl) displayEl.classList.add('d-none');
+                if (infoEl) {
+                    infoEl.classList.remove('d-none');
+                    infoEl.classList.add('animate__animated', 'animate__fadeIn');
+                    infoEl.onclick = () => openSelector(activeSelectionTarget);
+                    infoEl.style.cursor = 'pointer';
+                }
+                
+                if (avatarEl) {
+                    avatarEl.textContent = employee.name.substring(0, 1);
+                    avatarEl.className = `ees-avatar ees-avatar-lg mx-auto mb-2 ${employee.color}`;
+                }
+                if (nameEl) nameEl.textContent = employee.name;
+                if (deptEl) deptEl.textContent = `${employee.dept} | ${employee.pos}`;
+
+                activeSelectionTarget = null;
+            };
+
+            document.addEventListener('submit', function(e) {
+                if (e.target.id === 'createMappingForm') {
+                    const eeId = document.getElementById('hiddenEvaluateeId').value;
+                    const erId = document.getElementById('hiddenEvaluatorId').value;
+                    if (!eeId || !erId) {
+                        e.preventDefault();
+                        alert('피평가자와 평가자를 모두 선택해주세요.');
                     }
-                    if (!e.target.closest('#evaluator-container')) {
-                        document.getElementById('evaluatorDropdown')?.classList.remove('show');
-                    }
-                });
-
-                const modal = document.getElementById('createMappingModal');
-                if (modal) {
-                    modal.addEventListener('show.bs.modal', function() {
-                        ['evaluateeSearch', 'evaluatorSearch', 'hiddenEvaluateeId', 'hiddenEvaluatorId']
-                            .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-                        ['evaluateeSelected', 'evaluatorSelected']
-                            .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = ''; });
-                        document.getElementById('evaluateeDropdown')?.classList.remove('show');
-                        document.getElementById('evaluatorDropdown')?.classList.remove('show');
-                    });
                 }
-            }
-
-            // 일반 페이지 로드 + HTMX 내비게이션 모두 대응
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', setupAutocomplete);
-            } else {
-                setupAutocomplete();
-            }
-            document.body.addEventListener('htmx:afterSettle', setupAutocomplete);
+            });
         })();
         </script>
-
     </div>
 </body>
-
 </html>
