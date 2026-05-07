@@ -315,11 +315,20 @@
         </div>
 
         <script th:inline="javascript">
-            document.addEventListener('DOMContentLoaded', function() {
+            (function() {
                 const dist = [[${gradeDistribution}]];
                 if (!dist || Object.keys(dist).length === 0) return;
 
-                const ctx = document.getElementById('gradePieChart').getContext('2d');
+                const canvas = document.getElementById('gradePieChart');
+                if (!canvas) return;
+
+                // 기존 차트가 있다면 파괴 (Canvas reuse error 방지)
+                const existingChart = Chart.getChart(canvas);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+
+                const ctx = canvas.getContext('2d');
                 new Chart(ctx, {
                     type: 'doughnut',
                     data: {
@@ -362,7 +371,7 @@
                         }
                     }
                 });
-            });
+            })();
         </script>
     </div>
 </body>

@@ -61,10 +61,12 @@ public class FinalGradeController {
 
     @GetMapping
     public String list(@RequestParam(name = "periodId", required = false) Long periodId,
+                       @RequestParam(name = "tab", required = false, defaultValue = "leader") String tab,
                        @AuthenticationPrincipal UserDetails userDetails,
                        Model model) {
         
         model.addAttribute("activeMenu", "final-grade");
+        model.addAttribute("activeTab", tab);
         Long executiveEmpId = Long.parseLong(userDetails.getUsername());
         
         // 1. 차수 목록 및 현재 선택된 차수 정보 (진행 중인 차수만 표시)
@@ -89,6 +91,12 @@ public class FinalGradeController {
                 // 2. [최적화] FinalGradeService를 통해 벌크 조회 및 상태 플래그 계산
                 List<FinalGradeTaskDTO> tasks = finalGradeService.getFinalGradeTasks(selectedPeriod.periodId(), executiveEmpId);
                 model.addAttribute("tasks", tasks);
+                
+                // 인원수 미리 계산 (템플릿 내 Stream 사용 시 발생하는 렌더링 에러 방지)
+                long leaderCount = tasks.stream().filter(FinalGradeTaskDTO::isLeader).count();
+                long staffCount = tasks.stream().filter(t -> !t.isLeader()).count();
+                model.addAttribute("leaderCount", leaderCount);
+                model.addAttribute("staffCount", staffCount);
 
                 // 3. 기존 뷰 템플릿과의 호환성을 위해 맵 구성
                 Map<Long, Boolean> teamSubmittedMap = new HashMap<>();
@@ -204,6 +212,48 @@ public class FinalGradeController {
             .allMatch(entry -> "SUBMITTED".equals(entry.getValue().getConfirmStatusCode()));
         model.addAttribute("submitted", submitted);
 
+        // 부서장(LEADER)인 경우 다면평가 상세 데이터 수집 (디자인 구현용)
+        if (isLeader) {
+            // 해당 피평가자(부서장)에 대한 모든 매핑 조회
+            List<EvaluatorMappingDTO> allMappings = evaluatorMappingMapper.findByEvaluateeId(mapping.periodId(), mapping.evaluateeId())
+                .stream()
+                .map(m -> mappingService.getMappingById(m.getMappingId()))
+                .collect(Collectors.toList());
+            
+            // SUBORDINATE 관계의 매핑들만 필터링하여 데이터 구성
+            Map<Long, List<Map<String, Object>>> multiEvalDataMap = new HashMap<>();
+            Map<Long, Double> multiEvalAvgMap = new HashMap<>(); // 항목별 평균 점수 미리 계산
+
+            for (EvaluatorMappingDTO subMapping : allMappings) {
+                if ("SUBORDINATE".equals(subMapping.relationTypeCode())) {
+                    List<Evaluation> subEvals = evaluationMapper.findByMappingId(subMapping.mappingId());
+                    for (Evaluation eval : subEvals) {
+                        if ("SUBMITTED".equals(eval.getConfirmStatusCode())) {
+                            Map<String, Object> evalInfo = new HashMap<>();
+                            evalInfo.put("evaluatorName", subMapping.evaluatorName());
+                            evalInfo.put("score", eval.getScore() != null ? eval.getScore() : 0);
+                            evalInfo.put("comment", eval.getReason() != null ? eval.getReason() : "");
+                            
+                            multiEvalDataMap.computeIfAbsent(eval.getElementId(), k -> new java.util.ArrayList<>())
+                                .add(evalInfo);
+                        }
+                    }
+                }
+            }
+
+            // 평균 점수 계산 로직을 Java단으로 이동
+            multiEvalDataMap.forEach((elementId, evals) -> {
+                double avg = evals.stream()
+                    .mapToDouble(e -> ((Integer) e.get("score")).doubleValue())
+                    .average()
+                    .orElse(0.0);
+                multiEvalAvgMap.put(elementId, avg);
+            });
+
+            model.addAttribute("multiEvalDataMap", multiEvalDataMap);
+            model.addAttribute("multiEvalAvgMap", multiEvalAvgMap);
+        }
+
         return "eval/final-grade/wizard";
     }
 
@@ -317,6 +367,6 @@ public class FinalGradeController {
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "평가가 성공적으로 제출되었습니다.");
-        return "redirect:/eval/final-grade?periodId=" + submitMapping.periodId();
+        return "redirect:/eval/final-grade?periodId=" + submitMapping.periodId() + (isLeader ? "&tab=leader" : "&tab=staff");
     }
 }

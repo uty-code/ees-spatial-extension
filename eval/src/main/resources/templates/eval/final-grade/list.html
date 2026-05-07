@@ -67,6 +67,19 @@
                 align-items: center;
                 gap: 6px;
             }
+
+            .badge-status {
+                background-color: rgba(245, 158, 11, 0.2);
+                color: #fbd38d;
+                border: 1px solid rgba(245, 158, 11, 0.3);
+                font-size: 0.85rem;
+                font-weight: 600;
+                padding: 4px 12px;
+                border-radius: 6px;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
         </style>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -114,61 +127,136 @@
                     <h5 class="fw-bold text-white">확정 대상자가 없습니다.</h5>
                 </div>
                 
-                <div th:if="${tasks != null && !tasks.isEmpty()}" class="ees-card mb-5 mt-0">
-                    <div th:each="task : ${tasks}" class="eval-list-item">
-                        <div class="eval-name" th:text="${task.evaluateeName()}">대상자 이름</div>
-                        <div class="badge-dept">소속팀</div>
-                        
-                        <div th:if="${teamSubmittedMap == null || !teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
-                            class="badge-status">
-                            <i class="bi bi-hourglass-split"></i> 확정 대기
-                        </div>
-                        <div th:if="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
-                            class="badge-status"
-                            style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
-                            <i class="bi bi-check-circle-fill"></i> 확정 완료
-                        </div>
-                        
-                        <div class="flex-grow-1"></div>
-                        
-                        <div>
-                            <!-- 가중치가 유효하고 자가평가가 완료된 경우에만 평가 작성 가능 -->
-                            <a th:if="${evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false) && teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
-                                href="#" class="btn ees-btn-glass-primary btn-sm"
-                                th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()})}"
-                                hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                hx-push-url="true">
-                                <i class="bi bi-pencil-square"></i> <span
-                                    th:text="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)} ? '확정 내용 수정' : '등급 확정 시작'"></span>
-                            </a>
-                            
-                            <!-- 가중치 미설정 -->
-                            <button
-                                th:if="${teamWeightValidMap == null || !teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
-                                class="btn-evaluate"
-                                style="background-color: #92400e; cursor: not-allowed; opacity: 0.7;" disabled
-                                title="해당 대상자의 부서별 가중치 합계가 100%가 아닙니다">
-                                <i class="bi bi-lock-fill"></i> 가중치 미설정
-                            </button>
-                            
-                            <!-- 자가평가 대기중 (가중치는 유효하지만 자가평가 미제출) -->
-                            <button
-                                th:if="${teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false) && (evaluateeSelfSubmittedMap == null || !evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false))}"
-                                class="btn-evaluate"
-                                style="background-color: #4b5563; cursor: not-allowed; opacity: 0.7;" disabled>
-                                <i class="bi bi-lock-fill"></i> 자가평가 대기중
-                            </button>
+                <div th:if="${tasks != null && !tasks.isEmpty()}">
+                    <!-- 사원 관리와 동일하게 탭을 카드 밖으로 배치 -->
+                    <div class="nav-tabs-custom mb-3">
+                        <button class="nav-link-custom active" id="leader-tab" data-bs-toggle="tab" 
+                            data-bs-target="#leader-content" type="button" role="tab" aria-selected="true">
+                            <i class="bi bi-person-badge-fill"></i> 부서장
+                        </button>
+                        <button class="nav-link-custom" id="staff-tab" data-bs-toggle="tab" 
+                            data-bs-target="#staff-content" type="button" role="tab" aria-selected="false">
+                            <i class="bi bi-people-fill"></i> 일반사원
+                        </button>
+                    </div>
+
+                    <div class="ees-card overflow-hidden">
+                        <div class="tab-content" id="evalTabContent">
+                            <!-- 부서장 리스트 -->
+                            <div class="tab-pane fade show active" id="leader-content" role="tabpanel">
+                                <div th:each="task : ${tasks}" th:if="${task.isLeader()}" class="eval-list-item">
+                                    <div class="eval-name" th:text="${task.evaluateeName()}">대상자 이름</div>
+                                    
+                                    <div th:if="${teamSubmittedMap == null || !teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                                        class="badge-status">
+                                        <i class="bi bi-hourglass-split"></i> 확정 대기
+                                    </div>
+                                    <div th:if="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                                        class="badge-status"
+                                        style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
+                                        <i class="bi bi-check-circle-fill"></i> 확정 완료
+                                    </div>
+                                    
+                                    <div class="flex-grow-1"></div>
+                                    
+                                    <div>
+                                        <a th:if="${evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false) && teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
+                                            href="#" class="btn ees-btn-glass-primary btn-sm"
+                                            th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='leader')}"
+                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                            hx-push-url="true">
+                                            <i class="bi bi-pencil-square"></i> <span
+                                                th:text="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)} ? '확정 내용 수정' : '등급 확정 시작'"></span>
+                                        </a>
+                                        <button th:if="${teamWeightValidMap == null || !teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
+                                            class="btn-evaluate" style="background-color: #92400e; cursor: not-allowed; opacity: 0.7;" disabled>
+                                            <i class="bi bi-lock-fill"></i> 가중치 미설정
+                                        </button>
+                                        <button th:if="${teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false) && (evaluateeSelfSubmittedMap == null || !evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false))}"
+                                            class="btn-evaluate" style="background-color: #4b5563; cursor: not-allowed; opacity: 0.7;" disabled>
+                                            <i class="bi bi-lock-fill"></i> 자가평가 대기중
+                                        </button>
+                                    </div>
+                                </div>
+                                <div th:if="${leaderCount == 0}" class="p-5 text-center text-muted">
+                                    부서장 확정 대상자가 없습니다.
+                                </div>
+                            </div>
+
+                            <!-- 일반사원 리스트 -->
+                            <div class="tab-pane fade" id="staff-content" role="tabpanel">
+                                <div th:each="task : ${tasks}" th:if="${!task.isLeader()}" class="eval-list-item">
+                                    <div class="eval-name" th:text="${task.evaluateeName()}">대상자 이름</div>
+                                    
+                                    <div th:if="${teamSubmittedMap == null || !teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                                        class="badge-status">
+                                        <i class="bi bi-hourglass-split"></i> 확정 대기
+                                    </div>
+                                    <div th:if="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                                        class="badge-status"
+                                        style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
+                                        <i class="bi bi-check-circle-fill"></i> 확정 완료
+                                    </div>
+                                    
+                                    <div class="flex-grow-1"></div>
+                                    
+                                    <div>
+                                        <a th:if="${evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false) && teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
+                                            href="#" class="btn ees-btn-glass-primary btn-sm"
+                                            th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='staff')}"
+                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                            hx-push-url="true">
+                                            <i class="bi bi-pencil-square"></i> <span
+                                                th:text="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)} ? '확정 내용 수정' : '등급 확정 시작'"></span>
+                                        </a>
+                                        <button th:if="${teamWeightValidMap == null || !teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
+                                            class="btn-evaluate" style="background-color: #92400e; cursor: not-allowed; opacity: 0.7;" disabled>
+                                            <i class="bi bi-lock-fill"></i> 가중치 미설정
+                                        </button>
+                                        <button th:if="${teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false) && (evaluateeSelfSubmittedMap == null || !evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false))}"
+                                            class="btn-evaluate" style="background-color: #4b5563; cursor: not-allowed; opacity: 0.7;" disabled>
+                                            <i class="bi bi-lock-fill"></i> 자가평가 대기중
+                                        </button>
+                                    </div>
+                                </div>
+                                <div th:if="${staffCount == 0}" class="p-5 text-center text-muted">
+                                    일반사원 확정 대상자가 없습니다.
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div th:if="${tasks == null || tasks.isEmpty()}" class="ees-card p-5 text-center text-muted">
+                <i class="bi bi-clipboard-x fs-1 mb-3 d-block opacity-25 text-info"></i>
+                <h5 class="fw-bold text-white mb-2">확정 대상자가 없습니다</h5>
+                <p class="mb-0">선택한 차수에 본인이 2차 평가자로 지정된 인원이 없습니다.</p>
             </div>
 
             <!-- 평가 시작 전인 경우의 대체 화면 -->
             <div th:if="${selectedPeriod.statusCode() == 'PLANNED'}" class="ees-card p-5 text-center text-muted">
                 <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
                 <h5 class="fw-bold text-white mb-2">평가 준비 중</h5>
-                <p class="mb-0 text-muted">현재 차수는 평가 항목 구성 및 정합성 검토 중입니다.<br>평가가 시작되면 대상자 리스트가 활성화됩니다.</p>
+                <p class="mb-0">현재 차수는 평가 항목 구성 및 정합성 검토 중입니다.<br>평가가 시작되면 대상자 리스트가 활성화됩니다.</p>
             </div>
+        <div id="page-scripts">
+            <script>
+                // URL 업데이트 (뒤로가기/새로고침 시 탭 유지 목적)
+                document.querySelectorAll('.nav-link-custom').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const tabType = this.id === 'staff-tab' ? 'staff' : 'leader';
+                        const newUrl = window.location.pathname + '?periodId=' + new URLSearchParams(window.location.search).get('periodId') + '&tab=' + tabType;
+                        history.pushState({ tab: tabType }, '', newUrl);
+                    });
+                });
+                        if (staffTab) staffTab.click();
+                    } else if (tab === 'leader') {
+                        const leaderTab = document.getElementById('leader-tab');
+                        if (leaderTab) leaderTab.click();
+                    }
+                })();
+            </script>
         </div>
     </div>
 </body>
