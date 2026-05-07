@@ -3,11 +3,13 @@ package com.ees.eval.controller;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.ees.eval.domain.Employee;
 import com.ees.eval.domain.Evaluation;
+import com.ees.eval.domain.FinalGrade;
 import com.ees.eval.dto.EvaluationElementDTO;
 import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.dto.EvaluatorMappingDTO;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationMapper;
+import com.ees.eval.mapper.FinalGradeMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationPeriodService;
@@ -47,6 +49,8 @@ public class FinalGradeController {
     private final EmployeeMapper employeeMapper;
     private final DepartmentMapper departmentMapper;
     private final FinalGradeService finalGradeService;
+    private final FinalGradeMapper finalGradeMapper;
+    private final com.ees.eval.service.ScoreCalculationService scoreCalculationService;
 
     private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
         if (deptId != null) {
@@ -272,6 +276,44 @@ public class FinalGradeController {
                         evaluationMapper.insert(eval);
                     }
                 );
+        }
+
+        // 모든 항목 저장 완료 후 → 종합 점수 계산 및 final_grades_51에 확정 저장
+        try {
+            Integer totalScore = scoreCalculationService.calculateTotalScore(
+                    submitMapping.periodId(), submitMapping.evaluateeId());
+            if (totalScore != null) {
+                String gradeCode = scoreCalculationService.determineGrade(totalScore);
+                finalGradeMapper.findByPeriodIdAndEmpId(
+                        submitMapping.periodId(), submitMapping.evaluateeId())
+                    .ifPresentOrElse(
+                        existing -> {
+                            existing.setTotalScore(totalScore);
+                            existing.setFinalGradeCode(gradeCode);
+                            existing.setUpdatedAt(java.time.LocalDateTime.now());
+                            existing.setUpdatedBy(empId);
+                            finalGradeMapper.update(existing);
+                        },
+                        () -> {
+                            FinalGrade fg = FinalGrade.builder()
+                                    .periodId(submitMapping.periodId())
+                                    .empId(submitMapping.evaluateeId())
+                                    .totalScore(totalScore)
+                                    .finalGradeCode(gradeCode)
+                                    .isDeleted("n")
+                                    .version(0)
+                                    .createdAt(java.time.LocalDateTime.now())
+                                    .createdBy(empId)
+                                    .build();
+                            finalGradeMapper.insert(fg);
+                        }
+                    );
+                log.info("[FinalGrade] 최종 등급 확정 완료 - empId={}, score={}, grade={}",
+                        submitMapping.evaluateeId(), totalScore, gradeCode);
+            }
+        } catch (Exception e) {
+            log.error("[FinalGrade] 종합 점수 계산 중 오류 - evaluateeId={}",
+                    submitMapping.evaluateeId(), e);
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "평가가 성공적으로 제출되었습니다.");
