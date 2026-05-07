@@ -34,6 +34,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
     private final DepartmentService departmentService;
     private final EvaluatorMappingService mappingService;
     private final com.ees.eval.mapper.EvaluationMapper evaluationMapper;
+    private final com.ees.eval.mapper.FinalGradeMapper finalGradeMapper;
 
     /** 상태 코드 상수 정의 */
     private static final String STATUS_PLANNED = "PLANNED";
@@ -318,8 +319,9 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
         // 2. 상태 확인 (진행 중인 경우만 초기화 가능하도록 제한할 수 있으나, 일단 모든 상태에서 가능하게 함)
         // 단, 이미 CLOSED된 경우 등은 막는 것이 안전할 수 있음.
 
-        // 3. 평가 데이터 삭제
+        // 3. 평가 데이터 삭제 (상세 점수 + 최종 등급)
         evaluationMapper.deleteByPeriodId(periodId);
+        finalGradeMapper.deleteByPeriodId(periodId);
 
         // 4. 상태를 PLANNED로 변경
         period.setStatusCode(STATUS_PLANNED);
