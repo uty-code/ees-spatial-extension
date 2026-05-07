@@ -130,12 +130,12 @@
                 <div th:if="${tasks != null && !tasks.isEmpty()}">
                     <!-- 사원 관리와 동일하게 탭을 카드 밖으로 배치 -->
                     <div class="nav-tabs-custom mb-3">
-                        <button class="nav-link-custom" th:classappend="${activeTab == 'leader' ? 'active' : ''}" id="leader-tab" data-bs-toggle="tab" 
-                            data-bs-target="#leader-content" type="button" role="tab" aria-selected="true">
+                        <button class="nav-link-custom" th:classappend="${activeTab == 'leader' ? 'active' : ''}" id="leader-tab" 
+                            data-target="#leader-content" type="button" role="tab">
                             <i class="bi bi-person-badge-fill"></i> 부서장
                         </button>
-                        <button class="nav-link-custom" th:classappend="${activeTab == 'staff' ? 'active' : ''}" id="staff-tab" data-bs-toggle="tab" 
-                            data-bs-target="#staff-content" type="button" role="tab" aria-selected="false">
+                        <button class="nav-link-custom" th:classappend="${activeTab == 'staff' ? 'active' : ''}" id="staff-tab" 
+                            data-target="#staff-content" type="button" role="tab">
                             <i class="bi bi-people-fill"></i> 일반사원
                         </button>
                     </div>
@@ -242,9 +242,22 @@
             </div>
         <div id="page-scripts">
             <script>
-                // URL 업데이트 (뒤로가기/새로고침 시 탭 유지 목적)
+                // 수동 탭 전환 및 URL 업데이트
                 document.querySelectorAll('.nav-link-custom').forEach(button => {
                     button.addEventListener('click', function() {
+                        // 1. 모든 버튼 및 컨텐츠 비활성화
+                        document.querySelectorAll('.nav-link-custom').forEach(btn => btn.classList.remove('active'));
+                        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+
+                        // 2. 현재 클릭된 버튼 및 대상 컨텐츠 활성화
+                        this.classList.add('active');
+                        const targetSelector = this.getAttribute('data-target');
+                        const targetPane = document.querySelector(targetSelector);
+                        if (targetPane) {
+                            targetPane.classList.add('show', 'active');
+                        }
+
+                        // 3. URL 업데이트
                         const tabType = this.id === 'staff-tab' ? 'staff' : 'leader';
                         const currentParams = new URLSearchParams(window.location.search);
                         currentParams.set('tab', tabType);
