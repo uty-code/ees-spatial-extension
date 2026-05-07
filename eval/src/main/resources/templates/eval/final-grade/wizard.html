@@ -153,7 +153,7 @@
                         th:text="${mapping.evaluateeName()}">피평가자</span>
                 </div>
                 <a href="#" class="btn btn-outline-light border-opacity-25 px-4 py-2"
-                    th:attr="hx-get=@{/eval/final-grade}" hx-target="#page-content" hx-select="#page-content"
+                    th:attr="hx-get=@{/eval/final-grade(tab=${isLeader ? 'leader' : 'staff'})}" hx-target="#page-content" hx-select="#page-content"
                     hx-swap="outerHTML show:window:top" hx-push-url="true">
                     <i class="bi bi-arrow-left me-2"></i> 목록으로 돌아가기
                 </a>
@@ -294,8 +294,8 @@
                             </div>
                         </div>
 
-                        <!-- 1차 평가자 참고 -->
-                        <div class="mb-4">
+                        <!-- 1차 평가자 참고 (부서장이 아닌 경우에만 노출) -->
+                        <div th:if="${!isLeader}" class="mb-4">
                             <div class="field-label">
                                 <i class="bi bi-person-check"></i> 1차 평가자(부서장) 코멘트 및 점수
                             </div>
@@ -303,6 +303,46 @@
                                 th:with="hasManagerEval=${managerEvalMap != null and managerEvalMap.containsKey(element.elementId()) and (managerEvalMap.get(element.elementId()).getScore() != null or (managerEvalMap.get(element.elementId()).getReason() != null and managerEvalMap.get(element.elementId()).getReason() != ''))}"
                                 th:text="${hasManagerEval ? (managerEvalMap.get(element.elementId()).getScore() != null ? managerEvalMap.get(element.elementId()).getScore() + '점' : '') + (managerEvalMap.get(element.elementId()).getScore() != null and managerEvalMap.get(element.elementId()).getReason() != null and managerEvalMap.get(element.elementId()).getReason() != '' ? ' - ' : '') + (managerEvalMap.get(element.elementId()).getReason() != null ? managerEvalMap.get(element.elementId()).getReason() : '') : '작성된 1차 평가 내용이 없습니다.'}"
                                 th:style="${!hasManagerEval ? 'color: #64748b; font-style: italic;' : ''}">
+                            </div>
+                        </div>
+
+                        <!-- 부서장인 경우: 직원 다면평가 결과 피드백 (이미지 디자인 적용) -->
+                        <div th:if="${isLeader}" class="multi-eval-container">
+                            <div class="multi-eval-header">
+                                <div class="multi-eval-title">
+                                    <i class="bi bi-graph-up-arrow"></i> 직원 다면평가 결과 피드백
+                                </div>
+                                <div class="multi-eval-summary">
+                                    <div class="participation-badge">
+                                        <i class="bi bi-people-fill"></i> 참여 <span th:text="${multiEvalDataMap != null and multiEvalDataMap.containsKey(element.elementId()) ? multiEvalDataMap.get(element.elementId()).size() : 0}">0</span>명
+                                    </div>
+                                    <div class="average-box">
+                                        <i class="bi bi-star-fill"></i> 평균 
+                                        <span th:text="${multiEvalAvgMap != null and multiEvalAvgMap.containsKey(element.elementId()) ? #numbers.formatDecimal(multiEvalAvgMap.get(element.elementId()), 1, 1) : '0.0'}">0.0</span>점
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="feedback-list">
+                                <div th:if="${multiEvalDataMap == null || !multiEvalDataMap.containsKey(element.elementId()) || multiEvalDataMap.get(element.elementId()).isEmpty()}"
+                                     class="text-center py-4 text-muted">
+                                    <p class="mb-0">제출된 다면평가 피드백이 없습니다.</p>
+                                </div>
+                                
+                                <div th:each="feedback : ${multiEvalDataMap != null ? multiEvalDataMap.get(element.elementId()) : null}" class="feedback-item">
+                                    <div class="evaluator-info">
+                                        <div class="evaluator-tag">
+                                            <span class="evaluator-label">Evaluator</span>
+                                            <span class="evaluator-name" th:text="${feedback.get('evaluatorName')}">평가자명</span>
+                                        </div>
+                                        <div class="comment-text" th:text="${feedback.get('comment')}">
+                                            코멘트 내용
+                                        </div>
+                                    </div>
+                                    <div class="score-box-highlight">
+                                        <div class="score-value" th:text="${feedback.get('score')}">90</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -416,9 +456,21 @@
                     if (displayEl2) displayEl2.innerText = totalStep2.toFixed(1);
                 }
 
-                document.addEventListener('DOMContentLoaded', function() {
-                    calculateTotalConvertedScore();
-                });
+                function initScoreCalculation() {
+                    console.log('Initializing score calculation...');
+                    setTimeout(function() {
+                        calculateTotalConvertedScore();
+                    }, 100);
+                }
+
+                document.addEventListener('DOMContentLoaded', initScoreCalculation);
+
+                // HTMX로 로드될 경우를 대비하여 추가
+                document.body.addEventListener('htmx:afterSettle', initScoreCalculation);
+                document.body.addEventListener('htmx:load', initScoreCalculation);
+
+                // 즉시 실행 시도
+                initScoreCalculation();
             </script>
         </div>
     </div>

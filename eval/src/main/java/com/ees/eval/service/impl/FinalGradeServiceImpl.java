@@ -114,6 +114,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                     .allSubmitted(allSubmitted)
                     .selfSubmitted(selfSubmitted)
                     .weightValid(weightValid)
+                    .isLeader(isLeader)
                     .build();
         }).collect(Collectors.toList());
     }

@@ -22,6 +22,7 @@ public record FinalGradeTaskDTO(
         String deptName,
         boolean allSubmitted,
         boolean selfSubmitted,
-        boolean weightValid
+        boolean weightValid,
+        boolean isLeader
 ) {
 }

@@ -316,71 +316,59 @@
 
         <script th:inline="javascript">
             (function() {
-                let gradeChart = null;
+                const dist = [[${gradeDistribution}]];
+                if (!dist || Object.keys(dist).length === 0) return;
 
-                function initGradeChart() {
-                    const dist = [[${gradeDistribution}]];
-                    const chartCanvas = document.getElementById('gradePieChart');
-                    
-                    if (!dist || Object.keys(dist).length === 0 || !chartCanvas) return;
+                const canvas = document.getElementById('gradePieChart');
+                if (!canvas) return;
 
-                    // 기존 차트가 있으면 파괴 (중복 생성 방지)
-                    if (gradeChart) {
-                        gradeChart.destroy();
-                    }
+                // 기존 차트가 있다면 파괴 (Canvas reuse error 방지)
+                const existingChart = Chart.getChart(canvas);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
 
-                    const ctx = chartCanvas.getContext('2d');
-                    gradeChart = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['S 탁월', 'A 우수', 'B 양호', 'C 보통', 'D 미흡'],
-                            datasets: [{
-                                data: [
-                                    dist['S'] || 0,
-                                    dist['A'] || 0,
-                                    dist['B'] || 0,
-                                    dist['C'] || 0,
-                                    dist['D'] || 0
-                                ],
-                                backgroundColor: [
-                                    'rgba(251, 191, 36, 0.8)',
-                                    'rgba(167, 139, 250, 0.8)',
-                                    'rgba(96, 165, 250, 0.8)',
-                                    'rgba(251, 146, 60, 0.8)',
-                                    'rgba(248, 113, 113, 0.8)'
-                                ],
-                                borderColor: 'rgba(255, 255, 255, 0.1)',
-                                borderWidth: 2
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: '70%',
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            let label = context.label || '';
-                                            if (label) label += ': ';
-                                            label += context.raw + '명';
-                                            return label;
-                                        }
+                const ctx = canvas.getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['S 탁월', 'A 우수', 'B 양호', 'C 보통', 'D 미흡'],
+                        datasets: [{
+                            data: [
+                                dist['S'] || 0,
+                                dist['A'] || 0,
+                                dist['B'] || 0,
+                                dist['C'] || 0,
+                                dist['D'] || 0
+                            ],
+                            backgroundColor: [
+                                'rgba(251, 191, 36, 0.8)',
+                                'rgba(167, 139, 250, 0.8)',
+                                'rgba(96, 165, 250, 0.8)',
+                                'rgba(251, 146, 60, 0.8)',
+                                'rgba(248, 113, 113, 0.8)'
+                            ],
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) label += ': ';
+                                        label += context.raw + '명';
+                                        return label;
                                     }
                                 }
                             }
                         }
-                    });
-                }
-
-                // 초기 로드 시 실행
-                document.addEventListener('DOMContentLoaded', initGradeChart);
-                
-                // HTMX 콘텐츠 교체 후 실행
-                document.addEventListener('htmx:afterSettle', function(evt) {
-                    if (evt.detail.target.id === 'page-content' || evt.detail.target.querySelector('#gradePieChart')) {
-                        initGradeChart();
                     }
                 });
             })();

@@ -754,3 +754,152 @@
 .ees-search-input:not(:placeholder-shown) ~ .ees-search-clear {
     display: block;
 }
+/* ==========================================================================
+   Multi-Source Evaluation Feedback Dashboard
+   ========================================================================== */
+.multi-eval-container {
+    background: #1f2937; /* 바깥쪽을 회색으로 변경 */
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 4px solid #10b981;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.multi-eval-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.multi-eval-title {
+    color: #10b981;
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.multi-eval-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.participation-badge {
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.average-box {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.feedback-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.feedback-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.feedback-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.feedback-item {
+    background: rgba(255, 255, 255, 0.04); /* 호버 색상을 상시 적용 */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 12px; /* 아이템 간 간격 추가 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.feedback-item:last-child {
+    margin-bottom: 0;
+}
+
+.feedback-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-2px);
+}
+
+.evaluator-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.evaluator-tag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.evaluator-label {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.evaluator-name {
+    color: #f8fafc;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.comment-text {
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    font-style: italic;
+}
+
+.score-box-highlight {
+    background: #1f2937;
+    border-radius: 10px;
+    padding: 10px 15px;
+    min-width: 80px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.score-value {
+    color: #10b981;
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1;
+}
