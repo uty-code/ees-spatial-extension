@@ -130,11 +130,11 @@
                 <div th:if="${tasks != null && !tasks.isEmpty()}">
                     <!-- 사원 관리와 동일하게 탭을 카드 밖으로 배치 -->
                     <div class="nav-tabs-custom mb-3">
-                        <button class="nav-link-custom active" id="leader-tab" data-bs-toggle="tab" 
+                        <button class="nav-link-custom" th:classappend="${activeTab == 'leader' ? 'active' : ''}" id="leader-tab" data-bs-toggle="tab" 
                             data-bs-target="#leader-content" type="button" role="tab" aria-selected="true">
                             <i class="bi bi-person-badge-fill"></i> 부서장
                         </button>
-                        <button class="nav-link-custom" id="staff-tab" data-bs-toggle="tab" 
+                        <button class="nav-link-custom" th:classappend="${activeTab == 'staff' ? 'active' : ''}" id="staff-tab" data-bs-toggle="tab" 
                             data-bs-target="#staff-content" type="button" role="tab" aria-selected="false">
                             <i class="bi bi-people-fill"></i> 일반사원
                         </button>
@@ -143,7 +143,7 @@
                     <div class="ees-card overflow-hidden">
                         <div class="tab-content" id="evalTabContent">
                             <!-- 부서장 리스트 -->
-                            <div class="tab-pane fade show active" id="leader-content" role="tabpanel">
+                            <div class="tab-pane fade" th:classappend="${activeTab == 'leader' ? 'show active' : ''}" id="leader-content" role="tabpanel">
                                 <div th:each="task : ${tasks}" th:if="${task.isLeader()}" class="eval-list-item">
                                     <div class="eval-name" th:text="${task.evaluateeName()}">대상자 이름</div>
                                     
@@ -184,7 +184,7 @@
                             </div>
 
                             <!-- 일반사원 리스트 -->
-                            <div class="tab-pane fade" id="staff-content" role="tabpanel">
+                            <div class="tab-pane fade" th:classappend="${activeTab == 'staff' ? 'show active' : ''}" id="staff-content" role="tabpanel">
                                 <div th:each="task : ${tasks}" th:if="${!task.isLeader()}" class="eval-list-item">
                                     <div class="eval-name" th:text="${task.evaluateeName()}">대상자 이름</div>
                                     
@@ -246,16 +246,12 @@
                 document.querySelectorAll('.nav-link-custom').forEach(button => {
                     button.addEventListener('click', function() {
                         const tabType = this.id === 'staff-tab' ? 'staff' : 'leader';
-                        const newUrl = window.location.pathname + '?periodId=' + new URLSearchParams(window.location.search).get('periodId') + '&tab=' + tabType;
+                        const currentParams = new URLSearchParams(window.location.search);
+                        currentParams.set('tab', tabType);
+                        const newUrl = window.location.pathname + '?' + currentParams.toString();
                         history.pushState({ tab: tabType }, '', newUrl);
                     });
                 });
-                        if (staffTab) staffTab.click();
-                    } else if (tab === 'leader') {
-                        const leaderTab = document.getElementById('leader-tab');
-                        if (leaderTab) leaderTab.click();
-                    }
-                })();
             </script>
         </div>
     </div>
