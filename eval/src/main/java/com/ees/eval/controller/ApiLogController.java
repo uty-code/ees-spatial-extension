@@ -26,15 +26,63 @@ public class ApiLogController {
     private final ApiLogService apiLogService;
 
     /**
-     * API 호출 이력 전체 목록을 조회합니다.
-     *
-     * @param model 뷰에 전달할 Model 객체
-     * @return 뷰 템플릿 경로
+     * 다중 검색 필터를 적용하여 API 호출 이력 목록을 조회합니다.
      */
     @GetMapping
-    public String list(Model model) {
-        List<ApiLog> logs = apiLogService.findAll();
+    public String list(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String empId,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String targetId,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String ipAddress,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String traceId,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String resultCode,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String httpMethod,
+            Model model) {
+            
+        // 날짜가 없으면 오늘 기준으로 설정
+        if (startDate == null || startDate.isEmpty()) {
+            startDate = java.time.LocalDate.now().toString();
+        }
+        if (endDate == null || endDate.isEmpty()) {
+            endDate = java.time.LocalDate.now().toString();
+        }
+
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        params.put("startDate", startDate);
+        params.put("endDate", endDate);
+        params.put("empId", empId);
+        params.put("targetId", targetId);
+        params.put("ipAddress", ipAddress);
+        params.put("traceId", traceId);
+        params.put("resultCode", resultCode);
+        params.put("httpMethod", httpMethod);
+
+        List<ApiLog> logs = apiLogService.searchLogs(params);
+                
         model.addAttribute("logs", logs);
+        model.addAttribute("params", params);
+        
         return "admin/api-logs";
+    }
+
+    /**
+     * Trace ID를 기반으로 전체 실행 흐름 타임라인을 비동기로 조회합니다.
+     */
+    @org.springframework.web.bind.annotation.ResponseBody
+    @GetMapping("/api/trace/{traceId}")
+    public org.springframework.http.ResponseEntity<List<ApiLog>> getTraceTimeline(@org.springframework.web.bind.annotation.PathVariable String traceId) {
+        // Trace ID로 모든 로그를 시간순(오름차순)으로 가져옵니다. 
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        params.put("startDate", "2000-01-01");
+        params.put("endDate", "2099-12-31");
+        params.put("traceId", traceId);
+        
+        List<ApiLog> timeline = apiLogService.searchLogs(params);
+                
+        // UI에서 보기 좋게 생성일시 오름차순(과거->현재) 정렬 (검색은 내림차순이므로 뒤집음)
+        java.util.Collections.reverse(timeline);
+        
+        return org.springframework.http.ResponseEntity.ok(timeline);
     }
 }

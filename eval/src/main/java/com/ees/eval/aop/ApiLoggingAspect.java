@@ -10,6 +10,8 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -18,20 +20,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * {@link ApiLoggable} 어노테이션이 부착된 컨트롤러 메소드 혹은
- * 에러가 발생한 모든 컨트롤러 메소드의 API 호출 이력을 자동으로 기록하는 AOP Aspect입니다.
- *
- * <p>실행 흐름:</p>
- * <ol>
- *   <li>컨트롤러 호출 감지</li>
- *   <li>{@code HttpServletRequest}에서 URL, HTTP Method, IP 추출</li>
- *   <li>메소드 파라미터를 JSON으로 직렬화하여 요청 내용 기록</li>
- *   <li>메소드 실행 후, @ApiLoggable이 있거나 에러가 발생한 경우 결과(혹은 에러 메시지)를 응답 내용으로 기록</li>
- *   <li>{@link ApiLogService}를 통해 {@code api_logs_51} 테이블에 저장</li>
- * </ol>
+ * <p>우선순위를 최상위(Ordered.HIGHEST_PRECEDENCE)로 설정하여, Spring Security의 권한 체크(@PreAuthorize)
+ * 에 의해 거부되는 상황에서도 '어떤 메소드 실행을 시도했는지'를 기록할 수 있도록 설계되었습니다.</p>
  */
 @Slf4j
 @Aspect
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
 @RequiredArgsConstructor
 public class ApiLoggingAspect {
@@ -41,23 +35,19 @@ public class ApiLoggingAspect {
 
     /**
      * 컨트롤러 메소드 실행 전후로 API 호출 이력을 기록합니다.
-     * @ApiLoggable이 선언된 메소드거나 예외가 발생한 메소드의 경우 이력을 기록합니다.
+     * 모든 컨트롤러 호출에 대해 이력을 기록합니다.
      *
      * @param joinPoint AOP 조인 포인트
      * @return 원본 메소드의 반환값
      * @throws Throwable 원본 메소드에서 발생한 예외
      */
-    @Around("@annotation(com.ees.eval.aop.ApiLoggable) || execution(* com.ees.eval.controller..*(..))")
+    @Around("execution(* com.ees.eval.controller..*Controller.*(..))")
     public Object logApiCall(ProceedingJoinPoint joinPoint) throws Throwable {
-        // @ApiLoggable 어노테이션 여부 미리 확인 (불필요한 연산 방지용)
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        boolean isLoggable = signature.getMethod().isAnnotationPresent(ApiLoggable.class);
-
         String resultCode = "SUCCESS";
         Object result = null;
         String errorMessage = null;
         boolean hasError = false;
-        
+
         try {
             result = joinPoint.proceed();
         } catch (Throwable t) {
@@ -66,43 +56,46 @@ public class ApiLoggingAspect {
             hasError = true;
             throw t;
         } finally {
-            // @ApiLoggable이 붙어 있거나, 에러가 발생한 경우에만 실제 데이터 추출 및 로깅 (성능 최적화)
-            if (isLoggable || hasError) {
-                // 1. HttpServletRequest에서 URL, Method, IP 추출
-                HttpServletRequest request = getCurrentRequest();
-                String apiUrl = (request != null) ? request.getRequestURI() : "UNKNOWN";
-                String httpMethod = (request != null) ? request.getMethod() : "UNKNOWN";
-                String ipAddress = extractClientIp(request);
-                Long empId = extractEmployeeId(joinPoint);
+            // 모든 API 요청을 항상 기록 (조건부 로깅 해제)
 
-                // 2. 파라미터 직렬화 (필요한 순간에만 수행하여 성능 저하 방지)
-                String requestContent = serializeParameters(request);
-                
-                // 3. 로그 저장 (성공/실패 모두 기록)
-                String responseContent = (result != null) ? result.toString() : null;
-                
-                // 에러 발생 시 예외 메시지를 응답 내용으로 기록
-                if (hasError) {
-                    responseContent = "ERROR: " + (errorMessage != null ? errorMessage : "Unknown Error");
-                }
-                
-                // 응답 내용이 너무 길면 잘라내기
-                if (responseContent != null && responseContent.length() > 500) {
-                    responseContent = responseContent.substring(0, 500);
-                }
+            // 1. HttpServletRequest에서 URL, Method, IP, Trace ID 추출
+            HttpServletRequest request = getCurrentRequest();
+            String apiUrl = (request != null) ? request.getRequestURI() : "UNKNOWN";
+            String httpMethod = (request != null) ? request.getMethod() : "UNKNOWN";
+            String ipAddress = extractClientIp(request);
+            String traceId = (request != null) ? (String) request.getAttribute("traceId") : null;
+            Long empId = extractEmployeeId(joinPoint);
+            Long targetId = extractTargetId(joinPoint);
 
-                ApiLog apiLog = ApiLog.builder()
-                        .apiUrl(apiUrl)
-                        .httpMethod(httpMethod)
-                        .requestContent(requestContent)
-                        .responseContent(responseContent)
-                        .resultCode(resultCode)
-                        .ipAddress(ipAddress)
-                        .createdBy(empId)
-                        .build();
+            // 2. 파라미터 직렬화
+            String requestContent = serializeParameters(request);
 
-                apiLogService.saveLog(apiLog);
+            // 3. 로그 저장 (성공/실패 모두 기록)
+            String responseContent = (result != null) ? result.toString() : null;
+
+            // 에러 발생 시 예외 메시지를 응답 내용으로 기록
+            if (hasError) {
+                responseContent = "ERROR: " + (errorMessage != null ? errorMessage : "Unknown Error");
             }
+
+            // 응답 내용이 너무 길면 잘라내기
+            if (responseContent != null && responseContent.length() > 500) {
+                responseContent = responseContent.substring(0, 500);
+            }
+
+            ApiLog apiLog = ApiLog.builder()
+                    .apiUrl(apiUrl)
+                    .httpMethod(httpMethod)
+                    .requestContent(requestContent)
+                    .responseContent(responseContent)
+                    .resultCode(resultCode)
+                    .ipAddress(ipAddress)
+                    .targetId(targetId)
+                    .traceId(traceId)
+                    .createdBy(empId)
+                    .build();
+
+            apiLogService.saveLog(apiLog);
         }
 
         return result;
@@ -115,8 +108,7 @@ public class ApiLoggingAspect {
      */
     private HttpServletRequest getCurrentRequest() {
         try {
-            ServletRequestAttributes attrs =
-                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             return (attrs != null) ? attrs.getRequest() : null;
         } catch (Exception e) {
             return null;
@@ -130,7 +122,8 @@ public class ApiLoggingAspect {
      * @return 클라이언트 IP 주소
      */
     private String extractClientIp(HttpServletRequest request) {
-        if (request == null) return "UNKNOWN";
+        if (request == null)
+            return "UNKNOWN";
 
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
@@ -147,21 +140,60 @@ public class ApiLoggingAspect {
     }
 
     /**
-     * 메소드 파라미터에서 사원 ID를 추출합니다.
-     * {@code @AuthenticationPrincipal UserDetails}의 username을 사원 ID로 사용합니다.
+     * 현재 로그인한 사용자의 사원 ID를 추출합니다.
+     * 1. 메소드 파라미터에서 UserDetails 객체를 찾습니다.
+     * 2. 파라미터에 없을 경우 SecurityContextHolder에서 인증 정보를 가져옵니다.
      *
      * @param joinPoint AOP 조인 포인트
      * @return 사원 ID 또는 null
      */
     private Long extractEmployeeId(ProceedingJoinPoint joinPoint) {
         try {
+            // 1. 메소드 파라미터에서 먼저 확인
             for (Object arg : joinPoint.getArgs()) {
                 if (arg instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
                     return Long.parseLong(userDetails.getUsername());
                 }
             }
+
+            // 2. 파라미터에 없을 경우 SecurityContext에서 확인
+            org.springframework.security.core.Authentication authentication = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication != null && authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
+                return Long.parseLong(userDetails.getUsername());
+            }
         } catch (Exception e) {
             log.debug("[API 로그] 사원 ID 추출 실패: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * 메소드 파라미터 중 @LogTarget 어노테이션이 붙은 값을 추출합니다.
+     *
+     * @param joinPoint AOP 조인 포인트
+     * @return 추출된 대상 ID 또는 null
+     */
+    private Long extractTargetId(ProceedingJoinPoint joinPoint) {
+        try {
+            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+            java.lang.annotation.Annotation[][] annotations = signature.getMethod().getParameterAnnotations();
+            Object[] args = joinPoint.getArgs();
+
+            for (int i = 0; i < annotations.length; i++) {
+                for (java.lang.annotation.Annotation annotation : annotations[i]) {
+                    if (annotation instanceof LogTarget) {
+                        if (args[i] instanceof Number number) {
+                            return number.longValue();
+                        } else if (args[i] instanceof String str) {
+                            return Long.parseLong(str);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[API 로그] Target ID 추출 실패: {}", e.getMessage());
         }
         return null;
     }
@@ -175,13 +207,17 @@ public class ApiLoggingAspect {
      */
     private String serializeParameters(HttpServletRequest request) {
         try {
-            if (request == null) return "{}";
+            if (request == null)
+                return "{}";
 
             // HttpServletRequest에서 전체 파라미터 맵을 직접 읽기
             Map<String, String[]> parameterMap = request.getParameterMap();
             // 단일 값 파라미터는 배열 대신 문자열로 변환하여 가독성 향상
             Map<String, Object> cleanMap = new LinkedHashMap<>();
             for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
+                // 노이즈 파라미터 (캐시 방지용 t) 필터링
+                if ("t".equals(entry.getKey())) continue;
+                
                 String[] values = entry.getValue();
                 cleanMap.put(entry.getKey(), (values.length == 1) ? values[0] : values);
             }

@@ -1,5 +1,7 @@
 server:
   forward-headers-strategy: framework
+  error:
+    path: /error-page
   compression:
     enabled: true
     mime-types: text/html,text/css,text/javascript,application/javascript,application/json

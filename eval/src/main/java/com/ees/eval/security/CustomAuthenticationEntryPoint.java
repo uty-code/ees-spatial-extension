@@ -39,6 +39,8 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
             return;
         }
 
+        String traceId = (String) request.getAttribute("traceId");
+
         // 401 Unauthorized 에러: 인증되지 않은 사용자이므로 empId는 null로 처리
         SecurityAuditLogEvent event = new SecurityAuditLogEvent(
                 this,
@@ -47,7 +49,8 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
                 uri,
                 ip,
                 null,
-                userAgent
+                userAgent,
+                traceId
         );
         eventPublisher.publishEvent(event);
 

@@ -12,6 +12,8 @@
             response_content,
             result_code,
             ip_address,
+            target_id,
+            trace_id,
             created_at,
             created_by,
             updated_at,
@@ -23,6 +25,8 @@
             #{responseContent},
             #{resultCode},
             #{ipAddress},
+            #{targetId},
+            #{traceId},
             getdate(),
             #{createdBy},
             getdate(),
@@ -40,10 +44,68 @@
             response_content as responseContent,
             result_code     as resultCode,
             ip_address      as ipAddress,
+            target_id       as targetId,
+            trace_id        as traceId,
             created_at      as createdAt,
             created_by      as createdBy
         from api_logs_51
         where is_deleted = 'n'
+        order by created_at desc
+    </select>
+
+    <!-- 7가지 필터를 적용한 다중 조건 검색 -->
+    <select id="searchApiLogs" resultType="com.ees.eval.domain.ApiLog">
+        select
+            log_id          as logId,
+            api_url         as apiUrl,
+            http_method     as httpMethod,
+            request_content as requestContent,
+            response_content as responseContent,
+            result_code     as resultCode,
+            ip_address      as ipAddress,
+            target_id       as targetId,
+            trace_id        as traceId,
+            created_at      as createdAt,
+            created_by      as createdBy
+        from api_logs_51
+        <where>
+            is_deleted = 'n'
+            <!-- 1. 기간 필수 (DB 부하 방지) -->
+            and created_at &gt;= cast(#{startDate} as datetime)
+            and created_at &lt; dateadd(day, 1, cast(#{endDate} as datetime))
+            
+            <!-- 2. 사번 -->
+            <if test="empId != null and empId != ''">
+                and created_by = #{empId}
+            </if>
+            <!-- 3. 타겟 ID -->
+            <if test="targetId != null and targetId != ''">
+                and target_id = #{targetId}
+            </if>
+            <!-- 4. IP 주소 -->
+            <if test="ipAddress != null and ipAddress != ''">
+                and ip_address = #{ipAddress}
+            </if>
+            <!-- 5. Trace ID -->
+            <if test="traceId != null and traceId != ''">
+                and trace_id = #{traceId}
+            </if>
+            <!-- 6. 상태 코드 -->
+            <if test="resultCode != null and resultCode != ''">
+                <choose>
+                    <when test="resultCode == 'ERROR'">
+                        and result_code != 'SUCCESS'
+                    </when>
+                    <otherwise>
+                        and result_code = #{resultCode}
+                    </otherwise>
+                </choose>
+            </if>
+            <!-- 7. HTTP 메서드 -->
+            <if test="httpMethod != null and httpMethod != ''">
+                and http_method = #{httpMethod}
+            </if>
+        </where>
         order by created_at desc
     </select>
 

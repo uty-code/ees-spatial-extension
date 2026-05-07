@@ -2,52 +2,49 @@ package com.ees.eval.exception;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.http.HttpInputMessage;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
+/**
+ * GlobalExceptionHandler의 예외 처리 로직을 검증하는 테스트 클래스입니다.
+ * 리다이렉트가 제거되고 직접 뷰를 반환하는 로직을 확인합니다.
+ */
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler exceptionHandler = new GlobalExceptionHandler();
 
     @Test
-    @DisplayName("404 에러 발생 시 커스텀 에러 페이지와 404 상태코드를 반환해야 한다")
-    void should_return_404_error_page_when_nohandlerfound() {
+    @DisplayName("404 에러 발생 시 리다이렉트 없이 404 상태코드와 함께 에러 뷰를 직접 반환해야 한다")
+    void should_return_error_view_when_nohandlerfound() {
         // given
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/invalid-url");
-        Model model = new ExtendedModelMap();
         NoHandlerFoundException ex = new NoHandlerFoundException("GET", "/invalid-url", null);
+        Model model = new ExtendedModelMap();
 
         // when
         String viewName = exceptionHandler.handleNoHandlerFoundException(ex, request, model);
 
         // then
         assertThat(viewName).isEqualTo("error/custom-error");
-        assertThat(model.getAttribute("statusCode")).isEqualTo(HttpStatus.NOT_FOUND.value());
-        assertThat(model.getAttribute("errorMessage")).isEqualTo("요청하신 페이지를 찾을 수 없습니다.");
+        assertThat(model.getAttribute("statusCode")).isEqualTo(404);
     }
 
     @Test
-    @DisplayName("JSON 파싱 에러 발생 시 400 상태코드를 반환해야 한다")
-    void should_return_400_when_json_parsing_failed() {
+    @DisplayName("기타 서버 예외 발생 시 500 상태코드와 함께 에러 뷰를 직접 반환해야 한다")
+    void should_return_error_view_when_general_exception() {
         // given
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/data");
+        Exception ex = new Exception("Test Error");
         Model model = new ExtendedModelMap();
-        HttpMessageNotReadableException ex = new HttpMessageNotReadableException("JSON parse error", mock(HttpInputMessage.class));
 
         // when
-        String viewName = exceptionHandler.handleHttpMessageNotReadableException(ex, request, model);
+        String viewName = exceptionHandler.handleGeneralException(ex, model);
 
         // then
         assertThat(viewName).isEqualTo("error/custom-error");
-        assertThat(model.getAttribute("statusCode")).isEqualTo(HttpStatus.BAD_REQUEST.value());
-        assertThat(model.getAttribute("errorMessage")).isEqualTo("잘못된 요청 형식입니다.");
+        assertThat(model.getAttribute("statusCode")).isEqualTo(500);
     }
 }

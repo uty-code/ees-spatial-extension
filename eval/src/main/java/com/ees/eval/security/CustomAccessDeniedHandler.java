@@ -36,7 +36,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
             if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
             } else {
-                response.sendRedirect("/error/403");
+                request.getRequestDispatcher("/error-page/403").forward(request, response);
             }
             return;
         }
@@ -47,6 +47,8 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         if (authentication != null && authentication.isAuthenticated()) {
             empId = authentication.getName(); // Spring Security UserDetails의 username(사번)
         }
+        
+        String traceId = (String) request.getAttribute("traceId");
 
         // 403 Forbidden 에러
         SecurityAuditLogEvent event = new SecurityAuditLogEvent(
@@ -56,14 +58,16 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
                 uri,
                 ip,
                 empId,
-                userAgent
+                userAgent,
+                traceId
         );
         eventPublisher.publishEvent(event);
 
         if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
         } else {
-            response.sendRedirect("/error/403"); // 에러 페이지로 리다이렉트
+            // 리다이렉트 대신 포워드를 사용하여 URL을 유지하고 Trace ID를 공유합니다.
+            request.getRequestDispatcher("/error-page/403").forward(request, response);
         }
     }
 }

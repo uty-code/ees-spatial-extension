@@ -160,6 +160,8 @@ create table api_logs_51
     response_content nvarchar(max),
     result_code varchar(20),
     ip_address varchar(45),
+    target_id bigint,
+    trace_id varchar(50),
     is_deleted char(1) default 'n',
     version int default 0,
     created_at datetime default getdate(),
@@ -167,6 +169,11 @@ create table api_logs_51
     updated_at datetime,
     updated_by bigint
 );
+
+create index idx_api_logs_created_at on api_logs_51(created_at desc);
+create index idx_api_logs_target_id on api_logs_51(target_id);
+create index idx_api_logs_created_by on api_logs_51(created_by);
+create index idx_api_logs_ip on api_logs_51(ip_address);
 
 -- ==========================================
 -- 3. 평가 기준 및 매핑

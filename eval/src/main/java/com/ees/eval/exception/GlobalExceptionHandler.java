@@ -33,6 +33,13 @@ public class GlobalExceptionHandler {
         clientErrorLogger.warn("[{} {}] IP: {} - {}", method, uri, ip, errorMessage);
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public void handleAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
+        // 시큐리티 권한 예외는 직접 처리하지 않고 다시 던져서 
+        // CustomAccessDeniedHandler가 로그를 남길 수 있도록 합니다.
+        throw ex;
+    }
+
     @ExceptionHandler(EesOptimisticLockException.class)
     public String handleOptimisticLockException(EesOptimisticLockException ex, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         logClientError(request, "낙관적 락 충돌: " + ex.getMessage());
@@ -51,44 +58,43 @@ public class GlobalExceptionHandler {
     public String handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request, Model model) {
         String firstErrorMessage = ex.getBindingResult().getAllErrors().get(0).getDefaultMessage();
         logClientError(request, "유효성 검사 실패: " + firstErrorMessage);
+        model.addAttribute("statusCode", 400);
         model.addAttribute("errorMessage", firstErrorMessage);
-        model.addAttribute("statusCode", HttpStatus.BAD_REQUEST.value());
         return "error/custom-error";
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public String handleHttpMessageNotReadableException(HttpMessageNotReadableException ex, HttpServletRequest request, Model model) {
         logClientError(request, "잘못된 요청 형식 (JSON 파싱/타입 오류): " + ex.getMessage());
+        model.addAttribute("statusCode", 400);
         model.addAttribute("errorMessage", "잘못된 요청 형식입니다.");
-        model.addAttribute("statusCode", HttpStatus.BAD_REQUEST.value());
         return "error/custom-error";
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public String handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request, Model model) {
         logClientError(request, "잘못된 요청 파라미터: " + ex.getMessage());
+        model.addAttribute("statusCode", 400);
         model.addAttribute("errorMessage", ex.getMessage());
-        model.addAttribute("statusCode", HttpStatus.BAD_REQUEST.value());
         return "error/custom-error";
     }
 
-    @ExceptionHandler(NoHandlerFoundException.class)
-    public String handleNoHandlerFoundException(NoHandlerFoundException ex, HttpServletRequest request, Model model) {
+    @ExceptionHandler({NoHandlerFoundException.class, org.springframework.web.servlet.resource.NoResourceFoundException.class})
+    public String handleNoHandlerFoundException(Exception ex, HttpServletRequest request, Model model) {
         String uri = request.getRequestURI();
-        // 파비콘 및 기타 무의미한 정적 리소스 요청은 로깅 무시
         if (!uri.endsWith(".ico") && !uri.endsWith(".map")) {
             logClientError(request, "존재하지 않는 API 주소 요청: " + uri);
         }
+        model.addAttribute("statusCode", 404);
         model.addAttribute("errorMessage", "요청하신 페이지를 찾을 수 없습니다.");
-        model.addAttribute("statusCode", HttpStatus.NOT_FOUND.value());
         return "error/custom-error";
     }
 
     @ExceptionHandler(Exception.class)
-    public String handleGeneralException(Exception ex, Model model) {
+    public String handleGeneralException(Exception ex, org.springframework.ui.Model model) {
         log.error("예기치 않은 서버 오류 발생: ", ex);
+        model.addAttribute("statusCode", 500);
         model.addAttribute("errorMessage", "시스템에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
-        model.addAttribute("statusCode", HttpStatus.INTERNAL_SERVER_ERROR.value());
         return "error/custom-error";
     }
 }

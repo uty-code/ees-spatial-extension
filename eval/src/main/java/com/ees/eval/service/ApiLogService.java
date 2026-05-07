@@ -23,4 +23,12 @@ public interface ApiLogService {
      * @return API 로그 목록
      */
     java.util.List<ApiLog> findAll();
+
+    /**
+     * 다중 조건 검색 필터를 적용하여 API 로그를 조회합니다.
+     *
+     * @param params 검색 조건 맵
+     * @return 검색된 API 로그 목록
+     */
+    java.util.List<ApiLog> searchLogs(java.util.Map<String, Object> params);
 }
