@@ -478,3 +478,279 @@
     line-height: 1;
     top: -2px;
 }
+
+/* --- Premium Dark Selector UI --- */
+
+/* Modal Backdrop Blur */
+.modal-backdrop.show {
+    backdrop-filter: blur(12px);
+    background-color: rgba(10, 11, 14, 0.7);
+}
+
+/* Premium Glass Modal */
+.ees-modal-glass {
+    background: rgba(28, 31, 38, 1) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid #2d313e !important;
+    border-radius: 20px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+.ees-modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.5rem 2rem;
+}
+
+.ees-modal-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+}
+
+/* Selector Layout */
+.selector-container {
+    display: flex;
+    height: 500px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.selector-sidebar {
+    width: 200px;
+    background: rgba(255, 255, 255, 0.02);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    overflow-y: auto;
+    padding: 1rem 0;
+}
+
+.selector-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overflow-x: hidden;
+}
+
+/* Sidebar Item */
+.dept-item {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.dept-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: #fff;
+}
+
+.dept-item.active {
+    background: rgba(99, 102, 241, 0.1);
+    color: #818cf8;
+    border-left-color: #6366f1;
+    font-weight: 600;
+}
+
+/* Employee Item */
+.emp-item {
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.emp-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
+}
+
+.emp-item.selected {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+/* Premium Avatar */
+.ees-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.ees-avatar-lg {
+    width: 56px;
+    height: 56px;
+    font-size: 1.5rem;
+}
+
+/* Avatar Colors */
+.bg-avatar-1 { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+.bg-avatar-2 { background: linear-gradient(135deg, #a855f7, #9333ea); }
+.bg-avatar-3 { background: linear-gradient(135deg, #ec4899, #db2777); }
+.bg-avatar-4 { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.bg-avatar-5 { background: linear-gradient(135deg, #10b981, #059669); }
+.bg-avatar-6 { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+
+/* Main Selection Card (Main Modal) */
+.selection-display {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    background: rgba(18, 20, 28, 0.5);
+    border-radius: 16px;
+    border: 1px solid #2d313e;
+    margin-bottom: 1.5rem;
+}
+
+.selection-node {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+}
+
+.selection-node .label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+}
+
+.selection-node .placeholder {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.selection-node .placeholder:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #6366f1;
+    color: #818cf8;
+}
+
+.selection-arrow {
+    color: #334155;
+    animation: pulse-arrow 2s infinite;
+}
+
+@keyframes pulse-arrow {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; color: #6366f1; }
+}
+
+/* Scrollbar Style */
+.custom-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.hover-primary:hover {
+    background: rgba(99, 102, 241, 0.15) !important;
+    border-color: rgba(99, 102, 241, 0.4) !important;
+    cursor: pointer;
+}
+.transition-base { transition: all 0.2s ease; }
+
+.ees-grid-item {
+    background-color: rgba(22, 26, 35, 1) !important;
+    border: 1px solid #2d313e;
+    transition: all 0.2s ease;
+}
+
+.ees-grid-item:hover {
+    background-color: #1f242d !important;
+}
+
+/* Premium Search Bar UI */
+.ees-search-wrapper {
+    background: #12141c;
+    border: 1px solid #2d313e;
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.ees-search-wrapper:focus-within {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.ees-search-input {
+    background: transparent !important;
+    border: none !important;
+    color: #f8fafc !important;
+    padding: 0 !important;
+    font-size: 0.95rem;
+    flex: 1;
+}
+
+.ees-search-input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.ees-search-input::placeholder {
+    color: #475569;
+}
+
+.ees-search-icon {
+    color: #475569;
+    font-size: 1.1rem;
+}
+
+.ees-search-clear {
+    color: #475569;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: none;
+}
+
+.ees-search-clear:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.ees-search-input:not(:placeholder-shown) ~ .ees-search-clear {
+    display: block;
+}
