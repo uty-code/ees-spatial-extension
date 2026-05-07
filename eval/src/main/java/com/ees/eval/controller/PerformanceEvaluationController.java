@@ -1,7 +1,7 @@
 package com.ees.eval.controller;
 
 import org.springframework.security.access.prepost.PreAuthorize;
-import com.ees.eval.aop.ApiLoggable;
+
 import com.ees.eval.domain.Employee;
 import com.ees.eval.domain.Evaluation;
 import com.ees.eval.dto.EvaluationElementDTO;
@@ -310,7 +310,7 @@ public class PerformanceEvaluationController {
      * 평가 폼 제출 처리 - 각 평가요소에 대한 서술형 코멘트를 저장합니다.
      * 이미 저장된 데이터가 있으면 UPDATE, 없으면 INSERT(Upsert) 방식으로 처리합니다.
      */
-    @ApiLoggable
+
     @PostMapping("/submit")
     public String submitForm(@RequestParam Long mappingId,
                              @RequestParam java.util.Map<String, String> params,

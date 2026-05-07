@@ -35,6 +35,7 @@ public class SecurityAuditLogListener {
                     .resultCode(event.getResultCode())
                     .ipAddress(event.getIp())
                     .createdBy(createdBy)
+                    .traceId(event.getTraceId())
                     .build();
 
             apiLogService.saveLog(apiLog);

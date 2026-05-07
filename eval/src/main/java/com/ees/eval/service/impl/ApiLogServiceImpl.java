@@ -50,4 +50,16 @@ public class ApiLogServiceImpl implements ApiLogService {
     public java.util.List<ApiLog> findAll() {
         return apiLogMapper.selectAllApiLogs();
     }
+
+    /**
+     * 다중 조건 검색 필터를 적용하여 API 로그를 조회합니다.
+     *
+     * @param params 검색 조건 맵
+     * @return 검색된 API 로그 목록
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<ApiLog> searchLogs(java.util.Map<String, Object> params) {
+        return apiLogMapper.searchApiLogs(params);
+    }
 }

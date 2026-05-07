@@ -34,7 +34,8 @@ class SecurityAuditLogListenerTest {
                 "/api/admin/data",
                 "192.168.0.5",
                 null, // 401은 사번 없음
-                "Mozilla/5.0"
+                "Mozilla/5.0",
+                "test-trace-123"
         );
 
         // when
@@ -49,6 +50,7 @@ class SecurityAuditLogListenerTest {
         assertThat(savedLog.getCreatedBy()).isNull();
         assertThat(savedLog.getIpAddress()).isEqualTo("192.168.0.5");
         assertThat(savedLog.getRequestContent()).contains("Mozilla/5.0");
+        assertThat(savedLog.getTraceId()).isEqualTo("test-trace-123");
     }
 
     @Test
@@ -62,7 +64,8 @@ class SecurityAuditLogListenerTest {
                 "/api/executive/data",
                 "10.0.0.1",
                 "20230001", // 403은 사번 존재
-                "Chrome/100"
+                "Chrome/100",
+                "test-trace-456"
         );
 
         // when
