@@ -84,7 +84,7 @@
                                             </th:block>
                                         </td>
                                         <td class="text-end">
-                                            <a th:if="${selfTask != null and selectedPeriod.statusCode() != 'PLANNED'}"
+                                            <a th:if="${selfTask != null and selectedPeriod.statusCode() != 'PLANNED' and !isLocked}"
                                                 th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
                                                 hx-get=""
                                                 th:hx-get="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
@@ -93,6 +93,13 @@
                                                 class="btn ees-btn-glass btn-sm">
                                                 <i class="bi bi-pencil-square me-1"></i> 진입
                                             </a>
+                                            <!-- 잠금 상태 -->
+                                            <button th:if="${selfTask != null and selectedPeriod.statusCode() != 'PLANNED' and isLocked}"
+                                                class="btn ees-btn-glass btn-sm disabled" disabled 
+                                                style="background: rgba(239, 68, 68, 0.15) !important; color: #fca5a5 !important; border-color: rgba(239, 68, 68, 0.2) !important;"
+                                                th:title="${lockedBy + '가 평가를 완료하여 수정할 수 없습니다.'}">
+                                                <i class="bi bi-lock-fill me-1"></i> 잠김
+                                            </button>
                                             <button
                                                 th:if="${selfTask != null and selectedPeriod.statusCode() == 'PLANNED'}"
                                                 class="btn ees-btn-glass btn-sm disabled" disabled title="평가 시작 전입니다.">
@@ -191,7 +198,7 @@
                                             </th:block>
                                         </td>
                                         <td class="text-end">
-                                            <a th:if="${selfTask != null and selectedPeriod.statusCode() != 'PLANNED'}"
+                                            <a th:if="${selfTask != null and selectedPeriod.statusCode() != 'PLANNED' and !isLocked}"
                                                 th:href="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
                                                 hx-get=""
                                                 th:hx-get="@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()}, evalType=${tw.elementTypeCode()})}"
@@ -200,6 +207,13 @@
                                                 class="btn ees-btn-glass btn-sm">
                                                 <i class="bi bi-pencil-square me-1"></i> 진입
                                             </a>
+                                            <!-- 잠금 상태 -->
+                                            <button th:if="${selfTask != null and selectedPeriod.statusCode() != 'PLANNED' and isLocked}"
+                                                class="btn ees-btn-glass btn-sm disabled" disabled 
+                                                style="background: rgba(239, 68, 68, 0.15) !important; color: #fca5a5 !important; border-color: rgba(239, 68, 68, 0.2) !important;"
+                                                th:title="${lockedBy + '가 평가를 완료하여 수정할 수 없습니다.'}">
+                                                <i class="bi bi-lock-fill me-1"></i> 잠김
+                                            </button>
                                             <button
                                                 th:if="${selfTask != null and selectedPeriod.statusCode() == 'PLANNED'}"
                                                 class="btn ees-btn-glass btn-sm disabled" disabled title="평가 시작 전입니다.">

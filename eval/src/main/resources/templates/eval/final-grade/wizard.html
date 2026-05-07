@@ -230,9 +230,12 @@
                                 <div class="field-label">
                                     <i class="bi bi-award"></i> 최종 확정 점수 (0~100점)
                                 </div>
-                                <input type="number" class="eval-textarea score-input"
+                                <input type="number" class="eval-textarea score-input step1-score"
                                     th:name="'score_' + ${element.elementId()}"
                                     th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                    th:data-weight="${element.weight()}"
+                                    th:data-max="${element.maxScore()}"
+                                    oninput="calculateTotalConvertedScore()"
                                     min="0" th:max="${element.maxScore()}" step="1" required>
                             </div>
                             <div class="col-md-9">
@@ -246,7 +249,10 @@
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-end mt-4 mb-5">
+                    <div class="d-flex justify-content-end align-items-center mt-4 mb-5 gap-3">
+                        <div class="total-score-display text-info fw-bold fs-5 px-4 py-2" style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
+                            총 환산점수: <span id="totalConvertedScore_step1">0.0</span>점
+                        </div>
                         <button type="button" class="btn btn-primary btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
                             style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none;"
                             onclick="nextStep()">
@@ -306,9 +312,12 @@
                                 <div class="field-label">
                                     <i class="bi bi-award"></i> 최종 확정 점수 (0~100점)
                                 </div>
-                                <input type="number" class="eval-textarea score-input"
+                                <input type="number" class="eval-textarea score-input step2-score"
                                     th:name="'score_' + ${element.elementId()}"
                                     th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                    th:data-weight="${element.weight()}"
+                                    th:data-max="${element.maxScore()}"
+                                    oninput="calculateTotalConvertedScore()"
                                     min="0" th:max="${element.maxScore()}" step="1" required>
                             </div>
                             <div class="col-md-9">
@@ -322,17 +331,22 @@
                         </div>
                     </div>
 
-                    <div th:classappend="${isLeader ? 'd-flex justify-content-end mt-4 mb-5' : 'd-flex justify-content-between mt-4 mb-5'}">
+                    <div th:classappend="${isLeader ? 'd-flex justify-content-end align-items-center mt-4 mb-5 gap-3' : 'd-flex justify-content-between align-items-center mt-4 mb-5'}">
                         <button th:if="${!isLeader}" type="button"
                             class="btn btn-outline-secondary btn-lg py-3 px-5 fs-5 rounded-pill shadow-sm"
                             onclick="prevStep()">
                             <i class="bi bi-arrow-left me-2"></i> 이전 단계 (성과 평가)
                         </button>
-                        <button type="submit" form="evaluationForm"
-                            class="btn btn-success btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
-                            style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
-                            <i class="bi bi-check2-circle me-2"></i> 최종 등급 확정 및 제출
-                        </button>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="total-score-display text-info fw-bold fs-5 px-4 py-2" style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
+                                총 환산점수: <span id="totalConvertedScore_step2">0.0</span>점
+                            </div>
+                            <button type="submit" form="evaluationForm"
+                                class="btn btn-success btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
+                                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
+                                <i class="bi bi-check2-circle me-2"></i> 최종 등급 확정 및 제출
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -377,6 +391,34 @@
                     if (ind1) ind1.classList.add('active');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
+
+                function calculateTotalConvertedScore() {
+                    let totalStep1 = 0;
+                    document.querySelectorAll('.step1-score').forEach(function(input) {
+                        let score = parseFloat(input.value) || 0;
+                        let weight = parseFloat(input.getAttribute('data-weight')) || 0;
+                        let maxScore = parseFloat(input.getAttribute('data-max')) || 100;
+                        if (score > maxScore) score = maxScore;
+                        totalStep1 += (score / maxScore) * weight;
+                    });
+                    const displayEl1 = document.getElementById('totalConvertedScore_step1');
+                    if (displayEl1) displayEl1.innerText = totalStep1.toFixed(1);
+
+                    let totalStep2 = 0;
+                    document.querySelectorAll('.step2-score').forEach(function(input) {
+                        let score = parseFloat(input.value) || 0;
+                        let weight = parseFloat(input.getAttribute('data-weight')) || 0;
+                        let maxScore = parseFloat(input.getAttribute('data-max')) || 100;
+                        if (score > maxScore) score = maxScore;
+                        totalStep2 += (score / maxScore) * weight;
+                    });
+                    const displayEl2 = document.getElementById('totalConvertedScore_step2');
+                    if (displayEl2) displayEl2.innerText = totalStep2.toFixed(1);
+                }
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    calculateTotalConvertedScore();
+                });
             </script>
         </div>
     </div>

@@ -75,8 +75,8 @@ public class MyEvaluationController {
         log.info("[MyEvaluation] list - empId: {}, isLeader: {}", empId, isLeader);
         model.addAttribute("isLeader", isLeader);
 
-        // 차수 목록
-        List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
+        // 차수 목록 (진행 중인 차수만 표시)
+        List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
         model.addAttribute("periods", periods);
 
         EvaluationPeriodDTO selectedPeriod = null;
@@ -84,9 +84,9 @@ public class MyEvaluationController {
             selectedPeriod = periodService.getPeriodById(periodId);
         } else if (!periods.isEmpty()) {
             selectedPeriod = periods.stream()
-                    .filter(p -> "ACTIVE".equals(p.statusCode()))
+                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
                     .findFirst()
-                    .orElse(periods.get(0));
+                    .orElse(periods.isEmpty() ? null : periods.get(0));
         }
 
         if (selectedPeriod != null) {
@@ -173,6 +173,17 @@ public class MyEvaluationController {
             if ("PLANNED".equals(selectedPeriod.statusCode())) {
                 model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
             }
+
+            // 6. 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+            if (selfTask != null) {
+                java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(selfTask.mappingId());
+                model.addAttribute("isLocked", lockInfo.get("isLocked"));
+                model.addAttribute("lockedBy", lockInfo.get("lockedBy"));
+            } else {
+                model.addAttribute("isLocked", false);
+            }
+        } else {
+            model.addAttribute("isLocked", false);
         }
 
         return "eval/my-evaluation/list";
@@ -259,6 +270,11 @@ public class MyEvaluationController {
                 .anyMatch(entry -> "SUBMITTED".equals(entry.getValue().getConfirmStatusCode()));
         model.addAttribute("submitted", submitted);
 
+        // 6. 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+        java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
+        model.addAttribute("isLocked", lockInfo.get("isLocked"));
+        model.addAttribute("lockedBy", lockInfo.get("lockedBy"));
+
         return "eval/my-evaluation/form";
     }
 
@@ -294,6 +310,14 @@ public class MyEvaluationController {
         if (!"SELF".equals(submitMapping.relationTypeCode())) {
             redirectAttributes.addFlashAttribute("errorMessage", "자가평가만 이 페이지에서 제출할 수 있습니다.");
             return "redirect:/eval/my-evaluation";
+        }
+
+        // 역순 진행 방지 검증
+        java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
+        if ((Boolean) lockInfo.get("isLocked")) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                lockInfo.get("lockedBy") + "가 평가를 완료하여 더 이상 수정할 수 없습니다.");
+            return "redirect:/eval/my-evaluation/form?mappingId=" + mappingId;
         }
 
         // elementId 추출 및 데이터 그룹화
@@ -349,8 +373,7 @@ public class MyEvaluationController {
                             });
         }
 
-        String evalType = params.getOrDefault("evalType", "PERFORMANCE");
         redirectAttributes.addFlashAttribute("successMessage", "자가평가가 성공적으로 제출되었습니다.");
-        return "redirect:/eval/my-evaluation/form?mappingId=" + mappingId + "&evalType=" + evalType;
+        return "redirect:/eval/my-evaluation?periodId=" + submitMapping.periodId();
     }
 }
