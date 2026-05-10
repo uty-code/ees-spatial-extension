@@ -10,6 +10,9 @@
 
 <body>
     <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <!-- Chart.js (HTMX 로딩 시에도 동작하도록 프래그먼트 내부로 이동) -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        
         <style>
             .result-container {
                 background: var(--glass);
@@ -314,20 +317,38 @@
 
         <script th:inline="javascript">
             (function() {
+                let gradeChart = null;
+                let retryCount = 0;
+
                 function initGradeChart() {
+                    // Chart 라이브러리가 로드되지 않았을 경우 재시도 (최대 20회, 2초)
+                    if (typeof Chart === 'undefined') {
+                        if (retryCount < 20) {
+                            retryCount++;
+                            setTimeout(initGradeChart, 100);
+                        }
+                        return;
+                    }
+
                     const dist = [[${gradeDistribution}]];
                     const chartCanvas = document.getElementById('gradePieChart');
                     
                     if (!dist || Object.keys(dist).length === 0 || !chartCanvas) return;
 
-                    // 기존 차트 파괴 (Chart.js 공식 방식)
-                    const existingChart = Chart.getChart(chartCanvas);
-                    if (existingChart) {
-                        existingChart.destroy();
+                    // 기존 차트가 있으면 파괴 (중복 생성 방지)
+                    if (gradeChart) {
+                        gradeChart.destroy();
+                        gradeChart = null;
+                    } else {
+                        // Chart.js의 정적 메소드로 기존 인스턴스 확인
+                        const existingChart = Chart.getChart(chartCanvas);
+                        if (existingChart) {
+                            existingChart.destroy();
+                        }
                     }
 
                     const ctx = chartCanvas.getContext('2d');
-                    new Chart(ctx, {
+                    gradeChart = new Chart(ctx, {
                         type: 'doughnut',
                         data: {
                             labels: ['S 탁월', 'A 우수', 'B 양호', 'C 보통', 'D 미흡'],
@@ -371,8 +392,20 @@
                     });
                 }
 
-                // 스크립트 로드 시 즉시 실행 (HTMX 교체 대응)
-                initGradeChart();
+                // 초기 로드 시 실행
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initGradeChart);
+                } else {
+                    initGradeChart();
+                }
+                
+                // HTMX 콘텐츠 교체 후 실행
+                document.addEventListener('htmx:afterSettle', function(evt) {
+                    if (evt.detail.target.id === 'page-content' || (evt.detail.target.querySelector && evt.detail.target.querySelector('#gradePieChart'))) {
+                        retryCount = 0; // 재시도 횟수 초기화
+                        initGradeChart();
+                    }
+                });
             })();
         </script>
     </div>
