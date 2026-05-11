@@ -139,19 +139,19 @@
                     <span class="total-badge">👥 총 <b th:text="${totalCount}">0</b>명 참여</span>
                 </div>
                 <div class="grade-bar">
-                    <div class="gb-s" th:style="'width:' + ${gradeDistribution.getOrDefault('S',0) * 100 / (totalCount > 0 ? totalCount : 1)} + '%'" th:if="${gradeDistribution.containsKey('S')}">
+                    <div class="gb-s" th:style="'width:' + ${gradeDistribution.getOrDefault('S',0) * 100 / (gradedCount > 0 ? gradedCount : 1)} + '%'" th:if="${gradeDistribution.containsKey('S')}">
                         <span th:text="'S' + ${gradeDistribution.get('S')}"></span>
                     </div>
-                    <div class="gb-a" th:style="'width:' + ${gradeDistribution.getOrDefault('A',0) * 100 / (totalCount > 0 ? totalCount : 1)} + '%'" th:if="${gradeDistribution.containsKey('A')}">
+                    <div class="gb-a" th:style="'width:' + ${gradeDistribution.getOrDefault('A',0) * 100 / (gradedCount > 0 ? gradedCount : 1)} + '%'" th:if="${gradeDistribution.containsKey('A')}">
                         <span th:text="'A' + ${gradeDistribution.get('A')}"></span>
                     </div>
-                    <div class="gb-b" th:style="'width:' + ${gradeDistribution.getOrDefault('B',0) * 100 / (totalCount > 0 ? totalCount : 1)} + '%'" th:if="${gradeDistribution.containsKey('B')}">
+                    <div class="gb-b" th:style="'width:' + ${gradeDistribution.getOrDefault('B',0) * 100 / (gradedCount > 0 ? gradedCount : 1)} + '%'" th:if="${gradeDistribution.containsKey('B')}">
                         <span th:text="'B' + ${gradeDistribution.get('B')}"></span>
                     </div>
-                    <div class="gb-c" th:style="'width:' + ${gradeDistribution.getOrDefault('C',0) * 100 / (totalCount > 0 ? totalCount : 1)} + '%'" th:if="${gradeDistribution.containsKey('C')}">
+                    <div class="gb-c" th:style="'width:' + ${gradeDistribution.getOrDefault('C',0) * 100 / (gradedCount > 0 ? gradedCount : 1)} + '%'" th:if="${gradeDistribution.containsKey('C')}">
                         <span th:text="'C' + ${gradeDistribution.get('C')}"></span>
                     </div>
-                    <div class="gb-d" th:style="'width:' + ${gradeDistribution.getOrDefault('D',0) * 100 / (totalCount > 0 ? totalCount : 1)} + '%'" th:if="${gradeDistribution.containsKey('D')}">
+                    <div class="gb-d" th:style="'width:' + ${gradeDistribution.getOrDefault('D',0) * 100 / (gradedCount > 0 ? gradedCount : 1)} + '%'" th:if="${gradeDistribution.containsKey('D')}">
                         <span th:text="'D' + ${gradeDistribution.get('D')}"></span>
                     </div>
                 </div>
