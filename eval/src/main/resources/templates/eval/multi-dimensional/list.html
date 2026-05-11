@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'multi-dimensional-eval', ~{::style}, ~{})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'multi-dimensional-eval', ~{::extraStyles}, ~{})}">
 
 <head>
     <title>다면 평가 - EES</title>
-<body>
-    <div id="page-content" class="container-fluid py-4" th:fragment="content">
+    <th:block th:fragment="extraStyles">
         <style>
             .eval-list-item {
                 display: flex;
@@ -54,6 +53,13 @@
                 gap: 6px;
             }
         </style>
+    </th:block>
+</head>
+<body>
+    <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <!-- Re-include styles for HTMX swaps -->
+        <th:block th:replace="~{::extraStyles}"></th:block>
+
         <!-- 상단 헤더 & 차수 선택 영역 -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>

@@ -1,82 +1,86 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'interview-mgmt', ~{::style}, ~{})}">
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'interview-mgmt', ~{::extraStyles}, ~{})}">
 <head>
     <title>면담 관리 - EES</title>
+    <th:block th:fragment="extraStyles">
+        <style>
+            .interview-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 20px;
+            }
+            .member-card {
+                background: var(--glass);
+                backdrop-filter: blur(12px);
+                border-radius: 12px;
+                border: 1px solid var(--glass-border);
+                padding: 24px;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+                overflow: hidden;
+            }
+            .member-card:hover {
+                transform: translateY(-5px);
+                border-color: var(--info);
+                box-shadow: 0 12px 40px rgba(0, 188, 212, 0.15);
+            }
+            .status-indicator {
+                position: absolute;
+                top: 0;
+                right: 0;
+                padding: 4px 12px;
+                font-size: 0.7rem;
+                font-weight: 700;
+                border-bottom-left-radius: 12px;
+                text-transform: uppercase;
+            }
+            .status-not-started { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+            .status-draft { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+            .status-completed { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+
+            .member-info { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+            .avatar-placeholder {
+                width: 48px;
+                height: 48px;
+                background: linear-gradient(135deg, var(--info), var(--primary));
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                color: #fff;
+                font-size: 1.2rem;
+            }
+            .member-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+            .member-role { font-size: 0.8rem; color: var(--text-muted); }
+
+            .content-snippet {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-bottom: 20px;
+                min-height: 40px;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .btn-enter {
+                width: 100%;
+                padding: 10px;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 0.9rem;
+                transition: all 0.2s;
+            }
+        </style>
+    </th:block>
 </head>
 <body>
 <div id="page-content" class="container-fluid py-4" th:fragment="content">
-    <style>
-        .interview-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        .member-card {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            border-radius: 12px;
-            border: 1px solid var(--glass-border);
-            padding: 24px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        .member-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--info);
-            box-shadow: 0 12px 40px rgba(0, 188, 212, 0.15);
-        }
-        .status-indicator {
-            position: absolute;
-            top: 0;
-            right: 0;
-            padding: 4px 12px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            border-bottom-left-radius: 12px;
-            text-transform: uppercase;
-        }
-        .status-not-started { background: rgba(255,255,255,0.05); color: var(--text-muted); }
-        .status-draft { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-        .status-completed { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-
-        .member-info { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
-        .avatar-placeholder {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--info), var(--primary));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: #fff;
-            font-size: 1.2rem;
-        }
-        .member-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
-        .member-role { font-size: 0.8rem; color: var(--text-muted); }
-
-        .content-snippet {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-bottom: 20px;
-            min-height: 40px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .btn-enter {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-        }
-    </style>
+    <!-- Re-include styles for HTMX swaps -->
+    <th:block th:replace="~{::extraStyles}"></th:block>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>

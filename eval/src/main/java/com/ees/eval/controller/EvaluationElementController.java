@@ -50,7 +50,7 @@ public class EvaluationElementController {
     }
 
     private void prepareListModel(Long periodId, Long deptId, Model model) {
-        List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
+        List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
         List<DepartmentDTO> departments = departmentService.getSimpleAllDepartments();
 
         // 진행 중(IN_PROGRESS)인 차수를 기본으로 선택하고, 없으면 첫 번째 차수로 폴백
