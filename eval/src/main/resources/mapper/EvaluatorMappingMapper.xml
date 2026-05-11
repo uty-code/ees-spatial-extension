@@ -221,7 +221,8 @@
             period_id           as PERIOD_ID,
             evaluatee_id        as EVALUATEE_ID,
             evaluator_id        as EVALUATOR_ID,
-            relation_type_code  as RELATION_TYPE_CODE
+            relation_type_code  as RELATION_TYPE_CODE,
+            is_deleted          as IS_DELETED
         from evaluator_mappings_51
         where period_id = #{periodId}
           and is_deleted = 'n'
