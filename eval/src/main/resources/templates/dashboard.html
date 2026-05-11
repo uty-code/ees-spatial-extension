@@ -163,7 +163,8 @@
                 function initCharts() {
                     const gradeData = /*[[${gradeStats}]]*/ {};
                     const gradeCanvas = document.getElementById('gradeChart');
-                    if (gradeCanvas) {
+                    // Ensure we only initialize if the canvas exists AND it belongs to the dashboard (check a parent class or context)
+                    if (gradeCanvas && document.querySelector('.stat-card')) {
                         const gradeCtx = gradeCanvas.getContext('2d');
                         const existingGradeChart = Chart.getChart(gradeCanvas);
                         if (existingGradeChart) existingGradeChart.destroy();
@@ -189,7 +190,7 @@
 
                     const deptData = /*[[${deptStats}]]*/ {};
                     const deptCanvas = document.getElementById('deptChart');
-                    if (deptCanvas) {
+                    if (deptCanvas && document.querySelector('.stat-card')) {
                         const deptCtx = deptCanvas.getContext('2d');
                         const existingDeptChart = Chart.getChart(deptCanvas);
                         if (existingDeptChart) existingDeptChart.destroy();
@@ -218,10 +219,16 @@
                         });
                     }
                 }
-                document.body.addEventListener('htmx:afterSettle', function(event) {
-                    if (event.detail.target.id === 'page-content') initCharts();
-                });
+                
+                // Initialize on load
                 initCharts();
+                
+                // For HTMX swaps that target the dashboard specifically
+                document.addEventListener('htmx:afterSettle', function(evt) {
+                    if (evt.detail.target.id === 'page-content' && document.querySelector('.stat-card')) {
+                        initCharts();
+                    }
+                }, { once: true }); // Use once: true to prevent accumulation, or better yet, don't use global listener
             })();
         </script>
     </div>
