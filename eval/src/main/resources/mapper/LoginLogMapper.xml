@@ -52,6 +52,26 @@
           )
     </select>
 
+    <!-- [성능 최적화] 다수 사원의 마지막 성공 이후 연속 실패 횟수를 한 번에 조회 (N+1 방지) -->
+    <select id="countRecentFailuresByEmpIds" resultType="map">
+        select
+            l.emp_id as EMP_ID,
+            count(*) as FAIL_COUNT
+        from login_logs_51 l
+        where l.emp_id in
+        <foreach item="empId" collection="empIds" open="(" separator="," close=")">
+            #{empId}
+        </foreach>
+          and l.is_failure = 'y'
+          and l.created_at > (
+              select isnull(max(l2.created_at), '1900-01-01')
+              from login_logs_51 l2
+              where l2.emp_id = l.emp_id
+                and l2.is_failure = 'n'
+          )
+        group by l.emp_id
+    </select>
+
     <!-- 잠금 해제: 해당 사원의 실패 로그 is_failure를 'n'으로 초기화 (이력 보존) -->
     <update id="resetFailureLogsByEmpId">
         update login_logs_51
