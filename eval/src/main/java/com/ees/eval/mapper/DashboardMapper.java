@@ -34,4 +34,20 @@ public interface DashboardMapper {
      * 최근 최종 확정된 활동 상위 N건 조회
      */
     List<Map<String, Object>> getRecentFinalizedActivities(@Param("periodId") Long periodId, @Param("limit") int limit);
+
+    /**
+     * [사원용] 본인의 자가평가 진행 상태 조회
+     */
+    String getSelfEvalStatus(@Param("empId") Long empId, @Param("periodId") Long periodId);
+
+    /**
+     * [사원용] 본인이 수행해야 할 평가(동료/상향 등)의 진행 현황 조회
+     * @return Map with "total_count" and "completed_count"
+     */
+    Map<String, Object> getPeerEvalProgress(@Param("empId") Long empId, @Param("periodId") Long periodId);
+
+    /**
+     * [사원용] 본인의 최근 최종 등급 이력 조회
+     */
+    List<Map<String, Object>> getMyRecentGrades(@Param("empId") Long empId, @Param("limit") int limit);
 }

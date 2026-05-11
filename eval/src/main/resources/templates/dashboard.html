@@ -157,90 +157,73 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Chart.js and Dashboard Script -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script th:inline="javascript">
-        /*<![CDATA[*/
-        document.addEventListener('DOMContentLoaded', function () {
-            // 등급 분포 차트 (Doughnut)
-            const gradeData = /*[[${gradeStats}]]*/ {};
-            const gradeCtx = document.getElementById('gradeChart').getContext('2d');
-            new Chart(gradeCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(gradeData),
-                    datasets: [{
-                        data: Object.values(gradeData),
-                        backgroundColor: [
-                            '#6366f1', // S
-                            '#8b5cf6', // A
-                            '#a855f7', // B
-                            '#d946ef', // C
-                            '#ec4899'  // D
-                        ],
-                        borderWidth: 0,
-                        hoverOffset: 15
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                color: 'rgba(255, 255, 255, 0.7)',
-                                usePointStyle: true,
-                                padding: 20
+        <script th:inline="javascript">
+            (function () {
+                function initCharts() {
+                    const gradeData = /*[[${gradeStats}]]*/ {};
+                    const gradeCanvas = document.getElementById('gradeChart');
+                    if (gradeCanvas) {
+                        const gradeCtx = gradeCanvas.getContext('2d');
+                        const existingGradeChart = Chart.getChart(gradeCanvas);
+                        if (existingGradeChart) existingGradeChart.destroy();
+                        new Chart(gradeCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: Object.keys(gradeData).map(k => k + '등급 (' + gradeData[k] + '명)'),
+                                datasets: [{
+                                    data: Object.values(gradeData),
+                                    backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'],
+                                    borderWidth: 0,
+                                    hoverOffset: 15
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { position: 'right', labels: { color: 'rgba(255, 255, 255, 0.7)', usePointStyle: true, padding: 20 } } },
+                                cutout: '70%'
                             }
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
+                        });
+                    }
 
-            // 부서별 점수 차트 (Bar)
-            const deptData = /*[[${deptStats}]]*/ {};
-            const deptCtx = document.getElementById('deptChart').getContext('2d');
-            new Chart(deptCtx, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(deptData),
-                    datasets: [{
-                        label: '평가 점수',
-                        data: Object.values(deptData),
-                        backgroundColor: 'rgba(99, 102, 241, 0.5)',
-                        borderColor: '#6366f1',
-                        borderWidth: 1,
-                        borderRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: 'rgba(255, 255, 255, 0.5)' }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: 'rgba(255, 255, 255, 0.5)' }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false }
+                    const deptData = /*[[${deptStats}]]*/ {};
+                    const deptCanvas = document.getElementById('deptChart');
+                    if (deptCanvas) {
+                        const deptCtx = deptCanvas.getContext('2d');
+                        const existingDeptChart = Chart.getChart(deptCanvas);
+                        if (existingDeptChart) existingDeptChart.destroy();
+                        new Chart(deptCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: Object.keys(deptData),
+                                datasets: [{
+                                    label: '평가 점수',
+                                    data: Object.values(deptData),
+                                    backgroundColor: 'rgba(99, 102, 241, 0.5)',
+                                    borderColor: '#6366f1',
+                                    borderWidth: 1,
+                                    borderRadius: 5
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.5)' } },
+                                    x: { grid: { display: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)' } }
+                                },
+                                plugins: { legend: { display: false } }
+                            }
+                        });
                     }
                 }
-            });
-        });
-        /*]]>*/
-    </script>
-
+                document.body.addEventListener('htmx:afterSettle', function(event) {
+                    if (event.detail.target.id === 'page-content') initCharts();
+                });
+                initCharts();
+            })();
+        </script>
+    </div>
 </body>
-
 </html>

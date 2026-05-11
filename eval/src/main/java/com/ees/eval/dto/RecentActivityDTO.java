@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public record RecentActivityDTO(
     String evaluateeName,
     String deptName,
-    String activityType, // e.g., "평가 확정", "평가 제출"
+    String grade,
+    String activityType,
     LocalDateTime activityTime
 ) {}

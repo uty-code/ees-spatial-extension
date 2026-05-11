@@ -1,6 +1,7 @@
 package com.ees.eval.service.impl;
 
 import com.ees.eval.dto.DashboardStatsDTO;
+import com.ees.eval.dto.EmployeeDashboardDTO;
 import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.dto.RecentActivityDTO;
 import com.ees.eval.mapper.DashboardMapper;
@@ -79,8 +80,9 @@ public class DashboardServiceImpl implements DashboardService {
                 .map(m -> RecentActivityDTO.builder()
                         .evaluateeName(String.valueOf(m.get("evaluatee_name")))
                         .deptName(String.valueOf(m.get("dept_name")))
-                        .activityType(String.valueOf(m.get("activity_type")))
-                        .activityTime(((java.sql.Timestamp) m.get("activity_time")).toLocalDateTime())
+                        .grade(String.valueOf(m.get("grade")))
+                        .activityType("평가 확정")
+                        .activityTime(((java.sql.Timestamp) m.get("finalized_at")).toLocalDateTime())
                         .build())
                 .collect(Collectors.toList());
 
@@ -94,6 +96,47 @@ public class DashboardServiceImpl implements DashboardService {
                 .gradeDistribution(gradeDistribution)
                 .deptAverageScores(deptAverageScores)
                 .recentActivities(recentActivities)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EmployeeDashboardDTO getEmployeeDashboardStats(Long empId) {
+        List<EvaluationPeriodDTO> inProgressPeriods = periodService.getInProgressPeriods();
+        if (inProgressPeriods.isEmpty()) {
+            return EmployeeDashboardDTO.builder()
+                    .activePeriodName("진행 중인 차수 없음")
+                    .selfEvalStatus("NONE")
+                    .pendingPeerEvals(0)
+                    .totalPeerEvals(0)
+                    .myRecentGrades(List.of())
+                    .build();
+        }
+
+        EvaluationPeriodDTO activePeriod = inProgressPeriods.get(0);
+        Long periodId = activePeriod.periodId();
+
+        // 1. 자가평가 상태
+        String selfStatus = dashboardMapper.getSelfEvalStatus(empId, periodId);
+
+        // 2. 동료평가 현황
+        Map<String, Object> peerProgress = dashboardMapper.getPeerEvalProgress(empId, periodId);
+        int totalPeer = ((Number) peerProgress.get("total_count")).intValue();
+        int completedPeer = ((Number) peerProgress.get("completed_count")).intValue();
+
+        // 3. 최근 등급 이력
+        List<Map<String, Object>> recentGrades = dashboardMapper.getMyRecentGrades(empId, 3);
+
+        // 4. D-Day 계산
+        long dDay = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), activePeriod.endDate());
+
+        return EmployeeDashboardDTO.builder()
+                .activePeriodName(activePeriod.periodName())
+                .dDay(dDay)
+                .selfEvalStatus(selfStatus)
+                .pendingPeerEvals(totalPeer - completedPeer)
+                .totalPeerEvals(totalPeer)
+                .myRecentGrades(recentGrades)
                 .build();
     }
 }
