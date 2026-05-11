@@ -8,6 +8,7 @@ import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.EvaluationResultService;
+import com.ees.eval.service.EvaluationReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,6 +41,7 @@ public class EvaluationResultController {
     private final EvaluationResultService resultService;
     private final EmployeeMapper employeeMapper;
     private final DepartmentMapper departmentMapper;
+    private final EvaluationReportService reportService;
 
     /**
      * 평가 결과 현황 메인 페이지를 조회합니다.
@@ -129,5 +133,47 @@ public class EvaluationResultController {
         model.addAttribute("leaderCount", leaderCount);
 
         return "eval/result/list";
+    }
+
+    /**
+     * 평가 결과 현황을 엑셀 파일로 다운로드합니다.
+     */
+    @GetMapping("/excel")
+    public void downloadExcel(@RequestParam(name = "periodId", required = false) Long periodId,
+                              @RequestParam(name = "deptId", required = false) Long deptId,
+                              @AuthenticationPrincipal UserDetails userDetails,
+                              HttpServletResponse response) throws IOException {
+
+        log.info("Excel download requested: periodId={}, deptId={}", periodId, deptId);
+
+        // 1. 차수 결정 로직 개선
+        List<EvaluationPeriodDTO> periods = periodService.getAllPeriods().stream()
+                .filter(p -> !"PLANNED".equals(p.statusCode()))
+                .collect(Collectors.toList());
+
+        EvaluationPeriodDTO selectedPeriod = null;
+        if (periodId != null && periodId > 0) {
+            selectedPeriod = periodService.getPeriodById(periodId);
+        }
+        
+        // periodId가 0이거나 조회가 안된 경우 진행 중인 차수 선택
+        if (selectedPeriod == null) {
+            selectedPeriod = periods.stream()
+                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
+                    .findFirst()
+                    .orElse(periods.isEmpty() ? null : periods.get(0));
+        }
+
+        if (selectedPeriod == null) {
+            log.warn("No evaluation period found for excel download. periodId={}", periodId);
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "유효한 평가 차수를 찾을 수 없습니다.");
+            return;
+        }
+
+        // 2. 결과 데이터 조회
+        List<EvaluationResultDTO> results = resultService.getResults(selectedPeriod.periodId(), deptId);
+
+        // 3. 프리미엄 리포트 서비스 호출 (Excel 생성 및 스트림 출력)
+        reportService.generatePremiumReport(selectedPeriod, results, response);
     }
 }
