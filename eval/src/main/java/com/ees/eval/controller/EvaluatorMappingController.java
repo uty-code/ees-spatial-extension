@@ -62,7 +62,13 @@ public class EvaluatorMappingController {
             Authentication authentication,
             Principal principal, Model model) {
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
-        Long selectedId = (periodId != null) ? periodId : (!periods.isEmpty() ? periods.get(0).periodId() : null);
+        // 진행 중(IN_PROGRESS)인 차수를 기본으로 선택하고, 없으면 첫 번째 차수로 폴백
+        Long selectedId = (periodId != null) ? periodId
+                : periods.stream()
+                        .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
+                        .map(EvaluationPeriodDTO::periodId)
+                        .findFirst()
+                        .orElse(!periods.isEmpty() ? periods.get(0).periodId() : null);
 
         boolean isAdmin = isAdmin(authentication);
         Long effectiveDeptId = isAdmin ? deptId : getUserDeptId(principal);

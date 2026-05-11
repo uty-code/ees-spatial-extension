@@ -13,6 +13,8 @@ spring:
   threads:
     virtual:
       enabled: true
+  cache:
+    type: caffeine
   mvc:
     throw-exception-if-no-handler-found: true
   web:

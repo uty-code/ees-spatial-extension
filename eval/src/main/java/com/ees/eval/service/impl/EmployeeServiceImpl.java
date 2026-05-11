@@ -14,6 +14,8 @@ import com.ees.eval.mapper.RoleMapper;
 import com.ees.eval.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -94,6 +96,7 @@ public class EmployeeServiceImpl implements EmployeeService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "employee-selector", key = "'all'")
     public List<EmployeeDTO> getAllEmployees() {
         // 부서/직급 전체 목록을 미리 Map으로 캐싱 (N+1 방지)
         Map<Long, String> deptMap = departmentMapper.findAll().stream()
@@ -118,6 +121,7 @@ public class EmployeeServiceImpl implements EmployeeService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "employee-selector", allEntries = true)
     public EmployeeDTO registerEmployee(EmployeeDTO employeeDto, List<Long> roleIds) {
         // 필수 값 검증
         if (employeeDto.name() == null || employeeDto.name().isBlank()) {
@@ -184,6 +188,7 @@ public class EmployeeServiceImpl implements EmployeeService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "employee-selector", allEntries = true)
     public EmployeeDTO updateEmployee(EmployeeDTO employeeDto) {
         // 필수 값 검증
         if (employeeDto.name() == null || employeeDto.name().isBlank()) {
@@ -255,6 +260,7 @@ public class EmployeeServiceImpl implements EmployeeService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "employee-selector", allEntries = true)
     public EmployeeDTO updateEmployee(EmployeeDTO employeeDto, List<Long> roleIds) {
         // 필수 값 검증
         if (employeeDto.name() == null || employeeDto.name().isBlank()) {
@@ -478,6 +484,7 @@ public class EmployeeServiceImpl implements EmployeeService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "employee-selector", allEntries = true)
     public void approveEmployee(Long empId, Long adminId) {
         LocalDateTime now = LocalDateTime.now();
         // 1. 상태를 EMPLOYED로 변경
@@ -501,6 +508,7 @@ public class EmployeeServiceImpl implements EmployeeService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "employee-selector", allEntries = true)
     public void rejectEmployee(Long empId, Long adminId) {
         int updated = employeeMapper.softDelete(empId, adminId, LocalDateTime.now());
         if (updated == 0) {
@@ -579,6 +587,8 @@ public class EmployeeServiceImpl implements EmployeeService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "employee-selector", 
+               key = "T(java.util.Objects).hash(#searchName, #searchDeptId, #searchStatus, #pageNum, #pageSize)")
     public EmployeePageDTO searchEmployeesPage(
             String searchName, Long searchDeptId, String searchStatus,
             int pageNum, int pageSize) {
