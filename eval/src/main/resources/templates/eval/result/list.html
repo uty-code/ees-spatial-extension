@@ -180,7 +180,7 @@
             <div class="result-table-wrap">
                 <div class="result-table-header">
                     <h5>👥 일반 직원 성과 및 역량 결과</h5>
-                    <button class="btn-excel" type="button"><i class="bi bi-download"></i> 엑셀 다운로드</button>
+                    <button class="btn-excel" type="button" onclick="downloadExcel()"><i class="bi bi-download"></i> 엑셀 다운로드</button>
                 </div>
                 <table class="result-table">
                     <thead>
@@ -245,7 +245,7 @@
             <div class="result-table-wrap">
                 <div class="result-table-header">
                     <h5>🏢 부서장 다면평가 결과</h5>
-                    <button class="btn-excel" type="button"><i class="bi bi-download"></i> 엑셀 다운로드</button>
+                    <button class="btn-excel" type="button" onclick="downloadExcel()"><i class="bi bi-download"></i> 엑셀 다운로드</button>
                 </div>
                 <table class="result-table">
                     <thead>
@@ -305,6 +305,14 @@
                     document.querySelectorAll('.tab-content-area').forEach(c => c.classList.remove('active'));
                     el.classList.add('active');
                     document.getElementById('tab-' + tab).classList.add('active');
+                };
+
+                /* 엑셀 다운로드 */
+                window.downloadExcel = function() {
+                    const periodId = document.querySelector('select[name="periodId"]').value;
+                    const deptId = document.querySelector('select[name="deptId"]').value;
+                    const url = `/eval/result/excel?periodId=${periodId}&deptId=${deptId}`;
+                    window.location.href = url;
                 };
 
                 /* 도넛 차트 */
