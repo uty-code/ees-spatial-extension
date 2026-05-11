@@ -61,7 +61,7 @@ public class EvaluatorMappingController {
             @RequestParam(required = false) String searchName,
             Authentication authentication,
             Principal principal, Model model) {
-        List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
+        List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
         Long selectedId = (periodId != null) ? periodId : (!periods.isEmpty() ? periods.get(0).periodId() : null);
 
         boolean isAdmin = isAdmin(authentication);

@@ -1,12 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, ${activeMenu ?: 'eval-result'}, ~{::style}, ~{})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, ${activeMenu ?: 'eval-result'}, ~{::extraStyles}, ~{})}">
 <head>
     <title>평가 결과 현황 - EES</title>
-    <style></style>
-</head>
-<body>
-    <div id="page-content" class="container-fluid py-4" th:fragment="content">
+    <th:block th:fragment="extraStyles">
         <style>
             /* ===== 헤더 ===== */
             .result-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem}
@@ -63,8 +60,8 @@
             .th-group-info{color:rgba(255,255,255,.5)}
             .result-table thead th.th-group-mbo{color:#6366f1 !important}
             .result-table thead th.th-group-comp{color:#10b981 !important}
-            .result-table thead th.th-group-multi{color:#38bdf8 !important} /* 다면: 하늘색 */
-            .result-table thead th.th-group-total{color:#f59e0b !important} /* 종합: 앰버 */
+            .result-table thead th.th-group-multi{color:#38bdf8 !important}
+            .result-table thead th.th-group-total{color:#f59e0b !important}
             .result-table tbody td{padding:.7rem .5rem;text-align:center;color:rgba(255,255,255,.8);border-bottom:1px solid rgba(255,255,255,.35);vertical-align:middle}
             .result-table tbody tr:hover{background:rgba(255,255,255,.03)}
             .emp-name{color:#a855f7;font-weight:700}
@@ -84,6 +81,12 @@
             .result-footer a{color:#a5b4fc;text-decoration:none;margin:0 .15rem}
             .result-footer a:hover{text-decoration:underline}
         </style>
+    </th:block>
+</head>
+<body>
+    <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <!-- Re-include styles for HTMX swaps -->
+        <th:block th:replace="~{::extraStyles}"></th:block>
 
         <!-- ===== 1. 헤더 ===== -->
         <div class="result-header">
@@ -295,48 +298,20 @@
         </th:block>
 
         <script th:inline="javascript">
-            /* 탭 전환 */
-            function switchTab(tab, el) {
-                document.querySelectorAll('.tab-pill').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content-area').forEach(c => c.classList.remove('active'));
-                el.classList.add('active');
-                document.getElementById('tab-' + tab).classList.add('active');
-            }
+            (function() {
+                /* 탭 전환 */
+                window.switchTab = function(tab, el) {
+                    document.querySelectorAll('.tab-pill').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content-area').forEach(c => c.classList.remove('active'));
+                    el.classList.add('active');
+                    document.getElementById('tab-' + tab).classList.add('active');
+                };
 
-            /* 도넛 차트 */
-            document.addEventListener('DOMContentLoaded', function() {
-                var canvas = document.getElementById('gradeChart');
-                if (!canvas || typeof Chart === 'undefined') return;
+                /* 도넛 차트 */
+                function initGradeChart() {
+                    var canvas = document.getElementById('gradeChart');
+                    if (!canvas || typeof Chart === 'undefined') return;
 
-                var dist = /*[[${gradeDistribution}]]*/ {};
-                var labels = ['S','A','B','C','D'];
-                var colors = ['#10b981','#a855f7','#3b82f6','#f59e0b','#ef4444'];
-                var data = labels.map(function(l) { return dist[l] || 0; });
-
-                new Chart(canvas, {
-                    type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: data,
-                            backgroundColor: colors,
-                            borderWidth: 0,
-                            hoverOffset: 6
-                        }]
-                    },
-                    options: {
-                        cutout: '70%',
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: { legend: { display: false } }
-                    }
-                });
-            });
-
-            /* HTMX afterSwap 대응 */
-            document.body.addEventListener('htmx:afterSwap', function() {
-                var canvas = document.getElementById('gradeChart');
-                if (canvas && typeof Chart !== 'undefined') {
                     var existing = Chart.getChart(canvas);
                     if (existing) existing.destroy();
 
@@ -347,11 +322,36 @@
 
                     new Chart(canvas, {
                         type: 'doughnut',
-                        data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }] },
-                        options: { cutout: '70%', responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: colors,
+                                borderWidth: 0,
+                                hoverOffset: 6
+                            }]
+                        },
+                        options: {
+                            cutout: '70%',
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: { 
+                                legend: { display: false } 
+                            }
+                        }
                     });
                 }
-            });
+
+                // Run immediately (handles both Refresh and HTMX script execution)
+                initGradeChart();
+
+                // Handle subsequent HTMX partial updates (like filtering)
+                document.addEventListener('htmx:afterSettle', function(evt) {
+                    if (evt.detail.target.id === 'page-content') {
+                        initGradeChart();
+                    }
+                }, { once: true });
+            })();
         </script>
     </div>
 </body>

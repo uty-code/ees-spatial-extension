@@ -1,14 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, ${activeMenu ?: 'performance-eval'}, ~{::style}, ~{})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, ${activeMenu ?: 'performance-eval'}, ~{::extraStyles}, ~{})}">
 
 <head>
     <title th:text="${evalType == 'COMPETENCY' ? '역량 평가 관리 - EES' : '성과/업무 평가 - EES'}">성과/역량 평가 - EES</title>
-    <style></style>
-</head>
-
-<body>
-    <div id="page-content" class="container-fluid py-4" th:fragment="content">
+    <th:block th:fragment="extraStyles">
         <style>
             .eval-list-container {
                 background: var(--glass);
@@ -68,6 +64,13 @@
                 gap: 6px;
             }
         </style>
+    </th:block>
+</head>
+
+<body>
+    <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <!-- Re-include styles for HTMX swaps -->
+        <th:block th:replace="~{::extraStyles}"></th:block>
 
         <!-- 상단 여백 보정 -->
 
