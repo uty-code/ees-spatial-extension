@@ -55,6 +55,15 @@ public class PerformanceEvaluationController {
         return elementService.getElementsByPeriodId(periodId, null);
     }
 
+    /**
+     * 부서별 평가 요소를 캐싱하여 동일 부서에 대한 중복 DB 호출을 방지합니다.
+     */
+    private List<EvaluationElementDTO> getCachedElements(
+            java.util.Map<Long, List<EvaluationElementDTO>> cache, Long periodId, Long deptId) {
+        Long cacheKey = deptId != null ? deptId : -1L;
+        return cache.computeIfAbsent(cacheKey, k -> getElementsWithFallback(periodId, deptId));
+    }
+
     @GetMapping
     public String list(Model model,
             @RequestParam(required = false) Long periodId,
@@ -84,6 +93,7 @@ public class PerformanceEvaluationController {
         }
 
         if (selectedPeriod != null) {
+            final Long finalPeriodId = selectedPeriod.periodId();
             model.addAttribute("selectedPeriod", selectedPeriod);
 
             List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(selectedPeriod.periodId(), empId);
@@ -100,21 +110,96 @@ public class PerformanceEvaluationController {
             model.addAttribute("selfTask", selfTask);
             model.addAttribute("tasks", teamTasks);
 
-            // 자가평가 성과/역량 각각 제출 여부 확인
+            // ========== [최적화] 루프 밖에서 데이터 일괄 조회 ==========
+
+            // (A) 로그인 사용자 정보 조회 (1회)
+            Employee currentEmp = employeeMapper.findById(empId).orElse(null);
+            Long myDeptId = (currentEmp != null) ? currentEmp.getDeptId() : null;
+
+            // (B) 팀 태스크의 피평가자 ID 및 매핑 ID 수집
+            java.util.List<Long> teamEvaluateeIds = teamTasks.stream()
+                    .map(EvaluatorMappingDTO::evaluateeId)
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
+            java.util.List<Long> teamMappingIds = teamTasks.stream()
+                    .map(EvaluatorMappingDTO::mappingId)
+                    .collect(java.util.stream.Collectors.toList());
+
+            // 자가평가 매핑 ID도 포함
+            if (selfTask != null) {
+                teamMappingIds = new java.util.ArrayList<>(teamMappingIds);
+                teamMappingIds.add(selfTask.mappingId());
+            }
+
+            // (C) 피평가자 사원 정보 일괄 조회 (1회)
+            java.util.Map<Long, Employee> evaluateeMap = new java.util.HashMap<>();
+            if (!teamEvaluateeIds.isEmpty()) {
+                evaluateeMap = employeeMapper.findByIds(teamEvaluateeIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
+            }
+
+            // (D) 모든 관련 매핑의 평가 데이터 일괄 조회 (1회)
+            java.util.Map<Long, java.util.List<Evaluation>> evalGroupMap = new java.util.HashMap<>();
+            if (!teamMappingIds.isEmpty()) {
+                evalGroupMap = evaluationMapper.findByMappingIds(teamMappingIds).stream()
+                        .collect(java.util.stream.Collectors.groupingBy(Evaluation::getMappingId));
+            }
+
+            // (E) 피평가자들의 SELF 매핑 일괄 조회 (1회) — 자가평가 제출 여부 확인용
+            java.util.Map<Long, com.ees.eval.domain.EvaluatorMapping> selfMappingByEvaluateeMap = new java.util.HashMap<>();
+            java.util.List<Long> selfMappingIdsToFetch = new java.util.ArrayList<>();
+            // 피평가자별 전체 매핑 그룹 (잠금 체크용으로도 재사용)
+            java.util.Map<Long, java.util.List<com.ees.eval.domain.EvaluatorMapping>> allMappingsByEvaluatee = new java.util.HashMap<>();
+            java.util.List<Long> allDownstreamMappingIds = new java.util.ArrayList<>();
+            if (!teamEvaluateeIds.isEmpty()) {
+                java.util.List<com.ees.eval.domain.EvaluatorMapping> allRelatedMappings =
+                        evaluatorMappingMapper.findByEvaluateeIds(selectedPeriod.periodId(), teamEvaluateeIds);
+                // 피평가자별 그룹화
+                allMappingsByEvaluatee = allRelatedMappings.stream()
+                        .collect(java.util.stream.Collectors.groupingBy(
+                                com.ees.eval.domain.EvaluatorMapping::getEvaluateeId));
+                for (com.ees.eval.domain.EvaluatorMapping m : allRelatedMappings) {
+                    if ("SELF".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted())) {
+                        selfMappingByEvaluateeMap.put(m.getEvaluateeId(), m);
+                        selfMappingIdsToFetch.add(m.getMappingId());
+                    }
+                    // MANAGER/EXECUTIVE 매핑의 평가 데이터도 잠금 체크에 필요
+                    if ("MANAGER".equals(m.getRelationTypeCode()) || "EXECUTIVE".equals(m.getRelationTypeCode())) {
+                        if (!teamMappingIds.contains(m.getMappingId())) {
+                            allDownstreamMappingIds.add(m.getMappingId());
+                        }
+                    }
+                }
+            }
+
+            // SELF 매핑들의 평가 데이터도 일괄 조회 (1회)
+            // + 다운스트림 매핑(잠금 체크용) 평가 데이터도 함께 조회
+            java.util.List<Long> additionalMappingIds = new java.util.ArrayList<>(selfMappingIdsToFetch);
+            additionalMappingIds.addAll(allDownstreamMappingIds);
+            if (!additionalMappingIds.isEmpty()) {
+                java.util.List<Evaluation> additionalEvals = evaluationMapper.findByMappingIds(additionalMappingIds);
+                for (Evaluation e : additionalEvals) {
+                    evalGroupMap.computeIfAbsent(e.getMappingId(), k -> new java.util.ArrayList<>()).add(e);
+                }
+            }
+
+            // (F) 평가 요소 부서별 캐싱 (부서당 1회만 조회)
+            java.util.Map<Long, java.util.List<EvaluationElementDTO>> elementCacheByDeptId = new java.util.HashMap<>();
+
+            // (G) 가중치 유효성 부서별 캐싱
+            java.util.Map<Long, Boolean> weightValidCacheByDeptId = new java.util.HashMap<>();
+
+            // ========== 자가평가 제출 여부 확인 (메모리에서) ==========
             boolean selfPerfSubmitted = false;
             boolean selfCompSubmitted = false;
             if (selfTask != null) {
-                List<Evaluation> selfEvals = evaluationMapper.findByMappingId(selfTask.mappingId());
-                // 제출된 항목들 중 elementType이 PERFORMANCE인 항목이 있으면 성과 제출 완료로 간주
-                List<Long> submittedElementIds = selfEvals.stream()
+                java.util.List<Evaluation> selfEvals = evalGroupMap.getOrDefault(selfTask.mappingId(), java.util.Collections.emptyList());
+                java.util.List<Long> submittedElementIds = selfEvals.stream()
                         .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
                         .map(Evaluation::getElementId)
                         .toList();
                 if (!submittedElementIds.isEmpty()) {
-                    Employee selfEmpInfo = employeeMapper.findById(empId).orElse(null);
-                    Long selfDeptId = (selfEmpInfo != null) ? selfEmpInfo.getDeptId() : null;
-                    List<EvaluationElementDTO> allElements = getElementsWithFallback(selectedPeriod.periodId(),
-                            selfDeptId);
+                    java.util.List<EvaluationElementDTO> allElements = getCachedElements(elementCacheByDeptId, selectedPeriod.periodId(), myDeptId);
                     selfPerfSubmitted = allElements.stream()
                             .filter(el -> "PERFORMANCE".equals(el.elementTypeCode()))
                             .anyMatch(el -> submittedElementIds.contains(el.elementId()));
@@ -126,20 +211,20 @@ public class PerformanceEvaluationController {
             model.addAttribute("selfPerfSubmitted", selfPerfSubmitted);
             model.addAttribute("selfCompSubmitted", selfCompSubmitted);
 
-            // 팀원 성과/역량 평가 제출 여부 Map
+            // ========== 팀원별 상태 계산 (메모리에서 — DB 호출 없음) ==========
             java.util.Map<Long, Boolean> teamPerfSubmittedMap = new java.util.HashMap<>();
             java.util.Map<Long, Boolean> teamCompSubmittedMap = new java.util.HashMap<>();
-            // 피평가자 자가평가 제출 여부 Map (자가평가가 있어야 부서장 진입 가능)
             java.util.Map<Long, Boolean> evaluateeSelfSubmittedMap = new java.util.HashMap<>();
+            java.util.Map<Long, Boolean> teamWeightValidMap = new java.util.HashMap<>();
 
             for (EvaluatorMappingDTO task : teamTasks) {
-                Employee evaluatee = employeeMapper.findById(task.evaluateeId()).orElse(null);
+                Employee evaluatee = evaluateeMap.get(task.evaluateeId());
                 Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
-                List<EvaluationElementDTO> elementsForTask = getElementsWithFallback(selectedPeriod.periodId(),
-                        evaluateeDeptId);
+                java.util.List<EvaluationElementDTO> elementsForTask = getCachedElements(elementCacheByDeptId, selectedPeriod.periodId(), evaluateeDeptId);
 
-                List<Evaluation> evals = evaluationMapper.findByMappingId(task.mappingId());
-                List<Long> submittedIds = evals.stream()
+                // 팀원 성과/역량 제출 여부 (메모리에서 확인)
+                java.util.List<Evaluation> evals = evalGroupMap.getOrDefault(task.mappingId(), java.util.Collections.emptyList());
+                java.util.List<Long> submittedIds = evals.stream()
                         .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
                         .map(Evaluation::getElementId)
                         .toList();
@@ -150,52 +235,45 @@ public class PerformanceEvaluationController {
                 boolean compSubmitted = elementsForTask.stream()
                         .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
                         .anyMatch(el -> submittedIds.contains(el.elementId()));
-
                 teamPerfSubmittedMap.put(task.mappingId(), perfSubmitted);
                 teamCompSubmittedMap.put(task.mappingId(), compSubmitted);
 
-                // 피평가자의 SELF 매핑에서 제출 여부 확인
-                boolean selfSubmittedForTask = evaluatorMappingMapper
-                        .findByEvaluateeId(selectedPeriod.periodId(), task.evaluateeId())
-                        .stream()
-                        .filter(m -> "SELF".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted()))
-                        .findFirst()
-                        .map(selfMapping -> evaluationMapper.findByMappingId(selfMapping.getMappingId())
-                                .stream()
-                                .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode())))
-                        .orElse(false);
+                // 피평가자의 자가평가 제출 여부 (메모리에서 확인)
+                com.ees.eval.domain.EvaluatorMapping selfMapping = selfMappingByEvaluateeMap.get(task.evaluateeId());
+                boolean selfSubmittedForTask = false;
+                if (selfMapping != null) {
+                    java.util.List<Evaluation> selfEvalsForTask = evalGroupMap.getOrDefault(selfMapping.getMappingId(), java.util.Collections.emptyList());
+                    selfSubmittedForTask = selfEvalsForTask.stream()
+                            .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
+                }
                 evaluateeSelfSubmittedMap.put(task.mappingId(), selfSubmittedForTask);
+
+                // 가중치 유효성 (부서별 캐싱)
+                Long cacheKey = evaluateeDeptId != null ? evaluateeDeptId : -1L;
+                final Long finalEvaluateeDeptId = evaluateeDeptId;
+                boolean weightValid = weightValidCacheByDeptId.computeIfAbsent(cacheKey,
+                        k -> typeWeightService.isWeightSumValid(finalPeriodId, finalEvaluateeDeptId, "STAFF"));
+                teamWeightValidMap.put(task.mappingId(), weightValid);
             }
             model.addAttribute("teamPerfSubmittedMap", teamPerfSubmittedMap);
             model.addAttribute("teamCompSubmittedMap", teamCompSubmittedMap);
             model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
+            model.addAttribute("teamWeightValidMap", teamWeightValidMap);
 
-            // 역순 진행 방지 (상위 평가자가 제출했는지 확인)
-            java.util.Map<Long, Boolean> teamLockMap = new java.util.HashMap<>();
-            for (EvaluatorMappingDTO task : teamTasks) {
-                java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(task.mappingId());
-                teamLockMap.put(task.mappingId(), (Boolean) lockInfo.get("isLocked"));
-            }
+            // ========== 잠금 체크 일괄화 (사전 조회 데이터 활용 — 추가 DB 호출 없음) ==========
+            java.util.List<Long> teamMappingIdList = teamTasks.stream()
+                    .map(EvaluatorMappingDTO::mappingId)
+                    .collect(java.util.stream.Collectors.toList());
+            java.util.Map<Long, Boolean> teamLockMap = mappingService.checkEvaluationLockBulk(
+                    teamMappingIdList, allMappingsByEvaluatee, evalGroupMap);
             model.addAttribute("teamLockMap", teamLockMap);
 
-            // 부서별 유형별 가중치 합계 100 검증
-            // 로그인 사용자의 부서 가중치가 유효한지 확인 (자가평가용)
-            Employee currentEmp = employeeMapper.findById(empId).orElse(null);
-            Long myDeptId = (currentEmp != null) ? currentEmp.getDeptId() : null;
-            boolean selfWeightValid = typeWeightService.isWeightSumValid(selectedPeriod.periodId(), myDeptId, "STAFF");
+            // 자가평가 가중치 유효성
+            final Long finalMyDeptId = myDeptId;
+            boolean selfWeightValid = weightValidCacheByDeptId.computeIfAbsent(
+                    myDeptId != null ? myDeptId : -1L,
+                    k -> typeWeightService.isWeightSumValid(finalPeriodId, finalMyDeptId, "STAFF"));
             model.addAttribute("selfWeightValid", selfWeightValid);
-
-            // 팀원별 가중치 유효성 Map (각 팀원의 부서 기준)
-            java.util.Map<Long, Boolean> teamWeightValidMap = new java.util.HashMap<>();
-            for (EvaluatorMappingDTO task : teamTasks) {
-                Employee evaluatee = employeeMapper.findById(task.evaluateeId()).orElse(null);
-                Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
-                boolean weightValid = typeWeightService.isWeightSumValid(selectedPeriod.periodId(), evaluateeDeptId,
-                        "STAFF");
-                teamWeightValidMap.put(task.mappingId(), weightValid);
-            }
-            model.addAttribute("teamWeightValidMap", teamWeightValidMap);
-            model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
 
             // 평가 시작 전(PLANNED) 알림 처리
             if ("PLANNED".equals(selectedPeriod.statusCode())) {

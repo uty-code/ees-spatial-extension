@@ -137,9 +137,32 @@ public class EvaluationResultController {
                     .collect(Collectors.toList());
         }
 
-        // 7. 결과 DTO 조립
+        // 7. 결과 DTO 조립 — 벌크 데이터를 활용하여 유형별 점수 계산
         Map<Long, FinalGrade> gradeMap = finalGrades.stream()
                 .collect(Collectors.toMap(FinalGrade::getEmpId, g -> g, (a, b) -> a));
+
+        // ========== [최적화] 유형별 점수 계산에 필요한 데이터 일괄 조회 ==========
+        // (A) 확정 사원들의 모든 매핑 일괄 조회 (1회)
+        List<EvaluatorMapping> allMappings = !confirmedEmpIds.isEmpty()
+                ? mappingMapper.findByEvaluateeIds(selectedPeriod.periodId(), confirmedEmpIds)
+                : Collections.emptyList();
+
+        // EXECUTIVE 매핑만 추출 (유형별 점수 계산용)
+        Map<Long, EvaluatorMapping> execMappingByEmpId = allMappings.stream()
+                .filter(m -> "EXECUTIVE".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted()))
+                .collect(Collectors.toMap(EvaluatorMapping::getEvaluateeId, m -> m, (a, b) -> a));
+
+        // (B) EXECUTIVE 매핑들의 평가 데이터 일괄 조회 (1회)
+        List<Long> execMappingIds = execMappingByEmpId.values().stream()
+                .map(EvaluatorMapping::getMappingId)
+                .collect(Collectors.toList());
+        Map<Long, List<Evaluation>> execEvalGroupMap = !execMappingIds.isEmpty()
+                ? evaluationMapper.findByMappingIds(execMappingIds).stream()
+                        .collect(Collectors.groupingBy(Evaluation::getMappingId))
+                : Collections.emptyMap();
+
+        // (C) 평가 요소 부서별 캐싱 (부서당 1회만 조회)
+        Map<Long, List<EvaluationElementDTO>> elementCacheByDeptId = new HashMap<>();
 
         List<EvaluationResultDTO> results = new ArrayList<>();
 
@@ -159,10 +182,32 @@ public class EvaluationResultController {
                 }
             }
 
-            // 유형별 점수 계산
-            Integer perfScore = calculateTypeScoreForDisplay(selectedPeriod.periodId(), empId, "PERFORMANCE");
-            Integer compScore = calculateTypeScoreForDisplay(selectedPeriod.periodId(), empId, "COMPETENCY");
-            Integer multiScore = calculateTypeScoreForDisplay(selectedPeriod.periodId(), empId, "MULTI_DIMENSIONAL");
+            // 유형별 점수 계산 (사전 조회된 데이터로 인메모리 계산)
+            Long empDeptId = emp.getDeptId();
+            EvaluatorMapping execMapping = execMappingByEmpId.get(empId);
+            Integer perfScore = null;
+            Integer compScore = null;
+            Integer multiScore = null;
+
+            if (execMapping != null) {
+                List<Evaluation> execEvals = execEvalGroupMap.getOrDefault(execMapping.getMappingId(), Collections.emptyList())
+                        .stream()
+                        .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
+                        .collect(Collectors.toList());
+
+                if (!execEvals.isEmpty()) {
+                    Long cacheKey = empDeptId != null ? empDeptId : -1L;
+                    List<EvaluationElementDTO> allElements = elementCacheByDeptId.computeIfAbsent(cacheKey,
+                            k -> getElementsWithFallback(selectedPeriod.periodId(), empDeptId));
+
+                    Map<Long, Evaluation> evalMap = execEvals.stream()
+                            .collect(Collectors.toMap(Evaluation::getElementId, e -> e, (a, b) -> a));
+
+                    perfScore = calculateTypeScoreInMemory(allElements, evalMap, "PERFORMANCE");
+                    compScore = calculateTypeScoreInMemory(allElements, evalMap, "COMPETENCY");
+                    multiScore = calculateTypeScoreInMemory(allElements, evalMap, "MULTI_DIMENSIONAL");
+                }
+            }
 
             results.add(EvaluationResultDTO.builder()
                     .empId(empId)
@@ -201,36 +246,17 @@ public class EvaluationResultController {
     }
 
     /**
-     * 특정 사원의 특정 유형 점수를 0~100 범위로 환산하여 반환합니다.
+     * 사전 조회된 데이터를 이용하여 특정 유형의 점수를 0~100 범위로 환산합니다.
+     * DB 호출 없이 인메모리에서 계산합니다.
      */
-    private Integer calculateTypeScoreForDisplay(Long periodId, Long empId, String typeCode) {
-        List<EvaluatorMapping> mappings = mappingMapper.findByEvaluateeId(periodId, empId);
-        EvaluatorMapping execMapping = mappings.stream()
-                .filter(m -> "EXECUTIVE".equals(m.getRelationTypeCode()))
-                .findFirst()
-                .orElse(null);
-
-        if (execMapping == null) return null;
-
-        List<Evaluation> evals = evaluationMapper.findByMappingId(execMapping.getMappingId()).stream()
-                .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
-                .collect(Collectors.toList());
-
-        if (evals.isEmpty()) return null;
-
-        Long deptId = employeeMapper.findById(empId)
-                .map(Employee::getDeptId)
-                .orElse(null);
-
-        List<EvaluationElementDTO> allElements = getElementsWithFallback(periodId, deptId);
+    private Integer calculateTypeScoreInMemory(List<EvaluationElementDTO> allElements,
+                                                Map<Long, Evaluation> evalMap,
+                                                String typeCode) {
         List<EvaluationElementDTO> typeElements = allElements.stream()
                 .filter(e -> typeCode.equals(e.elementTypeCode()))
                 .collect(Collectors.toList());
 
         if (typeElements.isEmpty()) return null;
-
-        Map<Long, Evaluation> evalMap = evals.stream()
-                .collect(Collectors.toMap(Evaluation::getElementId, e -> e, (a, b) -> a));
 
         BigDecimal weightedSum = BigDecimal.ZERO;
         BigDecimal totalWeight = BigDecimal.ZERO;

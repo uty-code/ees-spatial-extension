@@ -821,4 +821,69 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
 
         return result;
     }
+
+    /**
+     * {@inheritDoc}
+     * 사전 조회된 매핑/평가 데이터를 활용하여 DB 호출 없이 잠금 여부를 일괄 확인합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Boolean> checkEvaluationLockBulk(
+            List<Long> mappingIds,
+            Map<Long, List<EvaluatorMapping>> allMappingsByEvaluatee,
+            Map<Long, List<Evaluation>> evalGroupMap) {
+
+        Map<Long, Boolean> result = new HashMap<>();
+
+        // mappingId → EvaluatorMapping 변환을 위한 맵 구성 (사전 조회 데이터에서 추출)
+        Map<Long, EvaluatorMapping> mappingById = allMappingsByEvaluatee.values().stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toMap(EvaluatorMapping::getMappingId, m -> m, (a, b) -> a));
+
+        for (Long mappingId : mappingIds) {
+            EvaluatorMapping current = mappingById.get(mappingId);
+            if (current == null) {
+                result.put(mappingId, false);
+                continue;
+            }
+
+            String type = current.getRelationTypeCode();
+
+            // 잠금 대상 관계 설정 (내 뒤 단계들)
+            List<String> downstreamTypes = new ArrayList<>();
+            if (RELATION_SELF.equals(type) || RELATION_SUBORDINATE.equals(type)) {
+                downstreamTypes.add(RELATION_MANAGER);
+                downstreamTypes.add(RELATION_EXECUTIVE);
+            } else if (RELATION_MANAGER.equals(type)) {
+                downstreamTypes.add(RELATION_EXECUTIVE);
+            }
+
+            if (downstreamTypes.isEmpty()) {
+                result.put(mappingId, false);
+                continue;
+            }
+
+            // 해당 피평가자의 모든 매핑 중 다운스트림 매핑 ID 추출
+            List<EvaluatorMapping> evaluateeMappings = allMappingsByEvaluatee.getOrDefault(
+                    current.getEvaluateeId(), Collections.emptyList());
+            List<Long> downstreamMappingIds = evaluateeMappings.stream()
+                    .filter(m -> downstreamTypes.contains(m.getRelationTypeCode()))
+                    .map(EvaluatorMapping::getMappingId)
+                    .toList();
+
+            if (downstreamMappingIds.isEmpty()) {
+                result.put(mappingId, false);
+                continue;
+            }
+
+            // 다운스트림 매핑의 평가 중 SUBMITTED 여부 확인
+            boolean isLocked = downstreamMappingIds.stream()
+                    .flatMap(mid -> evalGroupMap.getOrDefault(mid, Collections.emptyList()).stream())
+                    .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
+
+            result.put(mappingId, isLocked);
+        }
+
+        return result;
+    }
 }
