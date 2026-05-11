@@ -46,8 +46,18 @@
                     <div class="stat-icon icon-indigo">
                         <i class="bi bi-calendar-check"></i>
                     </div>
-                    <h6 class="text-muted small mb-1">진행 중인 평가 차수</h6>
-                    <h3 class="fw-bold mb-0" th:text="${activePeriodCount + ' 개'}">1 개</h3>
+                    <div class="w-100">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="text-muted small mb-0" th:text="${activePeriodName}">2026년 상반기 평가</h6>
+                            <span class="badge bg-primary rounded-pill" th:text="${completionRate + '%'}">75%</span>
+                        </div>
+                        <h3 class="fw-bold mb-2" th:text="${stats.finalizedCount + ' / ' + stats.totalEvaluatees + ' 명'}">120 / 150 명</h3>
+                        <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1);">
+                            <div class="progress-bar bg-primary" role="progressbar" 
+                                 th:style="'width: ' + ${completionRate} + '%'" 
+                                 th:aria-valuenow="${completionRate}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -78,8 +88,8 @@
             <div class="col-lg-8">
                 <div class="ees-card p-4 h-100">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="fw-bold mb-0">인사 현황 (최근 등록)</h5>
-                        <a href="/employees" hx-get="/employees" hx-target="#page-content" hx-select="#page-content"
+                        <h5 class="fw-bold mb-0">평가 확정 현황 (최근 완료)</h5>
+                        <a href="/eval/result" hx-get="/eval/result" hx-target="#page-content" hx-select="#page-content"
                             hx-swap="outerHTML" hx-push-url="true"
                             class="btn btn-link text-primary text-decoration-none p-0 small">전체 보기</a>
                     </div>
@@ -87,46 +97,32 @@
                         <table class="ees-table align-middle">
                             <thead>
                                 <tr class="text-muted small border-bottom border-secondary opacity-50">
-                                    <th class="py-3">이름</th>
+                                    <th class="py-3">피평가자</th>
                                     <th class="py-3">부서</th>
-                                    <th class="py-3">직급</th>
-                                    <th class="py-3">상태</th>
+                                    <th class="py-3">활동</th>
+                                    <th class="py-3">시간</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- 최근 등록된 사원 목록을 최대 5건 렌더링 -->
-                                <tr th:each="emp : ${recentEmployees}">
+                                <tr th:each="act : ${recentActivities}">
                                     <td class="py-3">
                                         <div class="d-flex align-items-center gap-2">
-                                            <div class="bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center"
+                                            <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
                                                 style="width: 32px; height: 32px;">
-                                                <i class="bi bi-person text-white"></i>
+                                                <i class="bi bi-check-circle-fill text-primary"></i>
                                             </div>
-                                            <span th:text="${emp.name}">-</span>
+                                            <span th:text="${act.evaluateeName}">-</span>
                                         </div>
                                     </td>
-                                    <td th:text="${emp.deptName != null ? emp.deptName : '-'}">-</td>
-                                    <td th:text="${emp.positionName != null ? emp.positionName : '-'}">-</td>
+                                    <td th:text="${act.deptName}">-</td>
                                     <td>
-                                        <!-- 재직 상태 코드에 따라 배지 색상 분기 -->
-                                        <span th:if="${emp.statusCode == 'EMPLOYED'}"
-                                            class="ees-badge ees-badge-self">재직</span>
-                                        <span th:if="${emp.statusCode == 'ON_LEAVE' or emp.statusCode == 'LEAVE'}"
-                                            class="ees-badge ees-badge-multi">휴직</span>
-                                        <span th:if="${emp.statusCode == 'RETIRED'}"
-                                            class="ees-badge ees-badge-danger">퇴사</span>
-                                        <span th:if="${emp.statusCode == 'PENDING'}"
-                                            class="ees-badge ees-badge-performance">승인 대기</span>
-                                        <span
-                                            th:if="${emp.statusCode != 'EMPLOYED' and emp.statusCode != 'ON_LEAVE' and emp.statusCode != 'LEAVE' and emp.statusCode != 'RETIRED' and emp.statusCode != 'PENDING'}"
-                                            class="ees-badge"
-                                            th:text="${emp.statusCode}">-</span>
+                                        <span class="ees-badge ees-badge-self" th:text="${act.activityType}">최종 확정</span>
                                     </td>
+                                    <td class="text-muted small" th:text="${#temporals.format(act.activityTime, 'MM-dd HH:mm')}">-</td>
                                 </tr>
-                                <!-- 데이터가 없을 경우 안내 행 표시 -->
-                                <tr th:if="${#lists.isEmpty(recentEmployees)}">
+                                <tr th:if="${#lists.isEmpty(recentActivities)}">
                                     <td colspan="4" class="text-center text-muted py-4">
-                                        <i class="bi bi-inbox me-2"></i>등록된 사원이 없습니다.
+                                        <i class="bi bi-inbox me-2"></i>최근 확정된 평가가 없습니다.
                                     </td>
                                 </tr>
                             </tbody>
