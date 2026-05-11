@@ -6,6 +6,8 @@ import com.ees.eval.exception.EesOptimisticLockException;
 import com.ees.eval.mapper.PositionMapper;
 import com.ees.eval.service.PositionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,7 @@ public class PositionServiceImpl implements PositionService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "positions", key = "'all'")
     public List<PositionDTO> getAllPositions() {
         // 정렬된 전체 리스트를 조회하여 매핑
         return positionMapper.findAll().stream().map(this::convertToDto).collect(Collectors.toList());
@@ -49,6 +52,7 @@ public class PositionServiceImpl implements PositionService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "positions", allEntries = true)
     public PositionDTO createPosition(PositionDTO positionDto) {
         // 엔티티로 전환하여 데이터베이스 저장 준비 (감사 필드 주입)
         Position position = convertToEntity(positionDto);
@@ -65,6 +69,7 @@ public class PositionServiceImpl implements PositionService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "positions", allEntries = true)
     public PositionDTO updatePosition(PositionDTO positionDto) {
         // 업데이트 전 시간 정보 갱신 및 데이터 변환
         Position position = convertToEntity(positionDto);
@@ -85,6 +90,7 @@ public class PositionServiceImpl implements PositionService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "positions", allEntries = true)
     public void deletePosition(Long positionId) {
         Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
 

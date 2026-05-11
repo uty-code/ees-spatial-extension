@@ -236,4 +236,21 @@
           and d.is_active = 'y'
     </select>
 
+    <!-- 여러 부서의 추가 정보(상위 부서명, 리더명, 소속 사원 수)를 한 번에 조회 -->
+    <select id="findDepartmentDetailsByDeptIds" resultType="java.util.Map">
+        select
+            d.dept_id as DEPT_ID,
+            p.dept_name as PARENT_DEPT_NAME,
+            e.name as LEADER_NAME,
+            (select count(*) from employees_51 e2 where e2.dept_id = d.dept_id and e2.is_deleted = 'n') as EMP_COUNT
+        from departments_51 d
+        left join departments_51 p on d.parent_dept_id = p.dept_id and p.is_deleted = 'n'
+        left join employees_51 e on d.leader_id = e.emp_id and e.is_deleted = 'n'
+        where d.dept_id in
+        <foreach item="item" collection="deptIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+          and d.is_deleted = 'n'
+    </select>
+
 </mapper>

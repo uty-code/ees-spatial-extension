@@ -46,6 +46,15 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
+		<!-- Cache -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
 		<!-- AOP: @ApiLoggable 커스텀 어노테이션 기반 API 이력 로깅 (spring-aop는 security 전이 의존성으로 이미 포함) -->
 		<dependency>
 			<groupId>org.aspectj</groupId>

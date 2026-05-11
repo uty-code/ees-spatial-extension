@@ -11,6 +11,8 @@ import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.EvaluatorMappingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +61,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "eval-periods", key = "'all'")
     public List<EvaluationPeriodDTO> getAllPeriods() {
         return periodMapper.findAll().stream()
                 .map(this::convertToDto)
@@ -70,6 +73,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "eval-periods", key = "'in-progress'")
     public List<EvaluationPeriodDTO> getInProgressPeriods() {
         return periodMapper.findByStatusCode(STATUS_IN_PROGRESS).stream()
                 .map(this::convertToDto)
@@ -81,6 +85,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "eval-periods", allEntries = true)
     public EvaluationPeriodDTO createPeriod(EvaluationPeriodDTO periodDto) {
         // 엔티티 변환 후 초기 상태를 PLANNED로 강제 설정
         EvaluationPeriod period = convertToEntity(periodDto);
@@ -96,6 +101,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "eval-periods", allEntries = true)
     public EvaluationPeriodDTO updatePeriod(EvaluationPeriodDTO periodDto) {
         EvaluationPeriod period = convertToEntity(periodDto);
         period.preUpdate();
@@ -113,6 +119,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "eval-periods", allEntries = true)
     public EvaluationPeriodDTO transitionStatus(Long periodId, String newStatusCode) {
         // 1. 현재 차수 조회
         EvaluationPeriod period = periodMapper.findById(periodId)

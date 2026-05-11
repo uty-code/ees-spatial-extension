@@ -156,4 +156,12 @@ public interface DepartmentMapper {
      * @return 활성 부서 수
      */
     long countActiveDepartments();
+
+    /**
+     * N+1 문제를 방지하기 위해 여러 부서의 추가 정보(상위 부서명, 리더명, 소속 사원 수)를 한 번에 조회합니다.
+     *
+     * @param deptIds 부서 ID 리스트
+     * @return 부서별 추가 정보 맵 리스트 (DEPT_ID, PARENT_DEPT_NAME, LEADER_NAME, EMP_COUNT)
+     */
+    List<java.util.Map<String, Object>> findDepartmentDetailsByDeptIds(@Param("deptIds") List<Long> deptIds);
 }
