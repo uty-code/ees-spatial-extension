@@ -137,4 +137,18 @@ public interface EvaluatorMappingService {
      * @return 잠금 여부 및 잠금 사유 정보를 담은 맵 (isLocked: boolean, lockedBy: String)
      */
     java.util.Map<String, Object> checkEvaluationLock(Long mappingId);
+
+    /**
+     * 다수의 매핑에 대한 잠금 여부를 사전 조회된 데이터를 활용하여 일괄 확인합니다.
+     * 컨트롤러에서 이미 벌크 조회한 매핑/평가 데이터를 재사용하여 DB 호출을 최소화합니다.
+     *
+     * @param mappingIds         잠금 확인할 매핑 ID 목록
+     * @param allMappingsByEvaluatee 피평가자별 전체 매핑 맵 (사전 조회 데이터)
+     * @param evalGroupMap       매핑 ID별 평가 데이터 맵 (사전 조회 데이터)
+     * @return mappingId → 잠금 여부 맵
+     */
+    java.util.Map<Long, Boolean> checkEvaluationLockBulk(
+            java.util.List<Long> mappingIds,
+            java.util.Map<Long, java.util.List<com.ees.eval.domain.EvaluatorMapping>> allMappingsByEvaluatee,
+            java.util.Map<Long, java.util.List<com.ees.eval.domain.Evaluation>> evalGroupMap);
 }

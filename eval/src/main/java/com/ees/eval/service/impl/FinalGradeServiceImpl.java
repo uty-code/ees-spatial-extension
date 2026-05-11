@@ -75,24 +75,43 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         // 전사 공통 요소 (deptId = null)
         List<EvaluationElementDTO> globalElements = elementService.getElementsByPeriodId(periodId, null);
 
+        // [최적화] 리더 여부 판별용 — 부서 목록을 1회 조회하여 리더 ID 세트 구성
+        Set<Long> leaderEmpIds = departmentMapper.findAll().stream()
+                .map(com.ees.eval.domain.Department::getLeaderId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // [최적화] getTypeWeights 캐싱 (deptId + targetRole 조합)
+        Map<String, java.util.List<com.ees.eval.dto.EvaluationTypeWeightDTO>> typeWeightsCache = new HashMap<>();
+
+        // [최적화] 평가 요소 부서별 캐싱
+        Map<Long, List<EvaluationElementDTO>> elementCacheByDeptId = new HashMap<>();
+
         // 6. 결과 DTO 조립
         return teamTasks.stream().map(task -> {
             Employee evaluatee = employeeMap.get(task.getEvaluateeId());
             Long deptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
 
-            boolean isLeader = departmentMapper.countDepartmentsByLeaderId(task.getEvaluateeId()) > 0;
+            // [최적화] 리더 여부: 메모리에서 Set 검색 (DB 호출 제거)
+            boolean isLeader = leaderEmpIds.contains(task.getEvaluateeId());
             String targetRole = isLeader ? "LEADER" : "STAFF";
 
             // 가중치 유효성 체크 (캐시 활용)
             boolean weightValid = weightValidCache.computeIfAbsent(deptId != null ? deptId * 31 + targetRole.hashCode() : targetRole.hashCode() * 31L, 
                 id -> typeWeightService.isWeightSumValid(periodId, deptId, targetRole));
 
-            // 해당 역할에 필요한 평가 항목 유형 필터링
-            List<String> requiredTypes = typeWeightService.getTypeWeights(periodId, deptId, targetRole).stream()
+            // [최적화] 해당 역할에 필요한 평가 항목 유형 필터링 (캐시 활용)
+            String typeWeightsCacheKey = (deptId != null ? deptId : "null") + "_" + targetRole;
+            java.util.List<com.ees.eval.dto.EvaluationTypeWeightDTO> typeWeights = typeWeightsCache.computeIfAbsent(
+                    typeWeightsCacheKey, k -> typeWeightService.getTypeWeights(periodId, deptId, targetRole));
+            List<String> requiredTypes = typeWeights.stream()
                     .map(com.ees.eval.dto.EvaluationTypeWeightDTO::elementTypeCode)
                     .collect(Collectors.toList());
 
-            List<EvaluationElementDTO> allElements = getElementsWithFallback(periodId, deptId, globalElements);
+            // [최적화] 평가 요소 부서별 캐싱
+            Long elemCacheKey = deptId != null ? deptId : -1L;
+            List<EvaluationElementDTO> allElements = elementCacheByDeptId.computeIfAbsent(elemCacheKey,
+                    k -> getElementsWithFallback(periodId, deptId, globalElements));
             List<EvaluationElementDTO> requiredElements = allElements.stream()
                     .filter(e -> requiredTypes.contains(e.elementTypeCode()))
                     .collect(Collectors.toList());

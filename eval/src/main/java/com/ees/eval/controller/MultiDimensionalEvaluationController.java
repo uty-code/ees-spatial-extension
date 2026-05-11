@@ -8,6 +8,7 @@ import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.dto.EvaluatorMappingDTO;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationMapper;
+import com.ees.eval.mapper.EvaluatorMappingMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.EvaluationTypeWeightService;
@@ -42,6 +43,7 @@ public class MultiDimensionalEvaluationController {
     private final EvaluationTypeWeightService typeWeightService;
     private final EvaluationMapper evaluationMapper;
     private final EmployeeMapper employeeMapper;
+    private final EvaluatorMappingMapper evaluatorMappingMapper;
 
     /**
      * 피평가자의 부서에 맞는 평가요소를 조회합니다.
@@ -88,36 +90,87 @@ public class MultiDimensionalEvaluationController {
 
             model.addAttribute("tasks", multiTasks);
 
-            // 제출 여부 확인 Map 및 피평가자 자가평가 여부 확인
-            java.util.Map<Long, Boolean> submittedMap = new java.util.HashMap<>();
-            java.util.Map<Long, Boolean> evaluateeSelfSubmittedMap = new java.util.HashMap<>();
-            for (EvaluatorMappingDTO task : multiTasks) {
-                // 본인의 제출 여부
-                List<Evaluation> evals = evaluationMapper.findByMappingId(task.mappingId());
-                boolean isSubmitted = evals.stream()
-                        .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
-                submittedMap.put(task.mappingId(), isSubmitted);
+            // ========== [최적화] 데이터 일괄 조회 ==========
+            if (!multiTasks.isEmpty()) {
+                // (A) 모든 매핑 ID 수집 및 평가 데이터 일괄 조회
+                java.util.List<Long> allMappingIds = multiTasks.stream()
+                        .map(EvaluatorMappingDTO::mappingId)
+                        .collect(Collectors.toList());
 
-                // 피평가자(부서장)의 자가평가 제출 여부
-                List<EvaluatorMappingDTO> evaluateeTasks = mappingService.getMyEvaluationTasks(selectedPeriod.periodId(), task.evaluateeId());
-                boolean isSelfSubmitted = evaluateeTasks.stream()
-                        .filter(m -> "SELF".equals(m.relationTypeCode()))
-                        .findFirst()
-                        .map(selfMapping -> evaluationMapper.findByMappingId(selfMapping.mappingId()).stream()
-                                .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode())))
-                        .orElse(false);
-                evaluateeSelfSubmittedMap.put(task.mappingId(), isSelfSubmitted);
-            }
-            model.addAttribute("submittedMap", submittedMap);
-            model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
+                // (B) 피평가자 ID 수집 및 SELF 매핑 일괄 조회
+                java.util.List<Long> evaluateeIds = multiTasks.stream()
+                        .map(EvaluatorMappingDTO::evaluateeId)
+                        .distinct()
+                        .collect(Collectors.toList());
 
-            // 역순 진행 방지 (상위 평가자가 제출했는지 확인)
-            java.util.Map<Long, Boolean> lockMap = new java.util.HashMap<>();
-            for (EvaluatorMappingDTO task : multiTasks) {
-                java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(task.mappingId());
-                lockMap.put(task.mappingId(), (Boolean) lockInfo.get("isLocked"));
+                // SELF 매핑 추출 (findByEvaluateeIds로 한 번에 조회)
+                java.util.Map<Long, Long> selfMappingIdByEvaluatee = new java.util.HashMap<>();
+                java.util.List<Long> selfMappingIds = new java.util.ArrayList<>();
+                // 피평가자별 전체 매핑 그룹 (잠금 체크용 재사용)
+                java.util.Map<Long, java.util.List<com.ees.eval.domain.EvaluatorMapping>> allMappingsByEvaluatee = new java.util.HashMap<>();
+                java.util.List<Long> downstreamMappingIds = new java.util.ArrayList<>();
+                if (!evaluateeIds.isEmpty()) {
+                    java.util.List<com.ees.eval.domain.EvaluatorMapping> allRelatedMappings =
+                            evaluatorMappingMapper.findByEvaluateeIds(selectedPeriod.periodId(), evaluateeIds);
+                    allMappingsByEvaluatee = allRelatedMappings.stream()
+                            .collect(Collectors.groupingBy(com.ees.eval.domain.EvaluatorMapping::getEvaluateeId));
+                    for (com.ees.eval.domain.EvaluatorMapping m : allRelatedMappings) {
+                        if ("SELF".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted())) {
+                            selfMappingIdByEvaluatee.put(m.getEvaluateeId(), m.getMappingId());
+                            selfMappingIds.add(m.getMappingId());
+                        }
+                        if ("MANAGER".equals(m.getRelationTypeCode()) || "EXECUTIVE".equals(m.getRelationTypeCode())) {
+                            if (!allMappingIds.contains(m.getMappingId())) {
+                                downstreamMappingIds.add(m.getMappingId());
+                            }
+                        }
+                    }
+                }
+
+                // 전체 관련 매핑 ID (내 것 + SELF + 다운스트림)
+                java.util.List<Long> allRelMappingIds = new java.util.ArrayList<>(allMappingIds);
+                allRelMappingIds.addAll(selfMappingIds);
+                allRelMappingIds.addAll(downstreamMappingIds);
+
+                // (C) 평가 데이터 일괄 조회
+                java.util.Map<Long, java.util.List<Evaluation>> evalGroupMap = new java.util.HashMap<>();
+                if (!allRelMappingIds.isEmpty()) {
+                    evalGroupMap = evaluationMapper.findByMappingIds(allRelMappingIds).stream()
+                            .collect(Collectors.groupingBy(Evaluation::getMappingId));
+                }
+
+                // ========== 제출 여부 및 자가평가 확인 (메모리에서) ==========
+                java.util.Map<Long, Boolean> submittedMap = new java.util.HashMap<>();
+                java.util.Map<Long, Boolean> evaluateeSelfSubmittedMap = new java.util.HashMap<>();
+                for (EvaluatorMappingDTO task : multiTasks) {
+                    // 본인의 제출 여부
+                    java.util.List<Evaluation> evals = evalGroupMap.getOrDefault(task.mappingId(), java.util.Collections.emptyList());
+                    boolean isSubmitted = evals.stream()
+                            .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
+                    submittedMap.put(task.mappingId(), isSubmitted);
+
+                    // 피평가자(부서장)의 자가평가 제출 여부
+                    Long selfMappingId = selfMappingIdByEvaluatee.get(task.evaluateeId());
+                    boolean isSelfSubmitted = false;
+                    if (selfMappingId != null) {
+                        java.util.List<Evaluation> selfEvals = evalGroupMap.getOrDefault(selfMappingId, java.util.Collections.emptyList());
+                        isSelfSubmitted = selfEvals.stream()
+                                .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
+                    }
+                    evaluateeSelfSubmittedMap.put(task.mappingId(), isSelfSubmitted);
+                }
+                model.addAttribute("submittedMap", submittedMap);
+                model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
+
+                // 역순 진행 방지 (사전 조회 데이터 활용 — 추가 DB 호출 없음)
+                java.util.Map<Long, Boolean> lockMap = mappingService.checkEvaluationLockBulk(
+                        allMappingIds, allMappingsByEvaluatee, evalGroupMap);
+                model.addAttribute("lockMap", lockMap);
+            } else {
+                model.addAttribute("submittedMap", java.util.Collections.emptyMap());
+                model.addAttribute("evaluateeSelfSubmittedMap", java.util.Collections.emptyMap());
+                model.addAttribute("lockMap", java.util.Collections.emptyMap());
             }
-            model.addAttribute("lockMap", lockMap);
 
             if ("PLANNED".equals(selectedPeriod.statusCode())) {
                 model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
