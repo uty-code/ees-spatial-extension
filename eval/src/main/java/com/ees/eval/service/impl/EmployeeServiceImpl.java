@@ -517,11 +517,26 @@ public class EmployeeServiceImpl implements EmployeeService {
      * @return 변환된 EmployeeDTO 레코드
      */
     private EmployeeDTO convertToDto(Employee employee, List<String> roleNames, String deptName, String positionName) {
-        // login_logs 기반 연속 실패 횟수로 잠금 여부 판단
+        // login_logs 기반 연속 실패 횟수로 잠금 여부 판단 (단건 조회용)
         boolean locked = false;
         if (employee.getEmpId() != null) {
             locked = loginLogMapper.countRecentFailures(employee.getEmpId()) >= 5;
         }
+        return convertToDto(employee, roleNames, deptName, positionName, locked);
+    }
+
+    /**
+     * 도메인 엔티티(Employee)를 DTO(EmployeeDTO) 레코드로 변환합니다. (잠금 여부 외부 주입 버전)
+     * 목록 조회 시 N+1 방지를 위해 잠금 여부를 미리 일괄 조회한 결과를 전달받습니다.
+     *
+     * @param employee     원본 사원 엔티티
+     * @param roleNames    사원이 보유한 권한명 목록
+     * @param deptName     부서명
+     * @param positionName 직급명
+     * @param isLocked     계정 잠금 여부 (외부에서 판단된 값)
+     * @return 변환된 EmployeeDTO 레코드
+     */
+    private EmployeeDTO convertToDto(Employee employee, List<String> roleNames, String deptName, String positionName, boolean isLocked) {
         return EmployeeDTO.builder()
                 .empId(employee.getEmpId())
                 .deptId(employee.getDeptId())
@@ -535,7 +550,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .retireDate(employee.getRetireDate())
                 .deptName(deptName)
                 .positionName(positionName)
-                .isLocked(locked)
+                .isLocked(isLocked)
                 .roleNames(roleNames != null ? roleNames : Collections.emptyList())
                 .isDeleted(employee.getIsDeleted())
                 .version(employee.getVersion())
@@ -601,12 +616,20 @@ public class EmployeeServiceImpl implements EmployeeService {
                         row -> ((Number) row.get("EMP_ID")).longValue(),
                         Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())));
 
-        // JOIN으로 가져온 deptName/positionName + 배치 조회한 roleNames 조합하여 DTO 변환
+        // N+1 최적화: 로그인 실패 횟수를 IN 쿼리로 한 번에 일괄 조회 (개별 countRecentFailures 호출 제거)
+        List<Map<String, Object>> failureMaps = loginLogMapper.countRecentFailuresByEmpIds(empIds);
+        Map<Long, Integer> failureCountMap = failureMaps.stream()
+                .collect(Collectors.toMap(
+                        row -> ((Number) row.get("EMP_ID")).longValue(),
+                        row -> ((Number) row.get("FAIL_COUNT")).intValue()));
+
+        // JOIN으로 가져온 deptName/positionName + 배치 조회한 roleNames + 잠금 상태 조합하여 DTO 변환
         List<EmployeeDTO> employeeDTOs = employees.stream()
                 .map(emp -> {
                     List<String> roleNames = empRolesMap.getOrDefault(emp.getEmpId(), Collections.emptyList());
+                    boolean locked = failureCountMap.getOrDefault(emp.getEmpId(), 0) >= 5;
                     // deptName, positionName 은 JOIN 쿼리가 이미 채워준 값 사용
-                    return convertToDto(emp, roleNames, emp.getDeptName(), emp.getPositionName());
+                    return convertToDto(emp, roleNames, emp.getDeptName(), emp.getPositionName(), locked);
                 })
                 .collect(Collectors.toList());
 
