@@ -113,10 +113,14 @@ public class EvaluationResultController {
 
         // 4. 등급 분포 통계
         Map<String, Long> gradeDistribution = results.stream()
-                .filter(r -> r.gradeCode() != null)
+                .filter(r -> r.gradeCode() != null && !r.gradeCode().trim().isEmpty())
                 .collect(Collectors.groupingBy(EvaluationResultDTO::gradeCode, Collectors.counting()));
+        
+        long gradedCount = gradeDistribution.values().stream().mapToLong(Long::longValue).sum();
+
         model.addAttribute("gradeDistribution", gradeDistribution);
         model.addAttribute("totalCount", results.size());
+        model.addAttribute("gradedCount", gradedCount);
 
         // 5. 탭별 카운트
         long staffCount = results.stream().filter(r -> !r.isLeader()).count();
