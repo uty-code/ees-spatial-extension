@@ -99,6 +99,7 @@ public class EvaluationReportServiceImpl implements EvaluationReportService {
         deptLabelRow.getCell(1).setCellStyle(createLabelStyle(workbook));
 
         Map<String, Double> deptAvg = results.stream()
+                .filter(r -> r.deptName() != null && !r.deptName().endsWith("본부") && !r.deptName().endsWith("부서"))
                 .collect(Collectors.groupingBy(EvaluationResultDTO::deptName,
                         Collectors.averagingDouble(r -> r.totalScore() != null ? r.totalScore().doubleValue() : 0.0)));
 
