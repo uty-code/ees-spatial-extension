@@ -68,6 +68,10 @@ public class DashboardServiceImpl implements DashboardService {
         // 5. 부서별 평균 점수
         List<Map<String, Object>> deptAvgList = dashboardMapper.getDeptAverageScores(periodId);
         Map<String, Double> deptAverageScores = deptAvgList.stream()
+                .filter(m -> {
+                    String deptName = String.valueOf(m.get("dept_name"));
+                    return deptName != null && !deptName.endsWith("본부") && !deptName.endsWith("부서");
+                })
                 .collect(Collectors.toMap(
                         m -> String.valueOf(m.get("dept_name")),
                         m -> ((Number) m.get("avg_score")).doubleValue(),

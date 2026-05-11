@@ -170,15 +170,26 @@
                         if (existingGradeChart) existingGradeChart.destroy();
                         new Chart(gradeCtx, {
                             type: 'doughnut',
-                            data: {
-                                labels: Object.keys(gradeData).map(k => k + '등급 (' + gradeData[k] + '명)'),
-                                datasets: [{
-                                    data: Object.values(gradeData),
-                                    backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'],
-                                    borderWidth: 0,
-                                    hoverOffset: 15
-                                }]
-                            },
+                            data: (() => {
+                                const order = { 'S': 1, 'A': 2, 'B': 3, 'C': 4, 'D': 5 };
+                                const colorMap = {
+                                    'S': '#10b981', // Green
+                                    'A': '#8b5cf6', // Purple
+                                    'B': '#3b82f6', // Blue
+                                    'C': '#f59e0b', // Orange
+                                    'D': '#ef4444'  // Red
+                                };
+                                const keys = Object.keys(gradeData).sort((a,b) => (order[a] || 99) - (order[b] || 99));
+                                return {
+                                    labels: keys.map(k => k + '등급 (' + gradeData[k] + '명)'),
+                                    datasets: [{
+                                        data: keys.map(k => gradeData[k]),
+                                        backgroundColor: keys.map(k => colorMap[k] || '#888888'),
+                                        borderWidth: 0,
+                                        hoverOffset: 15
+                                    }]
+                                };
+                            })(),
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
