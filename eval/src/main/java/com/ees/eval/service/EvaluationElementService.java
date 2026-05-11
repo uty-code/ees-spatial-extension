@@ -79,4 +79,12 @@ public interface EvaluationElementService {
      * @param deptId   대상 부서 식별자
      */
     void copyCommonElementsToDept(Long periodId, Long deptId);
+
+    /**
+     * N+1 문제를 방지하기 위해 특정 차수의 모든 평가 항목(공통 및 부서 전용 전체)을 조회합니다.
+     *
+     * @param periodId 대상 차수 식별자
+     * @return 항목 DTO 리스트
+     */
+    List<EvaluationElementDTO> getAllElementsByPeriodId(Long periodId);
 }

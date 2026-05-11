@@ -78,4 +78,12 @@ public interface EvaluationElementMapper {
      */
     int resetByPeriodAndDept(@Param("periodId") Long periodId, @Param("deptId") Long deptId,
                              @Param("updatedBy") Long updatedBy, @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
+     * N+1 문제를 방지하기 위해 특정 차수의 모든 부서별/공통 항목 목록을 조회합니다.
+     *
+     * @param periodId 대상 차수 식별자
+     * @return 전체 항목 리스트
+     */
+    List<EvaluationElement> findAllByPeriodId(@Param("periodId") Long periodId);
 }

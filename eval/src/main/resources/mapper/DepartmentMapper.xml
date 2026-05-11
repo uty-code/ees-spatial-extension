@@ -253,4 +253,13 @@
           and d.is_deleted = 'n'
     </select>
 
+    <!-- 모든 활성(미삭제) 부서의 리더 사원 ID 목록을 중복 없이 조회 (N+1 방지용) -->
+    <select id="findAllLeaderIds" resultType="java.lang.Long">
+        select distinct
+            d.leader_id
+        from departments_51 d
+        where d.leader_id is not null
+          and d.is_deleted = 'n'
+    </select>
+
 </mapper>

@@ -207,6 +207,14 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<EvaluationElementDTO> getAllElementsByPeriodId(Long periodId) {
+        return elementMapper.findAllByPeriodId(periodId).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
     /**
      * 엔티티를 DTO 레코드로 변환합니다.
      */

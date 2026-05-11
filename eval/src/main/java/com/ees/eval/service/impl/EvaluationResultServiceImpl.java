@@ -108,11 +108,12 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
         Map<Long, FinalGrade> gradeMap = finalGradeMapper.findByPeriodId(periodId).stream()
                 .collect(Collectors.toMap(FinalGrade::getEmpId, g -> g, (a, b) -> a));
 
-        // 8. 부서장 여부 벌크 판단 (캐시)
-        Map<Long, Boolean> leaderCache = new HashMap<>();
+        // 8. 전체 부서장 ID 벌크 조회 (N+1 완벽 방지)
+        Set<Long> allLeaderIds = new HashSet<>(departmentMapper.findAllLeaderIds());
 
-        // 9. 평가 요소 캐시 (부서별)
-        Map<Long, List<EvaluationElementDTO>> elementCache = new HashMap<>();
+        // 9. 평가 요소 벌크 조회 및 부서별 그룹핑 (N+1 완벽 방지)
+        Map<Long, List<EvaluationElementDTO>> elementsByDept = elementService.getAllElementsByPeriodId(periodId).stream()
+                .collect(Collectors.groupingBy(e -> e.deptId() != null ? e.deptId() : -1L));
 
         // 10. 결과 DTO 조립
         List<EvaluationResultDTO> results = new ArrayList<>();
@@ -120,14 +121,16 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
             Employee emp = employeeMap.get(empId);
             if (emp == null) continue;
 
-            // 부서장 여부 (캐시 활용)
-            boolean isLeader = leaderCache.computeIfAbsent(empId,
-                    id -> departmentMapper.countDepartmentsByLeaderId(id) > 0);
+            // 부서장 여부 (단일 Set 활용)
+            boolean isLeader = allLeaderIds.contains(empId);
 
-            // 평가 요소 조회 (부서별 캐시)
-            Long cacheKey = emp.getDeptId() != null ? emp.getDeptId() : -1L;
-            List<EvaluationElementDTO> elements = elementCache.computeIfAbsent(cacheKey,
-                    k -> getElementsWithFallback(periodId, emp.getDeptId()));
+            // 평가 요소 조회 (메모리 Map 활용 - 부서 전용 없으면 공통으로 폴백)
+            Long deptIdKey = emp.getDeptId() != null ? emp.getDeptId() : -1L;
+            List<EvaluationElementDTO> elements = elementsByDept.get(deptIdKey);
+            if (deptIdKey != -1L && (elements == null || elements.isEmpty())) {
+                elements = elementsByDept.getOrDefault(-1L, Collections.emptyList());
+            }
+            if (elements == null) elements = Collections.emptyList();
 
             // === MBO/COMP 점수 (1차: MANAGER, 2차: EXECUTIVE) ===
             BigDecimal mbo1st = calcTypeScore(mgrByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
@@ -342,16 +345,5 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
         return evals.stream()
                 .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode())
                         && typeElementIds.contains(e.getElementId()));
-    }
-
-    /**
-     * 부서별 평가 요소 조회 (부서 전용 요소가 없으면 공통 요소 폴백)
-     */
-    private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
-        if (deptId != null) {
-            List<EvaluationElementDTO> elements = elementService.getElementsByPeriodId(periodId, deptId);
-            if (!elements.isEmpty()) return elements;
-        }
-        return elementService.getElementsByPeriodId(periodId, null);
     }
 }
