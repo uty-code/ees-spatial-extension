@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.BranchRiskMapper">
+
+    <select id="selectAtRiskBranches" resultType="com.ees.eval.dto.BranchRiskDTO">
+        SELECT
+            b.branch_id AS branchId,
+            b.branch_name AS branchName,
+            b.address AS address,
+            b.region_code AS regionCode,
+            ROUND(AVG(p.revenue_growth), 2) AS revenueGrowth,
+            SUM(p.claim_count) AS claimCount,
+            CASE
+                WHEN ROUND(AVG(p.revenue_growth), 2) &lt; -10.0 AND SUM(p.claim_count) &gt; 5 THEN '매출 급감 및 클레임 다수'
+                WHEN ROUND(AVG(p.revenue_growth), 2) &lt; -10.0 THEN '매출 10% 이상 감소'
+                WHEN SUM(p.claim_count) &gt; 5 THEN '클레임 다수 발생 (위험 임계치 초과)'
+                ELSE '기타 위험'
+            END AS riskReason
+        FROM branches_51 b
+        JOIN branch_performance_51 p ON b.branch_id = p.branch_id
+        WHERE b.operating_status = 'OPERATING'
+        GROUP BY b.branch_id, b.branch_name, b.address, b.region_code
+        HAVING ROUND(AVG(p.revenue_growth), 2) &lt; -10.0 OR SUM(p.claim_count) &gt; 5
+        ORDER BY revenueGrowth ASC, claimCount DESC
+    </select>
+
+</mapper>

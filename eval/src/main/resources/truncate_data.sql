@@ -1,46 +1,39 @@
--- ==========================================
--- _51 테이블 데이터 초기화 스크립트 (교정본)
--- ==========================================
+-- 1. 하위 로그 및 증빙 데이터 삭제
+DELETE FROM login_logs_51;
+DELETE FROM evidences_51;
+DELETE FROM interviews_51;
 
--- 1. 최하위 자식 데이터 (평가 결과물 및 로그)
-delete from evidences_51;
-delete from interviews_51;
-delete from login_logs_51; -- [추가] 사원 삭제 전 로그 먼저 삭제
+-- 2. 평가 및 매핑 데이터 삭제
+DELETE FROM final_grades_51;
+DELETE FROM evaluations_51;
+DELETE FROM evaluator_mappings_51;
+DELETE FROM evaluation_elements_51;
+DELETE FROM evaluation_periods_51;
 
--- 2. 평가 수행 데이터
-delete from final_grades_51;
-delete from evaluations_51;
+-- 3. 지점 관련 공간 데이터 삭제
+DELETE FROM branch_managers_51;
+DELETE FROM branch_performance_51;
+DELETE FROM branches_51;
+DELETE FROM brands_51;
 
--- 3. 매핑 및 평가 기준 데이터
-delete from evaluator_mappings_51;
-delete from evaluation_elements_51;
-delete from evaluation_periods_51;
+-- 4. 사원 및 조직 데이터 삭제 (순서 주의)
+UPDATE departments_51 SET leader_id = NULL;
+DELETE FROM employee_roles_51;
+DELETE FROM employees_51;
+DELETE FROM departments_51;
+DELETE FROM positions_51;
+DELETE FROM roles_51;
 
--- 4. 사용자 및 조직 데이터 (상호 참조 해결을 위해 leader_id 먼저 null 처리)
-update departments_51 set leader_id = null;
-delete from employee_roles_51;
-delete from employees_51;
-delete from departments_51;
+-- 5. Identity 초기화
+DBCC CHECKIDENT('brands_51', RESEED, 0);
+DBCC CHECKIDENT('branches_51', RESEED, 0);
+DBCC CHECKIDENT('branch_performance_51', RESEED, 0);
+DBCC CHECKIDENT('evaluation_periods_51', RESEED, 0);
+DBCC CHECKIDENT('evaluation_elements_51', RESEED, 0);
+DBCC CHECKIDENT('evaluator_mappings_51', RESEED, 0);
+DBCC CHECKIDENT('evaluations_51', RESEED, 0);
+DBCC CHECKIDENT('departments_51', RESEED, 0);
+DBCC CHECKIDENT('positions_51', RESEED, 0);
+DBCC CHECKIDENT('roles_51', RESEED, 0);
 
--- 5. 기초 마스터 데이터
-delete from positions_51;
-delete from roles_51;
-delete from common_codes_51;
-
--- identity 시드 초기화
-dbcc checkident('departments_51', reseed, 0);
-dbcc checkident('positions_51', reseed, 0);
-dbcc checkident('roles_51', reseed, 0);
-dbcc checkident('login_logs_51', reseed, 0);
-
-dbcc checkident('evaluation_periods_51', reseed, 0);
-dbcc checkident('evaluation_elements_51', reseed, 0);
-dbcc checkident('evaluator_mappings_51', reseed, 0);
-dbcc checkident('evaluations_51', reseed, 0);
-dbcc checkident('final_grades_51', reseed, 0);
-dbcc checkident('interviews_51', reseed, 0);
-dbcc checkident('evidences_51', reseed, 0);
-dbcc checkident('common_codes_51', reseed, 0);
-
--- 삭제 확인
-select N'데이터 초기화 완료' as STATUS;
+SELECT 'All data truncated safely' AS Result;

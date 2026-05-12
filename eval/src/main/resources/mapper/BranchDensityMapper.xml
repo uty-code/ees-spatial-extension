@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.BranchDensityMapper">
+
+    <select id="selectNearbyBranches" resultType="com.ees.eval.dto.BranchDensityDTO$NearbyBranchDTO">
+        DECLARE @targetPoint GEOGRAPHY = geography::Point(#{lat}, #{lng}, 4326);
+
+        SELECT
+            b.branch_id AS branchId,
+            b.branch_name AS branchName,
+            b.location.STDistance(@targetPoint) AS distanceMeters,
+            ROUND(AVG(p.revenue_growth), 2) AS revenueGrowth
+        FROM branches_51 b
+        LEFT JOIN branch_performance_51 p ON b.branch_id = p.branch_id
+        WHERE b.location.STDistance(@targetPoint) &lt;= #{radiusMeters}
+        GROUP BY b.branch_id, b.branch_name, b.location.STDistance(@targetPoint)
+        ORDER BY distanceMeters ASC
+    </select>
+
+</mapper>

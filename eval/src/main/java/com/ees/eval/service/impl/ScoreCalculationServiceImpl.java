@@ -174,6 +174,32 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
     }
 
 
+    @Override
+    public java.math.BigDecimal normalizeScore(java.math.BigDecimal rawScore, java.math.BigDecimal minScore, java.math.BigDecimal maxScore) {
+        if (maxScore.compareTo(minScore) == 0) {
+            return java.math.BigDecimal.ZERO;
+        }
+
+        // Min-Max Scaling: (raw - min) / (max - min) * 100
+        java.math.BigDecimal normalized = rawScore.subtract(minScore)
+                .divide(maxScore.subtract(minScore), 10, RoundingMode.HALF_UP)
+                .multiply(java.math.BigDecimal.valueOf(100));
+
+        // Limit range 0-100
+        normalized = normalized.max(java.math.BigDecimal.ZERO).min(java.math.BigDecimal.valueOf(100));
+
+        return normalized.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    @Override
+    public java.math.BigDecimal calculateOperationalScore(java.math.BigDecimal compositeScore) {
+        // For now, let's assume compositeScore from branches is already in a comparable range or 0-100.
+        // In the future, we can add more complex aggregation or regional correction here.
+        if (compositeScore == null) return java.math.BigDecimal.ZERO;
+        
+        return compositeScore.setScale(2, RoundingMode.HALF_UP);
+    }
+
     private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
         if (deptId != null) {
             List<EvaluationElementDTO> elements = elementService.getElementsByPeriodId(periodId, deptId);

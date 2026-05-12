@@ -78,6 +78,12 @@ public interface EvaluatorMappingMapper {
                        @Param("evaluatorId") Long evaluatorId, @Param("relationTypeCode") String relationTypeCode);
 
     /**
+     * 특정 평가 관계(차수+피평가자+평가자+관계유형)를 기반으로 매핑 정보를 단건 조회합니다.
+     */
+    Optional<EvaluatorMapping> findByUniqueKey(@Param("periodId") Long periodId, @Param("evaluateeId") Long evaluateeId,
+                                                @Param("evaluatorId") Long evaluatorId, @Param("relationTypeCode") String relationTypeCode);
+
+    /**
      * 새로운 평가자 매핑을 저장합니다.
      *
      * @param mapping 저장할 매핑 엔티티
@@ -123,6 +129,14 @@ public interface EvaluatorMappingMapper {
      * @return 해당 차수의 전체 매핑 리스트
      */
     List<EvaluatorMapping> findAllByPeriodId(@Param("periodId") Long periodId);
+
+    /**
+     * 특정 차수에서 평가 대상(피평가자)인 모든 사원 ID를 중복 없이 조회합니다.
+     *
+     * @param periodId 차수 식별자
+     * @return 피평가자 사원 ID 리스트
+     */
+    List<Long> findDistinctEvaluateesByPeriodId(@Param("periodId") Long periodId);
 
     /**
      * 다건의 매핑 정보를 일괄 삽입합니다. (성능 최적화)

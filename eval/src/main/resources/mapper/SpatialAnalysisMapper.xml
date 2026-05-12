@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.SpatialAnalysisMapper">
+
+    <select id="countNearbySameBrandBranches" resultType="int">
+        DECLARE @targetLocation GEOGRAPHY;
+        DECLARE @targetBrandId BIGINT;
+        
+        SELECT @targetLocation = location, @targetBrandId = brand_id 
+        FROM branches_51 
+        WHERE branch_id = #{branchId};
+
+        SELECT COUNT(*)
+        FROM branches_51 b
+        WHERE b.brand_id = @targetBrandId
+          AND b.branch_id <![CDATA[<>]]> #{branchId}
+          AND b.location.STDistance(@targetLocation) <![CDATA[<=]]> #{radius}
+          AND b.is_deleted = 'n'
+          AND b.operating_status = 'OPERATING'
+    </select>
+
+    <select id="findBranchIdByEmpId" resultType="long">
+        SELECT TOP 1 branch_id 
+        FROM branch_managers_51 
+        WHERE emp_id = #{empId} 
+          AND is_deleted = 'n'
+    </select>
+    <select id="findAllBranchSpatialData" resultType="com.ees.eval.dto.HeatMapDTO">
+        SELECT 
+            b.branch_id as branchId,
+            b.branch_name as branchName,
+            b.latitude as lat,
+            b.longitude as lng,
+            e.score as score,
+            m.evaluatee_id as empId
+        FROM branches_51 b
+        JOIN branch_managers_51 bm ON b.branch_id = bm.branch_id
+        JOIN evaluator_mappings_51 m ON bm.emp_id = m.evaluatee_id
+        JOIN evaluations_51 e ON m.mapping_id = e.mapping_id
+        WHERE m.period_id = #{periodId}
+          AND m.relation_type_code = 'OPERATIONAL'
+          AND b.is_deleted = 'n'
+          AND m.is_deleted = 'n'
+    </select>
+
+</mapper>

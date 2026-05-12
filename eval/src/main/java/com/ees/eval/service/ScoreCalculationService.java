@@ -31,4 +31,22 @@ public interface ScoreCalculationService {
      * @return 종합 점수 (0~100), 평가 데이터가 없으면 null
      */
     Integer calculateTotalScore(Long periodId, Long empId);
+
+    /**
+     * 원천 점수를 0~100점 사이로 정규화합니다. (Min-Max Scaling 등 활용)
+     *
+     * @param rawScore 원천 점수
+     * @param minScore 최소 가능 점수
+     * @param maxScore 최대 가능 점수
+     * @return 정규화된 점수 (0-100)
+     */
+    java.math.BigDecimal normalizeScore(java.math.BigDecimal rawScore, java.math.BigDecimal minScore, java.math.BigDecimal maxScore);
+
+    /**
+     * 운영 성과 지표(KPI)를 기반으로 최종 평가 점수를 산출합니다.
+     *
+     * @param compositeScore 지점 성과 종합 점수
+     * @return 산출된 평가 점수
+     */
+    java.math.BigDecimal calculateOperationalScore(java.math.BigDecimal compositeScore);
 }

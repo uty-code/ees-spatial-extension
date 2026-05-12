@@ -130,6 +130,24 @@
           and is_deleted = 'n'
     </select>
 
+    <!-- 고유 키 기반 매핑 단건 조회 -->
+    <select id="findByUniqueKey" resultType="com.ees.eval.domain.EvaluatorMapping">
+        select
+            mapping_id          as MAPPING_ID,
+            period_id           as PERIOD_ID,
+            evaluatee_id        as EVALUATEE_ID,
+            evaluator_id        as EVALUATOR_ID,
+            relation_type_code  as RELATION_TYPE_CODE,
+            is_deleted          as IS_DELETED,
+            version             as VERSION
+        from evaluator_mappings_51
+        where period_id = #{periodId}
+          and evaluatee_id = #{evaluateeId}
+          and evaluator_id = #{evaluatorId}
+          and relation_type_code = #{relationTypeCode}
+          and is_deleted = 'n'
+    </select>
+
     <!-- 평가자 매핑 삽입 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="mappingId">
         insert into evaluator_mappings_51 (
@@ -223,6 +241,15 @@
             evaluator_id        as EVALUATOR_ID,
             relation_type_code  as RELATION_TYPE_CODE,
             is_deleted          as IS_DELETED
+        from evaluator_mappings_51
+        where period_id = #{periodId}
+          and is_deleted = 'n'
+    </select>
+
+    <!-- 특정 차수의 피평가자 ID 중복 없이 조회 -->
+    <select id="findDistinctEvaluateesByPeriodId" resultType="long">
+        select distinct
+            evaluatee_id
         from evaluator_mappings_51
         where period_id = #{periodId}
           and is_deleted = 'n'

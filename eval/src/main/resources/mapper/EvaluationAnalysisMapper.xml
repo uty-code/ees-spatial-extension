@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.EvaluationAnalysisMapper">
+
+    <select id="findGapAnalysisByPeriodId" resultType="com.ees.eval.dto.EvaluationGapDTO">
+        SELECT 
+            m_op.evaluatee_id as empId,
+            e1.name as empName,
+            b.branch_name as branchName,
+            e_op.score as operationalScore,
+            e_ma.score as managerScore,
+            m_op.period_id as periodId,
+            e_op.eval_id as evaluationId
+        FROM evaluator_mappings_51 m_op
+        INNER JOIN employees_51 e1 ON m_op.evaluatee_id = e1.emp_id
+        LEFT JOIN branch_managers_51 bm ON e1.emp_id = bm.emp_id
+        LEFT JOIN branches_51 b ON bm.branch_id = b.branch_id
+        INNER JOIN evaluations_51 e_op ON m_op.mapping_id = e_op.mapping_id
+        LEFT JOIN evaluator_mappings_51 m_ma ON m_op.evaluatee_id = m_ma.evaluatee_id 
+            AND m_op.period_id = m_ma.period_id 
+            AND m_ma.relation_type_code = 'MANAGER'
+            AND m_ma.is_deleted = 'n'
+        LEFT JOIN evaluations_51 e_ma ON m_ma.mapping_id = e_ma.mapping_id
+        WHERE m_op.period_id = #{periodId}
+          AND m_op.relation_type_code = 'OPERATIONAL'
+          AND m_op.is_deleted = 'n'
+    </select>
+
+    <select id="findTrendDataByEmpId" resultType="map">
+        SELECT TOP (#{periodLimit})
+            p.period_name as periodName,
+            e.score as score
+        FROM evaluations_51 e
+        JOIN evaluator_mappings_51 m ON e.mapping_id = m.mapping_id
+        JOIN evaluation_periods_51 p ON m.period_id = p.period_id
+        WHERE m.evaluatee_id = #{empId}
+          AND m.relation_type_code = 'OPERATIONAL'
+          AND m.is_deleted = 'n'
+        ORDER BY p.period_year DESC, p.period_id DESC
+    </select>
+
+    <select id="existsSnapshotByMappingId" resultType="boolean">
+        SELECT CASE WHEN EXISTS (
+            SELECT 1 FROM evaluation_snapshots_51 WHERE mapping_id = #{mappingId}
+        ) THEN 1 ELSE 0 END
+    </select>
+
+</mapper>

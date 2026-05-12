@@ -17,6 +17,13 @@
                 <i class="bi bi-speedometer2"></i>
                 <span>대시보드</span>
             </a>
+            <a class="nav-link" th:href="@{/eval/spatial}" th:attr="hx-get=@{/eval/spatial}" hx-target="#page-content" hx-select="#page-content"
+                hx-swap="outerHTML" hx-push-url="true"
+                th:classappend="${activeMenu == 'spatial-dashboard' ? 'active' : ''}">
+                <i class="bi bi-geo-alt-fill text-info"></i>
+                <span class="text-info fw-bold">Spatial Intelligence</span>
+                <span class="badge bg-info text-dark rounded-pill ms-auto small" style="font-size: 0.6rem;">NEW</span>
+            </a>
         </nav>
     </div>
 

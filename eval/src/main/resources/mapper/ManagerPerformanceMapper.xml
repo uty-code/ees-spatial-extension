@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.ManagerPerformanceMapper">
+
+    <resultMap id="ManagerPerformanceResultMap" type="com.ees.eval.dto.ManagerPerformanceDTO">
+        <id property="empId" column="empId"/>
+        <result property="avgCompositeScore" column="avgCompositeScore"/>
+        <result property="avgRevenueGrowth" column="avgRevenueGrowth"/>
+        <result property="avgHygieneScore" column="avgHygieneScore"/>
+        <result property="avgCustomerScore" column="avgCustomerScore"/>
+        <result property="totalClaimCount" column="totalClaimCount"/>
+        <collection property="quarterlyTrends" ofType="com.ees.eval.dto.BranchQuarterlyPerformanceDTO">
+            <result property="perfYear" column="perfYear"/>
+            <result property="perfQuarter" column="perfQuarter"/>
+            <result property="revenueGrowth" column="quarterRevenueGrowth"/>
+            <result property="hygieneScore" column="quarterHygieneScore"/>
+            <result property="claimCount" column="quarterClaimCount"/>
+            <result property="customerScore" column="quarterCustomerScore"/>
+            <result property="compositeScore" column="quarterCompositeScore"/>
+        </collection>
+    </resultMap>
+
+    <select id="selectPerformanceByManager" resultMap="ManagerPerformanceResultMap">
+        WITH ManagerAverages_51 AS (
+            SELECT
+                bm.emp_id AS empId,
+                ROUND(AVG(p.composite_score), 2) AS avgCompositeScore,
+                ROUND(AVG(p.revenue_growth), 2) AS avgRevenueGrowth,
+                ROUND(AVG(p.hygiene_score), 2) AS avgHygieneScore,
+                ROUND(AVG(p.customer_score), 2) AS avgCustomerScore,
+                SUM(p.claim_count) AS totalClaimCount
+            FROM branch_managers_51 bm
+            JOIN branch_performance_51 p ON bm.branch_id = p.branch_id
+            WHERE bm.emp_id = #{empId}
+            GROUP BY bm.emp_id
+        ),
+        QuarterlyTrends_51 AS (
+            SELECT
+                bm.emp_id,
+                p.perf_year AS perfYear,
+                p.perf_quarter AS perfQuarter,
+                ROUND(AVG(p.composite_score), 2) AS quarterCompositeScore,
+                ROUND(AVG(p.revenue_growth), 2) AS quarterRevenueGrowth,
+                ROUND(AVG(p.hygiene_score), 2) AS quarterHygieneScore,
+                SUM(p.claim_count) AS quarterClaimCount,
+                ROUND(AVG(p.customer_score), 2) AS quarterCustomerScore
+            FROM branch_managers_51 bm
+            JOIN branch_performance_51 p ON bm.branch_id = p.branch_id
+            WHERE bm.emp_id = #{empId}
+            GROUP BY bm.emp_id, p.perf_year, p.perf_quarter
+        )
+        SELECT
+            ma.empId,
+            ma.avgCompositeScore,
+            ma.avgRevenueGrowth,
+            ma.avgHygieneScore,
+            ma.avgCustomerScore,
+            ma.totalClaimCount,
+            qt.perfYear,
+            qt.perfQuarter,
+            qt.quarterCompositeScore,
+            qt.quarterRevenueGrowth,
+            qt.quarterHygieneScore,
+            qt.quarterClaimCount,
+            qt.quarterCustomerScore
+        FROM ManagerAverages_51 ma
+        LEFT JOIN QuarterlyTrends_51 qt ON ma.empId = qt.emp_id
+        ORDER BY qt.perfYear DESC, qt.perfQuarter DESC
+    </select>
+
+    <select id="selectPerformanceByManagerAndPeriod" resultMap="ManagerPerformanceResultMap">
+        SELECT
+            bm.emp_id AS empId,
+            ROUND(AVG(p.composite_score), 2) AS avgCompositeScore,
+            ROUND(AVG(p.revenue_growth), 2) AS avgRevenueGrowth,
+            ROUND(AVG(p.hygiene_score), 2) AS avgHygieneScore,
+            ROUND(AVG(p.customer_score), 2) AS avgCustomerScore,
+            SUM(p.claim_count) AS totalClaimCount,
+            p.perf_year AS perfYear,
+            p.perf_quarter AS perfQuarter,
+            p.composite_score AS quarterCompositeScore,
+            p.revenue_growth AS quarterRevenueGrowth,
+            p.hygiene_score AS quarterHygieneScore,
+            p.claim_count AS quarterClaimCount,
+            p.customer_score AS quarterCustomerScore
+        FROM branch_managers_51 bm
+        JOIN branch_performance_51 p ON bm.branch_id = p.branch_id
+        WHERE bm.emp_id = #{empId}
+          AND p.perf_year = #{year}
+          AND p.perf_quarter = #{quarter}
+        GROUP BY bm.emp_id, p.perf_year, p.perf_quarter, p.composite_score, p.revenue_growth, p.hygiene_score, p.claim_count, p.customer_score
+    </select>
+
+</mapper>

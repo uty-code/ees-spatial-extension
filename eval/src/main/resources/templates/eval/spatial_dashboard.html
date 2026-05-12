@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'spatial', ~{::style}, ~{::#page-scripts})}"
+      data-bs-theme="dark">
+
+<head>
+    <title>Spatial Intelligence Dashboard | EES</title>
+    <style>
+        .spatial-dashboard-wrapper { display: flex; flex-direction: column; gap: 1.5rem; min-height: calc(100vh - 100px); background-color: #0d1117; position: relative; }
+        #global-loader { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(13, 17, 23, 0.7); backdrop-filter: blur(4px); z-index: 2000; display: none; align-items: center; justify-content: center; flex-direction: column; color: #58a6ff; }
+        .middle-section { display: flex; gap: 1rem; height: 550px; transition: all 0.3s ease; }
+        #map-container { flex-grow: 1; position: relative; border-radius: 12px; overflow: hidden; background: #1a1d21; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
+        #map { width: 100%; height: 100%; background: #1a1d21; }
+        .map-error-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); color: #8b949e; z-index: 5; text-align: center; }
+        .legend-color { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+        .side-detail-panel { width: 0; background: #161b22; border-radius: 12px; border: 0; padding: 0; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: -5px 0 25px rgba(0,0,0,0.3); }
+        .side-detail-panel.active { width: 380px; padding: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gap-analysis-section { background: #161b22; border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-card { background: rgba(23, 28, 36, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.25rem; flex: 1; transition: all 0.3s ease; }
+        .ees-table { width: 100%; color: #c9d1d9; border-collapse: separate; border-spacing: 0; }
+        .ees-table th { border-bottom: 1px solid #30363d; padding: 12px; font-size: 0.75rem; color: #8b949e; text-transform: uppercase; }
+        .ees-table td { padding: 14px 12px; border-bottom: 1px solid #21262d; }
+    </style>
+</head>
+
+<body>
+    <div id="page-content">
+        <div class="spatial-dashboard-wrapper p-4">
+            <div id="global-loader"><div class="spinner-border mb-3"></div><div class="fw-bold">분석 중...</div></div>
+
+            <div class="d-flex justify-content-between align-items-center">
+                <div><h1 class="fw-bold fs-4 mb-0 text-white">Spatial Intelligence Dashboard</h1><p class="text-muted small mb-0">인사 평가와 공간 데이터의 지능형 융합 분석</p></div>
+                <div class="d-flex gap-2">
+                    <select id="period-select" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 220px;" onchange="window.app.changePeriod(this.value)">
+                        <option value="">평가 차수 선택</option>
+                        <option th:each="p : ${periods}" th:value="${p.periodId}" th:text="${p.periodName}" th:selected="${p.periodId == activePeriodId}"></option>
+                    </select>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="window.app.resetFilters()"><i class="bi bi-arrow-counterclockwise"></i></button>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 mt-3">
+                <div class="glass-card"><div class="text-muted small mb-1">Avg Final Score</div><h3 class="fw-bold mb-0" id="kpi-avg-score">-</h3></div>
+                <div class="glass-card border-danger border-opacity-25"><div class="text-muted small mb-1">Anomaly/Warning</div><h3 class="fw-bold mb-0 text-danger" id="kpi-risk-count">-</h3></div>
+                <div class="glass-card border-primary border-opacity-25"><div class="text-muted small mb-1">Spatial Multiplier (Avg)</div><h3 class="fw-bold mb-0 text-primary" id="kpi-spatial-ratio">-</h3></div>
+            </div>
+
+            <div class="middle-section mt-3">
+                <div id="map-container">
+                    <div id="map" style="width: 100%; height: 100%;"></div>
+                    <div id="map-error" class="map-error-overlay">
+                        <div>
+                            <i class="bi bi-exclamation-triangle fs-1 mb-2"></i>
+                            <p>지도 이미지를 불러올 수 없습니다.<br><small>Kakao API 키의 도메인 등록 상태를 확인해 주세요.</small></p>
+                        </div>
+                    </div>
+                    <div class="map-legend">
+                        <h6 class="fw-bold small mb-2 text-white">Risk Status</h6>
+                        <div class="d-flex align-items-center gap-2 mb-1"><span class="legend-color bg-danger"></span><span class="text-white-50 small">Anomaly</span></div>
+                        <div class="d-flex align-items-center gap-2 mb-1"><span class="legend-color" style="background: #FAAD14;"></span><span class="text-white-50 small">Warning</span></div>
+                        <div class="d-flex align-items-center gap-2"><span class="legend-color bg-success"></span><span class="text-white-50 small">Normal</span></div>
+                    </div>
+                    <div class="position-absolute bottom-0 start-0 m-3" style="z-index: 15;">
+                        <div class="btn-group btn-group-sm">
+                            <input type="radio" class="btn-check" name="mapMode" id="modeNormal" value="normal" checked>
+                            <label class="btn btn-outline-light" for="modeNormal">Markers</label>
+                            <input type="radio" class="btn-check" name="mapMode" id="modeCluster" value="cluster">
+                            <label class="btn btn-outline-light" for="modeCluster">Cluster</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="side-panel" class="side-detail-panel"></div>
+            </div>
+
+            <div class="gap-analysis-section mt-3">
+                <h6 class="fw-bold text-white mb-4"><i class="bi bi-grid-3x3-gap me-2 text-info"></i>Evaluation Gap Analysis</h6>
+                <div id="gap-table-container"></div>
+            </div>
+        </div>
+
+        <!-- Shared UI Components -->
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div id="ees-toast" class="toast align-items-center text-white bg-dark border-secondary" role="alert">
+                <div class="d-flex"><div class="toast-body" id="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>
+            </div>
+        </div>
+        <div class="modal fade" id="snapshotModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content bg-dark border-secondary">
+                    <div class="modal-header border-secondary"><h5 class="modal-title fw-bold text-white">Evaluation Audit Snapshot</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body p-4"><pre id="raw-json" class="bg-black p-3 rounded text-info small" style="max-height: 60vh; overflow-y: auto;"></pre></div>
+                    <div class="modal-footer border-secondary"><button class="btn btn-outline-info btn-sm" onclick="window.app.copySnapshot()">Copy JSON</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-scripts">
+        <script th:inline="javascript">
+            // Explicitly assign to window to ensure global availability
+            window.app = {
+                map: null, clusterer: null, markers: [], toast: null, snapshotModal: null,
+                rawData: { heatmap: [], executive: [], gap: [] },
+                state: { periodId: /*[[${activePeriodId}]]*/ null, isLoading: false, viewMode: 'normal' },
+
+                init() {
+                    console.log("App Initialization Started...");
+                    const B = window.bootstrap;
+                    if (B) {
+                        const toastEl = document.getElementById('ees-toast');
+                        const modalEl = document.getElementById('snapshotModal');
+                        if (toastEl) this.toast = new B.Toast(toastEl);
+                        if (modalEl) this.snapshotModal = new B.Modal(modalEl);
+                    }
+                    this.initEvents();
+                    
+                    // Load data immediately regardless of map loading
+                    if (this.state.periodId) this.loadData();
+                },
+
+                initMap() {
+                    if (typeof kakao === 'undefined') {
+                        console.error("Kakao object is undefined!");
+                        return;
+                    }
+                    kakao.maps.load(() => {
+                        console.log("Initializing Map Object...");
+                        const container = document.getElementById('map');
+                        if (!container) {
+                            console.error("Map container not found!");
+                            return;
+                        }
+                        
+                        const options = {
+                            center: new kakao.maps.LatLng(37.5665, 126.9780),
+                            level: 8
+                        };
+                        this.map = new kakao.maps.Map(container, options);
+                        this.clusterer = new kakao.maps.MarkerClusterer({
+                            map: this.map,
+                            averageCenter: true,
+                            minLevel: 6
+                        });
+                        
+                        // Force relayout after short delays to fix black map issue in flex/hidden containers
+                        setTimeout(() => { this.map.relayout(); console.log("Map relayout (1) called"); }, 200);
+                        setTimeout(() => { 
+                            this.map.relayout(); 
+                            this.map.setCenter(new kakao.maps.LatLng(37.5665, 126.9780));
+                            console.log("Map relayout (2) called"); 
+                        }, 600);
+                        
+                        // Map is ready, if data exists, render markers
+                        if (this.rawData.heatmap.length > 0) this.renderMarkers(this.rawData.heatmap);
+                        else if (this.state.periodId) this.loadData();
+                    });
+                },
+
+                initEvents() {
+                    document.querySelectorAll('input[name="mapMode"]').forEach(radio => {
+                        radio.addEventListener('change', (e) => { this.state.viewMode = e.target.value; this.updateMapDisplay(); });
+                    });
+                },
+
+                setLoading(isLoading) {
+                    const loader = document.getElementById('global-loader');
+                    if (loader) loader.style.display = isLoading ? 'flex' : 'none';
+                },
+
+                showToast(msg, type = 'info') {
+                    if (!this.toast) { alert(msg); return; }
+                    const el = document.getElementById('ees-toast');
+                    el.className = `toast align-items-center text-white border-secondary ${type === 'danger' ? 'bg-danger' : (type === 'success' ? 'bg-success' : 'bg-dark')}`;
+                    document.getElementById('toast-body').innerText = msg;
+                    this.toast.show();
+                },
+
+                async loadData() {
+                    if (!this.state.periodId) return;
+                    this.setLoading(true);
+                    try {
+                        const [hRes, kRes, gRes] = await Promise.all([
+                            fetch(`/api/spatial/heatmap?periodId=${this.state.periodId}`),
+                            fetch(`/api/evaluations/executive-context?periodId=${this.state.periodId}`),
+                            fetch(`/api/evaluations/gap-analysis?periodId=${this.state.periodId}`)
+                        ]);
+                        
+                        const hData = await hRes.json();
+                        const kData = await kRes.json();
+                        const gData = await gRes.json();
+                        
+                        console.log('Heatmap Data:', hData);
+                        console.log('Executive Data:', kData);
+                        console.log('Gap Data:', gData);
+
+                        this.rawData.heatmap = hData;
+                        this.renderMarkers(hData);
+                        this.renderSummaryStats(kData);
+                        this.renderGapTable(gData);
+                    } catch (e) { 
+                        console.error('Data loading error:', e); 
+                        this.showToast("데이터 로딩 중 오류가 발생했습니다.", "danger"); 
+                    } finally { 
+                        this.setLoading(false); 
+                    }
+                },
+
+                renderSummaryStats(data) {
+                    if (!Array.isArray(data)) return;
+                    const count = data.length || 1;
+                    const avgScore = data.reduce((acc, curr) => acc + (curr.finalScore || 0), 0) / count;
+                    const anomalyCount = data.filter(d => d.riskLevel === 'HIGH').length;
+                    const warningCount = data.filter(d => d.riskLevel === 'MEDIUM').length;
+                    const spatialAdjustedCount = data.filter(d => d.spatialAdjusted).length;
+
+                    document.getElementById('kpi-avg-score').innerText = avgScore.toFixed(1);
+                    document.getElementById('kpi-risk-count').innerText = `${anomalyCount} / ${warningCount}`;
+                    document.getElementById('kpi-spatial-ratio').innerText = `x${(spatialAdjustedCount / count + 1).toFixed(2)}`;
+                },
+
+                renderMarkers(data) {
+                    if (!Array.isArray(data) || !this.clusterer) return;
+                    this.clusterer.clear();
+                    this.markers.forEach(m => m.setMap(null));
+                    
+                    const bounds = new kakao.maps.LatLngBounds();
+                    let hasMarkers = false;
+
+                    const markerIcons = {
+                        HIGH: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
+                        MID: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_orange.png',
+                        LOW: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_black.png',
+                        DEFAULT: 'https://t1.daumcdn.net/localimg/localimages/07/2011/marker_blue.png'
+                    };
+
+                    this.markers = data.map(item => {
+                        const pos = new kakao.maps.LatLng(item.lat, item.lng);
+                        
+                        // Use densityLevel as a proxy for color for now
+                        const iconUrl = markerIcons[item.densityLevel] || markerIcons.DEFAULT;
+                        const image = new kakao.maps.MarkerImage(iconUrl, new kakao.maps.Size(24, 35));
+                        
+                        const marker = new kakao.maps.Marker({ 
+                            position: pos,
+                            image: image
+                        });
+                        
+                        kakao.maps.event.addListener(marker, 'click', () => this.showDetail(item.branchId));
+                        
+                        bounds.extend(pos);
+                        hasMarkers = true;
+                        return marker;
+                    });
+
+                    if (hasMarkers) {
+                        this.map.setBounds(bounds);
+                    }
+                    
+                    this.updateMapDisplay();
+                },
+
+                updateMapDisplay() {
+                    if (!this.clusterer) return;
+                    this.clusterer.clear();
+                    if (this.state.viewMode === 'cluster') { this.markers.forEach(m => m.setMap(null)); this.clusterer.addMarkers(this.markers); }
+                    else { this.markers.forEach(m => m.setMap(this.map)); }
+                },
+
+                renderKPICards(d) {
+                    document.getElementById('kpi-avg-score').innerText = (d.avgFinalScore ?? 0).toFixed(1);
+                    document.getElementById('kpi-risk-count').innerText = `${d.anomalyCount ?? 0} / ${d.warningCount ?? 0}`;
+                    document.getElementById('kpi-spatial-ratio').innerText = `x${(d.spatialAdjustedRatio ?? 1).toFixed(2)}`;
+                },
+
+                renderGapTable(data) {
+                    const container = document.getElementById('gap-table-container');
+                    if (!Array.isArray(data) || !data.length) { container.innerHTML = '<div class="text-center py-5 text-muted">데이터 없음</div>'; return; }
+                    let html = `<table class="ees-table"><thead><tr><th>Branch</th><th>Base</th><th>Final</th><th>Gap</th><th>Status</th><th class="text-end">Actions</th></tr></thead><tbody>`;
+                    data.forEach(item => {
+                        const badge = item.status === 'ANOMALY' ? 'bg-danger' : (item.status === 'WARNING' ? 'bg-warning text-dark' : 'bg-success');
+                        html += `<tr><td class="fw-bold">${item.branchName}</td><td>${(item.baseScore??0).toFixed(1)}</td><td>${(item.finalScore??0).toFixed(1)}</td><td class="fw-bold">${(item.gap??0).toFixed(1)}</td><td><span class="badge ${badge}">${item.status}</span></td><td class="text-end"><button class="btn btn-sm btn-outline-info" onclick="window.app.showSnapshot(${item.evaluationId})"><i class="bi bi-shield-lock"></i></button></td></tr>`;
+                    });
+                    container.innerHTML = html + `</tbody></table>`;
+                },
+
+                async showDetail(branchId) {
+                    this.setLoading(true);
+                    try {
+                        const res = await fetch(`/api/evaluations/executive-context?branchId=${branchId}&periodId=${this.state.periodId}`);
+                        const d = await res.json();
+                        const panel = document.getElementById('side-panel');
+                        panel.classList.add('active');
+                        panel.innerHTML = `
+                            <div class="d-flex justify-content-between mb-4"><h5 class="text-white mb-0">${d.branchName}</h5><button class="btn-close btn-close-white" onclick="window.app.closeDetail()"></button></div>
+                            <div class="glass-card p-3 mb-4 bg-info bg-opacity-10"><div>Final Score</div><div class="h2 fw-bold text-white">${(d.finalScore??0).toFixed(1)}</div><span class="badge ${d.riskLevel==='ANOMALY'?'bg-danger':'bg-success'}">${d.riskLevel}</span></div>
+                            <div class="list-group list-group-flush bg-transparent">
+                                <div class="list-group-item bg-transparent text-muted d-flex justify-content-between px-0"><span>Density</span><span class="text-white">${d.densityLevel??'N/A'}</span></div>
+                                <div class="list-group-item bg-transparent text-muted d-flex justify-content-between px-0"><span>Multiplier</span><span class="text-info fw-bold">x${(d.difficultyCoefficient??1).toFixed(2)}</span></div>
+                            </div>`;
+                        if (this.map) setTimeout(() => kakao.maps.event.trigger(this.map, 'resize'), 310);
+                    } catch (e) { this.showToast("Detail loading failed", "danger"); } finally { this.setLoading(false); }
+                },
+
+                closeDetail() { document.getElementById('side-panel').classList.remove('active'); if (this.map) setTimeout(() => kakao.maps.event.trigger(this.map, 'resize'), 310); },
+
+                async showSnapshot(evalId) {
+                    this.setLoading(true);
+                    try {
+                        const res = await fetch(`/api/evaluations/snapshots/${evalId}`);
+                        document.getElementById('raw-json').innerText = JSON.stringify(await res.json(), null, 4);
+                        if (this.snapshotModal) this.snapshotModal.show();
+                    } catch (e) { this.showToast("Snapshot failed", "danger"); } finally { this.setLoading(false); }
+                },
+
+                copySnapshot() { const t = document.getElementById('raw-json').innerText; if (t) navigator.clipboard.writeText(t).then(() => this.showToast("Copied", "success")); },
+
+                changePeriod(val) { this.state.periodId = val; this.loadData(); },
+                resetFilters() {
+                    const sel = document.getElementById('period-select');
+                    if (sel && sel.options.length > 1) { sel.selectedIndex = 1; this.state.periodId = sel.value; }
+                    this.closeDetail(); this.loadData();
+                }
+            };
+
+            // Entry Points
+            window.addEventListener('load', () => {
+                window.app.init();
+                // IMPORTANT: Ensure this is the 'JavaScript Key' from Kakao Developers
+                const KAKAO_KEY = /*[[${kakaoMapKey}]]*/ 'e592652c50853044d52bb10d5412149c';
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&libraries=services,clusterer,drawing&autoload=false`;
+                script.onload = () => {
+                    console.log("Kakao Map SDK Script Loaded.");
+                    window.app.initMap();
+                };
+                script.onerror = () => {
+                    console.error("Failed to load Kakao Map SDK script.");
+                    document.getElementById('map-error').style.display = 'flex';
+                };
+                document.head.appendChild(script);
+            });
+        </script>
+    </div>
+</body>
+</html>

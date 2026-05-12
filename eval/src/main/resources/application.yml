@@ -7,6 +7,10 @@ server:
     mime-types: text/html,text/css,text/javascript,application/javascript,application/json
     min-response-size: 1024
 
+app:
+  kakao:
+    map-key: ${KAKAO_MAP_KEY:e592652c50853044d52bb10d5412149c}
+
 spring:
   profiles:
     active: dev  # 기본값은 로컬용 dev

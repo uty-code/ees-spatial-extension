@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.BranchPerformanceMapper">
+
+    <select id="selectPerformanceByRegion" resultType="com.ees.eval.dto.RegionPerformanceDTO">
+        SELECT
+            b.region_code AS regionCode,
+            CASE
+                WHEN b.region_code = '02' THEN '서울'
+                WHEN b.region_code = '031' THEN '경기'
+                WHEN b.region_code = '032' THEN '인천'
+                WHEN b.region_code = '033' THEN '강원'
+                WHEN b.region_code = '041' THEN '충남'
+                WHEN b.region_code = '042' THEN '대전'
+                WHEN b.region_code = '043' THEN '충북'
+                WHEN b.region_code = '044' THEN '세종'
+                WHEN b.region_code = '051' THEN '부산'
+                WHEN b.region_code = '052' THEN '울산'
+                WHEN b.region_code = '053' THEN '대구'
+                WHEN b.region_code = '054' THEN '경북'
+                WHEN b.region_code = '055' THEN '경남'
+                WHEN b.region_code = '061' THEN '전남'
+                WHEN b.region_code = '062' THEN '광주'
+                WHEN b.region_code = '063' THEN '전북'
+                WHEN b.region_code = '064' THEN '제주'
+                ELSE '기타'
+            END AS regionName,
+            ROUND(AVG(p.composite_score), 2) AS avgCompositeScore,
+            ROUND(AVG(CAST(p.claim_count AS DECIMAL(10,2))), 2) AS avgClaimCount,
+            ROUND(AVG(p.revenue_growth), 2) AS avgRevenueGrowth,
+            ROUND(AVG(p.hygiene_score), 2) AS avgHygieneScore,
+            ROUND(AVG(p.customer_score), 2) AS avgCustomerScore
+        FROM branches_51 b
+        JOIN branch_performance_51 p ON b.branch_id = p.branch_id
+        WHERE b.operating_status = 'OPERATING'
+        GROUP BY b.region_code
+        ORDER BY b.region_code
+    </select>
+
+</mapper>
