@@ -47,15 +47,15 @@ logging:
     com.ees.eval: INFO
 
 ---
-# [dev] 로컬 개발 환경 - 학교 공용 DB
+# [dev] 로컬 개발 환경 - Docker MSSQL
 spring:
   config:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:sqlserver://211.232.94.161:1533;databaseName=SKUEDU;encrypt=true;trustServerCertificate=true;
-    username: SKUEDU01
-    password: init000!
+    url: jdbc:sqlserver://localhost:1433;databaseName=master;encrypt=true;trustServerCertificate=true;
+    username: sa
+    password: LocalPassword123!
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   docker:
     compose:
@@ -69,11 +69,9 @@ spring:
       on-profile: prod
   sql:
     init:
-      mode: never  # 테이블 생성이 완료되었으므로 안전을 위해 never로 원복
+      mode: never
   datasource:
-    # Azure CLI로 확인한 정보 반영
-    url: jdbc:sqlserver://ees-server-hk.database.windows.net:1433;databaseName=ees-db-hk;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
+    url: jdbc:sqlserver://server-spatial-bi-ees.database.windows.net:1433;databaseName=db-spatial-bi;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
     username: dbmaster
-    # 비밀번호는 보안상 Azure Web App의 환경변수(DB_PASSWORD)에서 가져옵니다.
     password: ${DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver

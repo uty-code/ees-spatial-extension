@@ -7,6 +7,17 @@
 version: '3.8'
 
 services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ees_mssql
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=LocalPassword123!
+      - MSSQL_PID=Developer
+    volumes:
+      - ees_mssql_data:/var/opt/mssql
   jenkins:
     image: jenkins/jenkins:lts-jdk21
     container_name: jenkins

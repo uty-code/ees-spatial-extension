@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     environment {
-        ACR_NAME = 'eesregistry' 
+        ACR_NAME = 'acrspatialbiees' 
         ACR_URL = "${ACR_NAME}.azurecr.io"
         IMAGE_NAME = 'ees-eval-app'
-        RESOURCE_GROUP = 'EES-ResourceGroup'
-        APP_NAME = 'ees-eval-hk' 
+        RESOURCE_GROUP = 'rg-spatial-bi-ees'
+        APP_NAME = 'webapp-spatial-bi-ees' 
         TAG = "${env.BUILD_NUMBER}"
         AZURE_CRED_ID = 'ees-azure-creds' 
     }
