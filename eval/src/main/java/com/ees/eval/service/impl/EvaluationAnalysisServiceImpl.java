@@ -43,16 +43,20 @@ public class EvaluationAnalysisServiceImpl implements EvaluationAnalysisService 
             // 프론트엔드 매핑용 필드 설정
             dto.setBaseScore(op != null ? op : BigDecimal.ZERO);
             
+            // 1. Calculate weighted base score
+            BigDecimal finalScore = dtoFinalScore(dto);
+            dto.setBaseScore(finalScore);
+
+            // 2. Apply spatial correction
+            DensityDTO density = spatialAnalysisService.calculateDensityByEmpId(dto.getEmpId());
+            BigDecimal coefficient = spatialAnalysisService.getDifficultyCoefficient(density.getDensityLevel());
+            BigDecimal adjustedScore = spatialAnalysisService.calculateCappedScore(finalScore, coefficient, density.getDensityLevel());
+            dto.setFinalScore(adjustedScore);
+
+            // 3. Status determination
             if (op != null && ma != null) {
                 BigDecimal gapValue = ma.subtract(op).abs();
-                dto.setGap(ma.subtract(op)); // Actual gap (Manager - Operational)
-                
-                // 최종 점수 계산 (60:40 가중치)
-                BigDecimal finalScore = op.multiply(new BigDecimal("0.6"))
-                        .add(ma.multiply(new BigDecimal("0.4")))
-                        .setScale(1, RoundingMode.HALF_UP);
-                dto.setFinalScore(finalScore);
-                
+                dto.setGap(ma.subtract(op));
                 if (gapValue.compareTo(new BigDecimal("30.0")) >= 0) {
                     dto.setStatus("ANOMALY");
                 } else if (gapValue.compareTo(GAP_THRESHOLD) >= 0) {
@@ -61,7 +65,6 @@ public class EvaluationAnalysisServiceImpl implements EvaluationAnalysisService 
                     dto.setStatus("NORMAL");
                 }
             } else {
-                dto.setFinalScore(op != null ? op : BigDecimal.ZERO);
                 dto.setStatus("PENDING");
                 dto.setGap(BigDecimal.ZERO);
             }
