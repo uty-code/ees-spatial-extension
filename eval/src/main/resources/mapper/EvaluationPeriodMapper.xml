@@ -71,7 +71,7 @@
             is_deleted, version, created_at, created_by
         ) values (
             #{periodYear}, #{periodName}, #{statusCode},
-            #{startDate}, #{endDate},
+            #{startDate, jdbcType=DATE}, #{endDate, jdbcType=DATE},
             #{isDeleted}, #{version}, #{createdAt}, #{createdBy}
         )
     </insert>
@@ -82,8 +82,8 @@
         set period_year = #{periodYear},
             period_name = #{periodName},
             status_code = #{statusCode},
-            start_date  = #{startDate},
-            end_date    = #{endDate},
+            start_date  = #{startDate, jdbcType=DATE},
+            end_date    = #{endDate, jdbcType=DATE},
             version     = #{version} + 1,
             updated_at  = #{updatedAt},
             updated_by  = #{updatedBy}

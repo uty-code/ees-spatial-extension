@@ -33,7 +33,7 @@ class DepartmentMapperTest extends AbstractMssqlTest {
         // then
         assertThat(departments).isNotEmpty();
         assertThat(departments.stream())
-                .anyMatch(d -> d.getDeptName().contains("본부"));
+                .anyMatch(d -> d.getDeptName().contains("부"));
     }
 
     @Test

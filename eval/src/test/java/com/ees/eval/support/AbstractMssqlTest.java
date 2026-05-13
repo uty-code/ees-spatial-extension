@@ -35,7 +35,7 @@ public abstract class AbstractMssqlTest {
         // 모든 테스트에서 운영 스키마/데이터를 자동으로 초기화하도록 설정
         registry.add("spring.sql.init.mode", () -> "always");
         registry.add("spring.sql.init.schema-locations", () -> "classpath:eval-schema.sql");
-        registry.add("spring.sql.init.data-locations", () -> "classpath:eval-data.sql");
+        registry.add("spring.sql.init.data-locations", () -> "classpath:seed_data.sql");
         registry.add("spring.sql.init.encoding", () -> "UTF-8");
         
         // H2 자동 구성을 방지하기 위해 드라이버를 명시적으로 고정

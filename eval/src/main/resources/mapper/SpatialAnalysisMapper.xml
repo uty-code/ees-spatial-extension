@@ -4,6 +4,7 @@
 <mapper namespace="com.ees.eval.mapper.SpatialAnalysisMapper">
 
     <select id="countNearbySameBrandBranches" resultType="int">
+        SET NOCOUNT ON;
         DECLARE @targetLocation GEOGRAPHY;
         DECLARE @targetBrandId BIGINT;
         
@@ -26,10 +27,19 @@
         WHERE emp_id = #{empId} 
           AND is_deleted = 'n'
     </select>
+
+    <select id="findRegionTypeByBranchId" resultType="com.ees.eval.domain.RegionType">
+        SELECT region_type 
+        FROM branches_51 
+        WHERE branch_id = #{branchId}
+          AND is_deleted = 'n'
+    </select>
+
     <select id="findAllBranchSpatialData" resultType="com.ees.eval.dto.HeatMapDTO">
         SELECT 
             b.branch_id as branchId,
             b.branch_name as branchName,
+            b.region_type as regionType,
             b.latitude as lat,
             b.longitude as lng,
             e.score as score,

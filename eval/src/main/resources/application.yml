@@ -35,7 +35,7 @@ spring:
     init:
       mode: never
       schema-locations: classpath:eval-schema.sql
-      data-locations: classpath:truncate_data.sql, classpath:eval-data.sql
+      data-locations: classpath:truncate_data.sql, classpath:seed_data.sql
       encoding: UTF-8
 
 mybatis:

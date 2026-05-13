@@ -27,6 +27,12 @@ class SpatialAnalysisServiceTest {
     @Mock
     private EvaluationAnalysisService evaluationAnalysisService;
 
+    @Mock
+    private DensityCalculationService densityCalculationService;
+
+    @Mock
+    private DifficultyEvaluationService difficultyEvaluationService;
+
     @InjectMocks
     private SpatialAnalysisServiceImpl spatialAnalysisService;
 
@@ -51,7 +57,10 @@ class SpatialAnalysisServiceTest {
                 .willReturn(List.of()); // Empty gap list for simplicity
 
         given(spatialAnalysisMapper.countNearbySameBrandBranches(anyLong(), anyDouble()))
-                .willReturn(7); // HIGH density
+                .willReturn(7);
+
+        given(densityCalculationService.determineDensityLevel(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(7)))
+                .willReturn("HIGH");
 
         // when
         List<HeatMapDTO> results = spatialAnalysisService.getHeatMapData(periodId);

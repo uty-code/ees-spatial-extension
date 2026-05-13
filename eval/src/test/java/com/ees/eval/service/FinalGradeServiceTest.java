@@ -38,6 +38,8 @@ class FinalGradeServiceTest {
     private EvaluationElementService elementService;
     @Mock
     private EvaluationTypeWeightService typeWeightService;
+    @Mock
+    private com.ees.eval.mapper.DepartmentMapper departmentMapper;
 
     @InjectMocks
     private FinalGradeServiceImpl finalGradeService;
@@ -82,6 +84,8 @@ class FinalGradeServiceTest {
         selfMapping.setEvaluateeId(evaluateeId);
         selfMapping.setRelationTypeCode("SELF");
         given(mappingMapper.findByEvaluateeIds(eq(periodId), anyList())).willReturn(List.of(task, selfMapping));
+
+        given(departmentMapper.findAll()).willReturn(Collections.emptyList());
 
         given(evaluationMapper.findByMappingIds(anyList())).willReturn(Collections.emptyList());
         given(elementService.getElementsByPeriodId(any(), any())).willReturn(Collections.emptyList());

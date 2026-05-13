@@ -100,6 +100,7 @@ public class EvaluationAnalysisServiceImpl implements EvaluationAnalysisService 
             // 4. Spatial Context
             DensityDTO density = spatialAnalysisService.calculateDensityByEmpId(gapDto.getEmpId());
             BigDecimal coefficient = spatialAnalysisService.getDifficultyCoefficient(density.getDensityLevel());
+            BigDecimal adjustedScore = spatialAnalysisService.calculateCappedScore(finalScore, coefficient, density.getDensityLevel());
 
             // 5. Snapshot check
             Long opMappingId = evaluatorMappingMapper.findByUniqueKey(periodId, gapDto.getEmpId(), 1000L, "OPERATIONAL")
@@ -111,7 +112,8 @@ public class EvaluationAnalysisServiceImpl implements EvaluationAnalysisService 
                     .empId(gapDto.getEmpId())
                     .empName(gapDto.getEmpName())
                     .branchName(gapDto.getBranchName()) // 추가: 지점명 매핑
-                    .finalScore(finalScore)
+                    .finalScore(adjustedScore)
+                    .baseScore(finalScore)
                     .riskLevel(riskLevel)
                     .gap(gapDto.getGap())
                     .snapshotAvailable(snapshotExists)

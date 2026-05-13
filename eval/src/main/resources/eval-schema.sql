@@ -31,6 +31,7 @@ drop table if exists departments_51;
 drop table if exists roles_51;
 drop table if exists positions_51;
 drop table if exists common_codes_51;
+drop table if exists api_logs_51;
 
 -- ==========================================
 -- 1. 기초 시스템 데이터
@@ -318,6 +319,7 @@ create table final_grades_51
     emp_id bigint not null,
     total_score int,
     final_grade_code varchar(50),
+    spatial_snapshot nvarchar(max), -- Immutable Audit 저장소 (JSON)
     is_deleted char(1) default 'n',
     version int default 0,
     created_at datetime default getdate(),
@@ -350,6 +352,7 @@ CREATE TABLE branches_51 (
     -- WGS84(EPSG:4326) 좌표계를 사용하여 카카오맵과 완벽하게 호환되는 geography 타입
     location         AS GEOGRAPHY::Point(latitude, longitude, 4326) PERSISTED,
     region_code      VARCHAR(10),
+    region_type      VARCHAR(20)    DEFAULT 'GENERAL_CITY', -- 실무형 공간 밀도 평가 정책용 (URBAN_CORE, GENERAL_CITY, SUBURBAN)
     operating_status VARCHAR(20)    DEFAULT 'OPERATING', -- 운영 상태 추적 (폐점률, 생존율 분석용)
     opened_at        DATETIME,
     closed_at        DATETIME,
@@ -360,7 +363,8 @@ CREATE TABLE branches_51 (
     updated_at       DATETIME,
     updated_by       BIGINT,
     CONSTRAINT FK_branch_brand FOREIGN KEY (brand_id) REFERENCES brands_51(brand_id),
-    CONSTRAINT UK_BRANCH UNIQUE (brand_id, branch_name, address) -- 중복 삽입 방지 제약조건
+    CONSTRAINT UK_BRANCH UNIQUE (brand_id, branch_name, address), -- 중복 삽입 방지 제약조건
+    CONSTRAINT CK_BRANCH_REGION_TYPE CHECK (region_type IN ('URBAN_CORE', 'GENERAL_CITY', 'SUBURBAN')) -- 허용된 값 검증
 );
 
 -- 반경 검색 등 공간 쿼리의 성능 최적화를 위한 Spatial Index 생성

@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 public class HeatMapDTO {
     private Long branchId;
     private String branchName;
+    private com.ees.eval.domain.RegionType regionType;
     private Double lat;
     private Double lng;
     private String densityLevel;

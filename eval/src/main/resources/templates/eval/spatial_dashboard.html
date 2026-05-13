@@ -139,7 +139,37 @@
                         this.clusterer = new kakao.maps.MarkerClusterer({
                             map: this.map,
                             averageCenter: true,
-                            minLevel: 6
+                            minLevel: 6,
+                            calculator: [function(cluster) {
+                                const markers = cluster.getMarkers();
+                                const count = markers.length;
+                                if (count < 3) return 0; // GREEN
+                                const riskScore = markers.reduce((sum, marker) => {
+                                    const riskLevel = marker.getRiskLevel?.() || 'NORMAL';
+                                    return sum + (riskLevel === 'ANOMALY' ? 2 : riskLevel === 'WARNING' ? 1 : 0);
+                                }, 0);
+                                const riskRatio = riskScore / count;
+                                if (riskRatio >= 0.7) return 2; // RED
+                                if (riskRatio >= 0.3) return 1; // AMBER
+                                return 0; // GREEN
+                            }],
+                            styles: [
+                                {
+                                    width: '40px', height: '40px',
+                                    background: 'rgba(9, 132, 227, 0.8)',
+                                    color: '#fff', textAlign: 'center', fontWeight: 'bold', lineHeight: '40px', borderRadius: '20px'
+                                },
+                                {
+                                    width: '50px', height: '50px',
+                                    background: 'rgba(255, 159, 67, 0.8)',
+                                    color: '#fff', textAlign: 'center', fontWeight: 'bold', lineHeight: '50px', borderRadius: '25px'
+                                },
+                                {
+                                    width: '60px', height: '60px',
+                                    background: 'rgba(255, 75, 75, 0.8)',
+                                    color: '#fff', textAlign: 'center', fontWeight: 'bold', lineHeight: '60px', borderRadius: '30px'
+                                }
+                            ]
                         });
                         
                         // Force relayout after short delays to fix black map issue in flex/hidden containers
@@ -185,6 +215,21 @@
                             fetch(`/api/evaluations/gap-analysis?periodId=${this.state.periodId}`)
                         ]);
                         
+                        // Check for session expiration or non-JSON responses (e.g. 500 HTML errors)
+                        for (const res of [hRes, kRes, gRes]) {
+                            const contentType = res.headers.get("content-type");
+                            
+                            // If the response is HTML, it's either the login page (session expired) or a 500 error page
+                            if (contentType && contentType.includes("text/html")) {
+                                window.location.href = '/login?expired=true';
+                                return;
+                            }
+                            
+                            if (!res.ok || !contentType || !contentType.includes("application/json")) {
+                                throw new Error(`API Error. Status: ${res.status}`);
+                            }
+                        }
+                        
                         const hData = await hRes.json();
                         const kData = await kRes.json();
                         const gData = await gRes.json();
@@ -215,7 +260,8 @@
 
                     document.getElementById('kpi-avg-score').innerText = avgScore.toFixed(1);
                     document.getElementById('kpi-risk-count').innerText = `${anomalyCount} / ${warningCount}`;
-                    document.getElementById('kpi-spatial-ratio').innerText = `x${(spatialAdjustedCount / count + 1).toFixed(2)}`;
+                    const avgMultiplier = data.reduce((acc, curr) => acc + (curr.difficultyCoefficient || 1), 0) / count;
+                    document.getElementById('kpi-spatial-ratio').innerText = `x${avgMultiplier.toFixed(2)}`;
                 },
 
                 renderMarkers(data) {
@@ -226,11 +272,17 @@
                     const bounds = new kakao.maps.LatLngBounds();
                     let hasMarkers = false;
 
+                    // SVG Data URLs for reliable markers (Base64 encoded for reliability)
+                    const createMarkerSvg = (color) => {
+                        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3" fill="white"></circle></svg>`;
+                        return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+                    };
+
                     const markerIcons = {
-                        HIGH: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
-                        MID: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_orange.png',
-                        LOW: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_black.png',
-                        DEFAULT: 'https://t1.daumcdn.net/localimg/localimages/07/2011/marker_blue.png'
+                        HIGH: createMarkerSvg('#FF4B4B'),
+                        MID: createMarkerSvg('#FF9F43'),
+                        LOW: createMarkerSvg('#0984E3'),
+                        DEFAULT: createMarkerSvg('#636E72')
                     };
 
                     this.markers = data.map(item => {
@@ -238,12 +290,17 @@
                         
                         // Use densityLevel as a proxy for color for now
                         const iconUrl = markerIcons[item.densityLevel] || markerIcons.DEFAULT;
-                        const image = new kakao.maps.MarkerImage(iconUrl, new kakao.maps.Size(24, 35));
+                        const imageSize = new kakao.maps.Size(36, 36);
+                        const imageOption = {offset: new kakao.maps.Point(18, 36)};
+                        const image = new kakao.maps.MarkerImage(iconUrl, imageSize, imageOption);
                         
                         const marker = new kakao.maps.Marker({ 
                             position: pos,
                             image: image
                         });
+
+                        // Inject risk level for cluster calculator
+                        marker.getRiskLevel = () => item.riskLevel;
                         
                         kakao.maps.event.addListener(marker, 'click', () => this.showDetail(item.branchId));
                         

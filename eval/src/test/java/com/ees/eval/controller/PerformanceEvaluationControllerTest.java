@@ -120,7 +120,7 @@ class PerformanceEvaluationControllerTest {
         emp.setEmpId(empId);
         emp.setDeptId(1L);
 
-        given(periodService.getAllPeriods()).willReturn(Collections.singletonList(period));
+        given(periodService.getInProgressPeriods()).willReturn(Collections.singletonList(period));
         given(periodService.getPeriodById(periodId)).willReturn(period);
         given(employeeMapper.findById(empId)).willReturn(Optional.of(emp));
 

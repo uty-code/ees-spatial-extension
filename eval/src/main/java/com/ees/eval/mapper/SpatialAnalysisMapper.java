@@ -15,6 +15,11 @@ public interface SpatialAnalysisMapper {
     int countNearbySameBrandBranches(@Param("branchId") Long branchId, @Param("radius") double radius);
 
     /**
+     * 특정 지점의 Region Type을 조회합니다.
+     */
+    com.ees.eval.domain.RegionType findRegionTypeByBranchId(@Param("branchId") Long branchId);
+
+    /**
      * 특정 사원이 담당하는 지점 ID를 조회합니다.
      * 
      * @param empId 사원 ID

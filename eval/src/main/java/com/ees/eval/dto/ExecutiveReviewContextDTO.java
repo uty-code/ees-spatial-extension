@@ -14,6 +14,7 @@ public class ExecutiveReviewContextDTO {
     private String empName;
     private String branchName; // 추가: 지점명
     private BigDecimal finalScore;
+    private BigDecimal baseScore; // 공간 보정 전 원본 점수
     private String riskLevel; // LOW, MEDIUM, HIGH
     private BigDecimal gap;
     private boolean snapshotAvailable;

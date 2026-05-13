@@ -5,92 +5,139 @@
 
 -- 1. Positions
 SET IDENTITY_INSERT positions_51 ON;
-INSERT INTO positions_51 (position_id, position_name, hierarchy_level, weight_base) VALUES (1, N'관리자', 0, 1.0);
-INSERT INTO positions_51 (position_id, position_name, hierarchy_level, weight_base) VALUES (2, N'매니저', 1, 0.8);
+INSERT INTO positions_51 (position_id, position_name, hierarchy_level, weight_base) VALUES (1, N'사원', 0, 1.0);
+INSERT INTO positions_51 (position_id, position_name, hierarchy_level, weight_base) VALUES (2, N'대리', 1, 0.8);
+INSERT INTO positions_51 (position_id, position_name, hierarchy_level, weight_base) VALUES (3, N'과장', 2, 0.6);
+INSERT INTO positions_51 (position_id, position_name, hierarchy_level, weight_base) VALUES (4, N'차장', 3, 0.5);
+INSERT INTO positions_51 (position_id, position_name, hierarchy_level, weight_base) VALUES (5, N'부장', 4, 0.4);
+INSERT INTO positions_51 (position_id, position_name, hierarchy_level, weight_base) VALUES (6, N'임원', 5, 0.3);
 SET IDENTITY_INSERT positions_51 OFF;
-GO
 
 -- 2. Roles
 SET IDENTITY_INSERT roles_51 ON;
 INSERT INTO roles_51 (role_id, role_name, description) VALUES (1, 'ROLE_USER', N'일반 사원');
-INSERT INTO roles_51 (role_id, role_name, description) VALUES (2, 'ROLE_MANAGER', N'부서장');
+INSERT INTO roles_51 (role_id, role_name, description) VALUES (2, 'ROLE_MANAGER', N'부점장');
 INSERT INTO roles_51 (role_id, role_name, description) VALUES (3, 'ROLE_EXECUTIVE', N'임원');
-INSERT INTO roles_51 (role_id, role_name, description) VALUES (4, 'ROLE_ADMIN', N'시스템 관리자');
+INSERT INTO roles_51 (role_id, role_name, description) VALUES (4, 'ROLE_ADMIN', N'시스템 최고관리자');
 SET IDENTITY_INSERT roles_51 OFF;
-GO
 
 -- 3. Departments
 SET IDENTITY_INSERT departments_51 ON;
-INSERT INTO departments_51 (dept_id, dept_name) VALUES (1, N'전략기획팀');
-INSERT INTO departments_51 (dept_id, dept_name) VALUES (2, N'운영팀');
+INSERT INTO departments_51 (dept_id, dept_name) VALUES (1, N'전략기획부');
+INSERT INTO departments_51 (dept_id, dept_name) VALUES (2, N'영업부');
 SET IDENTITY_INSERT departments_51 OFF;
-GO
 
 -- 4. Employees (BCrypt hash for '1234')
-INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code)
-VALUES (1000, 1, 1, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'슈퍼관리자', 'employed');
-
-DECLARE @i INT = 5101;
-WHILE @i <= 5110
-BEGIN
-    INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code)
-    VALUES (@i, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장' + CAST(@i AS NVARCHAR), 'employed');
-    SET @i = @i + 1;
-END;
-GO
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (1000, 1, 1, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'슈퍼관리자', 'employed');
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (5101, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장5101', 'employed');
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (5102, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장5102', 'employed');
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (5103, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장5103', 'employed');
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (5104, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장5104', 'employed');
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (5105, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장5105', 'employed');
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (5106, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장5106', 'employed');
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (5107, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장5107', 'employed');
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (5108, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장5108', 'employed');
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (5109, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장5109', 'employed');
+INSERT INTO employees_51 (emp_id, dept_id, position_id, password, name, status_code) VALUES (5110, 2, 2, '$2a$10$vB.zgC2I/sbrLjutHjLgrerS5R.wU9g/wno3yT764HANYlg8ivz5y', N'지점장5110', 'employed');
 
 -- 5. Employee Roles
-INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (1000, 4); -- ROLE_ADMIN
-
-DECLARE @j INT = 5101;
-WHILE @j <= 5110
-BEGIN
-    INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (@j, 2); -- ROLE_MANAGER
-    SET @j = @j + 1;
-END;
-GO
-
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (1000, 4);
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (5101, 2);
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (5102, 2);
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (5103, 2);
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (5104, 2);
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (5105, 2);
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (5106, 2);
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (5107, 2);
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (5108, 2);
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (5109, 2);
+INSERT INTO employee_roles_51 (emp_id, role_id) VALUES (5110, 2);
 -- 6. Brands & Branches
 SET IDENTITY_INSERT brands_51 ON;
-INSERT INTO brands_51 (brand_id, brand_name) VALUES (1, N'EES 프레시');
+INSERT INTO brands_51 (brand_id, brand_name) VALUES (1, N'EES 프랜차이즈');
 SET IDENTITY_INSERT brands_51 OFF;
 
 -- Evaluation Period
 SET IDENTITY_INSERT evaluation_periods_51 ON;
-INSERT INTO evaluation_periods_51 (period_id, period_year, period_name, status_code) VALUES (1, 2024, N'2024년 상반기 공간분석', 'IN_PROGRESS');
+INSERT INTO evaluation_periods_51 (period_id, period_year, period_name, status_code) VALUES (1, 2024, N'2024년 하반기 공간분석', 'IN_PROGRESS');
 SET IDENTITY_INSERT evaluation_periods_51 OFF;
 
 -- Evaluation Element
 SET IDENTITY_INSERT evaluation_elements_51 ON;
 INSERT INTO evaluation_elements_51 (element_id, period_id, element_type_code, element_name, max_score, weight) VALUES (1, 1, 'OPERATIONAL', N'매장 관리 상태', 100, 1.0);
 SET IDENTITY_INSERT evaluation_elements_51 OFF;
-GO
 
 -- 7. Branches + Performance + Managers + Evaluations
-DECLARE @k INT = 1;
-WHILE @k <= 10
-BEGIN
-    SET IDENTITY_INSERT branches_51 ON;
-    INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude)
-    VALUES (@k, 1, N'EES 테스트 ' + CAST(@k AS NVARCHAR) + N'호점', N'서울시 강남구 역삼동 ' + CAST(@k AS NVARCHAR), 37.498 + (@k * 0.001), 127.027 + (@k * 0.001));
-    SET IDENTITY_INSERT branches_51 OFF;
-    
-    INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score)
-    VALUES (@k, 2024, 1, 80 + @k);
-    
-    INSERT INTO branch_managers_51 (branch_id, emp_id)
-    VALUES (@k, 5100 + @k);
-    
-    INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code)
-    VALUES (1, 5100 + @k, 5100 + @k, 'OPERATIONAL');
-    
-    INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code)
-    VALUES (@k, 1, 85 + @k, 'CONFIRMED');
-    
-    SET @k = @k + 1;
-END;
-GO
-
+SET IDENTITY_INSERT branches_51 ON;
+INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude, region_type) VALUES (1, 1, N'EES 테스트1호점', N'서울시 강남구 테헤란로 1', 37.499, 127.028, 'URBAN_CORE');
+SET IDENTITY_INSERT branches_51 OFF;
+INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score) VALUES (1, 2024, 1, 81);
+INSERT INTO branch_managers_51 (branch_id, emp_id) VALUES (1, 5101);
+INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code) VALUES (1, 5101, 5101, 'OPERATIONAL');
+INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code) VALUES (1, 1, 86, 'CONFIRMED');
+SET IDENTITY_INSERT branches_51 ON;
+INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude, region_type) VALUES (2, 1, N'EES 테스트2호점', N'서울시 강남구 테헤란로 2', 37.5, 127.029, 'URBAN_CORE');
+SET IDENTITY_INSERT branches_51 OFF;
+INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score) VALUES (2, 2024, 1, 82);
+INSERT INTO branch_managers_51 (branch_id, emp_id) VALUES (2, 5102);
+INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code) VALUES (1, 5102, 5102, 'OPERATIONAL');
+INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code) VALUES (2, 1, 87, 'CONFIRMED');
+SET IDENTITY_INSERT branches_51 ON;
+INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude, region_type) VALUES (3, 1, N'EES 테스트3호점', N'서울시 강남구 테헤란로 3', 37.501, 127.03, 'URBAN_CORE');
+SET IDENTITY_INSERT branches_51 OFF;
+INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score) VALUES (3, 2024, 1, 83);
+INSERT INTO branch_managers_51 (branch_id, emp_id) VALUES (3, 5103);
+INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code) VALUES (1, 5103, 5103, 'OPERATIONAL');
+INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code) VALUES (3, 1, 88, 'CONFIRMED');
+SET IDENTITY_INSERT branches_51 ON;
+INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude, region_type) VALUES (4, 1, N'EES 테스트4호점', N'서울시 강남구 테헤란로 4', 37.502, 127.031, 'GENERAL_CITY');
+SET IDENTITY_INSERT branches_51 OFF;
+INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score) VALUES (4, 2024, 1, 84);
+INSERT INTO branch_managers_51 (branch_id, emp_id) VALUES (4, 5104);
+INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code) VALUES (1, 5104, 5104, 'OPERATIONAL');
+INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code) VALUES (4, 1, 89, 'CONFIRMED');
+SET IDENTITY_INSERT branches_51 ON;
+INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude, region_type) VALUES (5, 1, N'EES 테스트5호점', N'서울시 강남구 테헤란로 5', 37.503, 127.032, 'GENERAL_CITY');
+SET IDENTITY_INSERT branches_51 OFF;
+INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score) VALUES (5, 2024, 1, 85);
+INSERT INTO branch_managers_51 (branch_id, emp_id) VALUES (5, 5105);
+INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code) VALUES (1, 5105, 5105, 'OPERATIONAL');
+INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code) VALUES (5, 1, 90, 'CONFIRMED');
+SET IDENTITY_INSERT branches_51 ON;
+INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude, region_type) VALUES (6, 1, N'EES 테스트6호점', N'서울시 강남구 테헤란로 6', 37.504, 127.033, 'GENERAL_CITY');
+SET IDENTITY_INSERT branches_51 OFF;
+INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score) VALUES (6, 2024, 1, 86);
+INSERT INTO branch_managers_51 (branch_id, emp_id) VALUES (6, 5106);
+INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code) VALUES (1, 5106, 5106, 'OPERATIONAL');
+INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code) VALUES (6, 1, 91, 'CONFIRMED');
+SET IDENTITY_INSERT branches_51 ON;
+INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude, region_type) VALUES (7, 1, N'EES 테스트7호점', N'서울시 강남구 테헤란로 7', 37.505, 127.034, 'SUBURBAN');
+SET IDENTITY_INSERT branches_51 OFF;
+INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score) VALUES (7, 2024, 1, 87);
+INSERT INTO branch_managers_51 (branch_id, emp_id) VALUES (7, 5107);
+INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code) VALUES (1, 5107, 5107, 'OPERATIONAL');
+INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code) VALUES (7, 1, 92, 'CONFIRMED');
+SET IDENTITY_INSERT branches_51 ON;
+INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude, region_type) VALUES (8, 1, N'EES 테스트8호점', N'서울시 강남구 테헤란로 8', 37.506, 127.035, 'SUBURBAN');
+SET IDENTITY_INSERT branches_51 OFF;
+INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score) VALUES (8, 2024, 1, 88);
+INSERT INTO branch_managers_51 (branch_id, emp_id) VALUES (8, 5108);
+INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code) VALUES (1, 5108, 5108, 'OPERATIONAL');
+INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code) VALUES (8, 1, 93, 'CONFIRMED');
+SET IDENTITY_INSERT branches_51 ON;
+INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude, region_type) VALUES (9, 1, N'EES 테스트9호점', N'서울시 강남구 테헤란로 9', 37.507, 127.036, 'SUBURBAN');
+SET IDENTITY_INSERT branches_51 OFF;
+INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score) VALUES (9, 2024, 1, 89);
+INSERT INTO branch_managers_51 (branch_id, emp_id) VALUES (9, 5109);
+INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code) VALUES (1, 5109, 5109, 'OPERATIONAL');
+INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code) VALUES (9, 1, 94, 'CONFIRMED');
+SET IDENTITY_INSERT branches_51 ON;
+INSERT INTO branches_51 (branch_id, brand_id, branch_name, address, latitude, longitude, region_type) VALUES (10, 1, N'EES 테스트10호점', N'서울시 강남구 테헤란로 10', 37.508, 127.037, 'GENERAL_CITY');
+SET IDENTITY_INSERT branches_51 OFF;
+INSERT INTO branch_performance_51 (branch_id, perf_year, perf_quarter, composite_score) VALUES (10, 2024, 1, 90);
+INSERT INTO branch_managers_51 (branch_id, emp_id) VALUES (10, 5110);
+INSERT INTO evaluator_mappings_51 (period_id, evaluatee_id, evaluator_id, relation_type_code) VALUES (1, 5110, 5110, 'OPERATIONAL');
+INSERT INTO evaluations_51 (mapping_id, element_id, score, confirm_status_code) VALUES (10, 1, 95, 'CONFIRMED');
 -- 8. Verify
 SELECT 'SEED COMPLETE' AS Result;
 SELECT emp_id, name, LEFT(password, 10) AS pw_check, status_code FROM employees_51;

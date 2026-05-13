@@ -1,9 +1,12 @@
 package com.ees.eval.service.impl;
 
+import com.ees.eval.domain.RegionType;
 import com.ees.eval.dto.DensityDTO;
 import com.ees.eval.dto.HeatMapDTO;
 import com.ees.eval.dto.EvaluationGapDTO;
 import com.ees.eval.mapper.SpatialAnalysisMapper;
+import com.ees.eval.service.DensityCalculationService;
+import com.ees.eval.service.DifficultyEvaluationService;
 import com.ees.eval.service.SpatialAnalysisService;
 import com.ees.eval.service.EvaluationAnalysisService;
 import lombok.RequiredArgsConstructor;
@@ -20,31 +23,40 @@ public class SpatialAnalysisServiceImpl implements SpatialAnalysisService {
 
     private final SpatialAnalysisMapper spatialAnalysisMapper;
     private final EvaluationAnalysisService evaluationAnalysisService;
+    private final DensityCalculationService densityCalculationService;
+    private final DifficultyEvaluationService difficultyEvaluationService;
 
-    public SpatialAnalysisServiceImpl(SpatialAnalysisMapper spatialAnalysisMapper, @Lazy EvaluationAnalysisService evaluationAnalysisService) {
+    public SpatialAnalysisServiceImpl(
+            SpatialAnalysisMapper spatialAnalysisMapper, 
+            @Lazy EvaluationAnalysisService evaluationAnalysisService,
+            DensityCalculationService densityCalculationService,
+            DifficultyEvaluationService difficultyEvaluationService) {
         this.spatialAnalysisMapper = spatialAnalysisMapper;
         this.evaluationAnalysisService = evaluationAnalysisService;
+        this.densityCalculationService = densityCalculationService;
+        this.difficultyEvaluationService = difficultyEvaluationService;
     }
-
-    private static final double DEFAULT_RADIUS = 500.0; // 500 meters
 
     @Override
     public DensityDTO calculateDensity(Long branchId) {
-        int count = spatialAnalysisMapper.countNearbySameBrandBranches(branchId, DEFAULT_RADIUS);
-        
-        String level;
-        if (count >= 6) {
-            level = "HIGH";
-        } else if (count >= 3) {
-            level = "MID";
-        } else {
-            level = "LOW";
+        RegionType regionType = spatialAnalysisMapper.findRegionTypeByBranchId(branchId);
+        if (regionType == null) {
+            regionType = RegionType.GENERAL_CITY; // Fallback
         }
+        
+        int radius = regionType.getDefaultRadius();
+        int count = spatialAnalysisMapper.countNearbySameBrandBranches(branchId, radius);
+        
+        String level = densityCalculationService.determineDensityLevel(regionType, count);
+        BigDecimal difficultyCoefficient = difficultyEvaluationService.getDifficultyCoefficient(level);
 
         return DensityDTO.builder()
                 .branchId(branchId)
+                .regionType(regionType)
+                .radius(radius)
                 .nearbySameBrandCount(count)
                 .densityLevel(level)
+                .difficultyCoefficient(difficultyCoefficient)
                 .build();
     }
 
@@ -55,6 +67,7 @@ public class SpatialAnalysisServiceImpl implements SpatialAnalysisService {
             return DensityDTO.builder()
                     .nearbySameBrandCount(0)
                     .densityLevel("LOW")
+                    .difficultyCoefficient(new BigDecimal("1.00"))
                     .build();
         }
         return calculateDensity(branchId);
@@ -62,11 +75,12 @@ public class SpatialAnalysisServiceImpl implements SpatialAnalysisService {
 
     @Override
     public BigDecimal getDifficultyCoefficient(String densityLevel) {
-        switch (densityLevel) {
-            case "HIGH": return new BigDecimal("1.05");
-            case "MID": return new BigDecimal("1.02");
-            default: return new BigDecimal("1.00");
-        }
+        return difficultyEvaluationService.getDifficultyCoefficient(densityLevel);
+    }
+
+    @Override
+    public BigDecimal calculateCappedScore(BigDecimal baseScore, BigDecimal coefficient, String densityLevel) {
+        return difficultyEvaluationService.calculateCappedScore(baseScore, coefficient, densityLevel);
     }
 
     @Override
@@ -75,14 +89,25 @@ public class SpatialAnalysisServiceImpl implements SpatialAnalysisService {
         List<EvaluationGapDTO> gaps = evaluationAnalysisService.calculateGapAnalysis(periodId);
         
         Map<Long, String> riskMap = gaps.stream()
-                .collect(Collectors.toMap(EvaluationGapDTO::getEmpId, EvaluationGapDTO::getStatus));
+                .collect(Collectors.toMap(
+                        EvaluationGapDTO::getEmpId, 
+                        EvaluationGapDTO::getStatus,
+                        (v1, v2) -> v1
+                ));
 
         return spatialData.stream().map(dto -> {
             Long branchId = dto.getBranchId();
             Long empId = dto.getEmpId();
-            DensityDTO density = calculateDensity(branchId);
+            
+            // regionType is already in dto from the mapper.
+            RegionType regionType = dto.getRegionType();
+            if (regionType == null) regionType = RegionType.GENERAL_CITY;
+            
+            int radius = regionType.getDefaultRadius();
+            int count = spatialAnalysisMapper.countNearbySameBrandBranches(branchId, radius);
+            String level = densityCalculationService.determineDensityLevel(regionType, count);
 
-            dto.setDensityLevel(density.getDensityLevel());
+            dto.setDensityLevel(level);
             dto.setRiskLevel(riskMap.getOrDefault(empId, "NORMAL"));
             return dto;
         }).collect(Collectors.toList());
